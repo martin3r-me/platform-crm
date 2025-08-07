@@ -1,0 +1,19 @@
+{
+  "name": "martin3r/platform-crm",
+  "type": "library",
+  "autoload": {
+    "psr-4": {
+      "Platform\\Crm\\": "src/",
+      "Platform\\Crm\\Database\\": "database/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Platform\\Crm\\CrmServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
