@@ -17,6 +17,10 @@ class Index extends Component
     // Modal State
     public $modalShow = false;
     
+    // Sorting
+    public $sortField = 'display_name';
+    public $sortDirection = 'asc';
+    
     // Form Data
     public $name = '';
     public $legal_name = '';
@@ -50,7 +54,17 @@ class Index extends Component
 
     public function render()
     {
-        $companies = CrmCompany::with(['industry', 'legalForm', 'contactStatus'])
+        $companies = CrmCompany::with(['industry', 'legalForm', 'contactStatus', 'emailAddresses', 'phoneNumbers', 'postalAddresses', 'contactRelations.contact'])
+            ->when($this->sortField === 'display_name', function($query) {
+                $query->orderBy('name', $this->sortDirection);
+            })
+            ->when($this->sortField === 'contact_status_id', function($query) {
+                $query->join('crm_contact_statuses', 'crm_companies.contact_status_id', '=', 'crm_contact_statuses.id')
+                      ->orderBy('crm_contact_statuses.name', $this->sortDirection);
+            })
+            ->when(!in_array($this->sortField, ['display_name', 'contact_status_id']), function($query) {
+                $query->orderBy($this->sortField, $this->sortDirection);
+            })
             ->paginate(10);
             
         $industries = CrmIndustry::active()->get();
@@ -113,5 +127,15 @@ class Index extends Component
     {
         $this->modalShow = false;
         $this->resetForm();
+    }
+
+    public function sortBy($field)
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'asc';
+        }
     }
 }

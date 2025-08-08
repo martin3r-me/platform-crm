@@ -1,19 +1,23 @@
-{{-- resources/views/vendor/planner/livewire/sidebar-content.blade.php --}}
+{{-- resources/views/vendor/crm/livewire/sidebar-content.blade.php --}}
 <div>
+    {{-- Abschnitt: Allgemein --}}
     <div>
-        <h4 x-show="!collapsed" class="p-3 text-sm italic text-secondary uppercase">HR & Lohn</h4>
+        <h4 x-show="!collapsed" class="p-3 text-sm italic text-secondary uppercase">Allgemein</h4>
 
         {{-- Dashboard --}}
-        <a href="{{ route('bhgdata.dashboard') }}"
+        <a href="{{ route('crm.dashboard') }}"
            class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition"
            :class="[
-               window.location.pathname === '{{ parse_url(route('bhgdata.dashboard'), PHP_URL_PATH) }}'
+               window.location.pathname === '/' || 
+               window.location.pathname.endsWith('/crm') || 
+               window.location.pathname.endsWith('/crm/') ||
+               (window.location.pathname.split('/').length === 1 && window.location.pathname === '/')
                    ? 'bg-primary text-on-primary shadow-md'
                    : 'text-black hover:bg-primary-10 hover:text-primary hover:shadow-md',
                collapsed ? 'justify-center' : 'gap-3'
            ]"
            wire:navigate>
-            <x-heroicon-o-home class="w-6 h-6 flex-shrink-0"/>
+            <x-heroicon-o-chart-bar class="w-6 h-6 flex-shrink-0"/>
             <span x-show="!collapsed" class="truncate">Dashboard</span>
         </a>
 
@@ -21,7 +25,9 @@
         <a href="{{ route('crm.contacts.index') }}"
            class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition"
            :class="[
-               window.location.pathname === '{{ parse_url(route('crm.contacts.index'), PHP_URL_PATH) }}'
+               window.location.pathname.includes('/contacts') || 
+               window.location.pathname.endsWith('/contacts') ||
+               window.location.pathname.endsWith('/contacts/')
                    ? 'bg-primary text-on-primary shadow-md'
                    : 'text-black hover:bg-primary-10 hover:text-primary hover:shadow-md',
                collapsed ? 'justify-center' : 'gap-3'
@@ -35,7 +41,9 @@
         <a href="{{ route('crm.companies.index') }}"
            class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition"
            :class="[
-               window.location.pathname === '{{ parse_url(route('crm.companies.index'), PHP_URL_PATH) }}'
+               window.location.pathname.includes('/companies') || 
+               window.location.pathname.endsWith('/companies') ||
+               window.location.pathname.endsWith('/companies/')
                    ? 'bg-primary text-on-primary shadow-md'
                    : 'text-black hover:bg-primary-10 hover:text-primary hover:shadow-md',
                collapsed ? 'justify-center' : 'gap-3'
@@ -44,5 +52,44 @@
             <x-heroicon-o-building-office class="w-6 h-6 flex-shrink-0"/>
             <span x-show="!collapsed" class="truncate">Unternehmen</span>
         </a>
+    </div>
+
+    {{-- Abschnitt: Schnellzugriff --}}
+    <div x-show="!collapsed">
+        <h4 class="p-3 text-sm italic text-secondary uppercase">Schnellzugriff</h4>
+
+        {{-- Neueste Kontakte --}}
+        @foreach($recentContacts ?? [] as $contact)
+            <a href="{{ route('crm.contacts.show', ['contact' => $contact]) }}"
+               class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition gap-3"
+               :class="[
+                   window.location.pathname.includes('/contacts/{{ $contact->id }}/') || 
+                   window.location.pathname.endsWith('/contacts/{{ $contact->id }}') ||
+                   (window.location.pathname.split('/').length === 2 && window.location.pathname.endsWith('/{{ $contact->id }}'))
+                       ? 'bg-primary text-on-primary shadow-md'
+                       : 'text-black hover:bg-primary-10 hover:text-primary hover:shadow-md'
+               ]"
+               wire:navigate>
+                <x-heroicon-o-user class="w-6 h-6 flex-shrink-0"/>
+                <span class="truncate">{{ $contact->full_name }}</span>
+            </a>
+        @endforeach
+
+        {{-- Neueste Unternehmen --}}
+        @foreach($recentCompanies ?? [] as $company)
+            <a href="{{ route('crm.companies.show', ['company' => $company]) }}"
+               class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition gap-3"
+               :class="[
+                   window.location.pathname.includes('/companies/{{ $company->id }}/') || 
+                   window.location.pathname.endsWith('/companies/{{ $company->id }}') ||
+                   (window.location.pathname.split('/').length === 2 && window.location.pathname.endsWith('/{{ $company->id }}'))
+                       ? 'bg-primary text-on-primary shadow-md'
+                       : 'text-black hover:bg-primary-10 hover:text-primary hover:shadow-md'
+               ]"
+               wire:navigate>
+                <x-heroicon-o-building-office class="w-6 h-6 flex-shrink-0"/>
+                <span class="truncate">{{ $company->display_name }}</span>
+            </a>
+        @endforeach
     </div>
 </div>

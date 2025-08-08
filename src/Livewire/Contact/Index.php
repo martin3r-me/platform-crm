@@ -18,6 +18,10 @@ class Index extends Component
     // Modal State
     public $modalShow = false;
     
+    // Sorting
+    public $sortField = 'last_name';
+    public $sortDirection = 'asc';
+    
     // Form Data
     public $first_name = '';
     public $last_name = '';
@@ -47,7 +51,18 @@ class Index extends Component
 
     public function render()
     {
-        $contacts = CrmContact::with(['contactStatus', 'emailAddresses'])
+        $contacts = CrmContact::with(['contactStatus', 'emailAddresses', 'phoneNumbers', 'postalAddresses', 'contactRelations.company'])
+            ->when($this->sortField === 'last_name', function($query) {
+                $query->orderBy('last_name', $this->sortDirection)
+                      ->orderBy('first_name', $this->sortDirection);
+            })
+            ->when($this->sortField === 'contact_status_id', function($query) {
+                $query->join('crm_contact_statuses', 'crm_contacts.contact_status_id', '=', 'crm_contact_statuses.id')
+                      ->orderBy('crm_contact_statuses.name', $this->sortDirection);
+            })
+            ->when(!in_array($this->sortField, ['last_name', 'contact_status_id']), function($query) {
+                $query->orderBy($this->sortField, $this->sortDirection);
+            })
             ->paginate(10);
             
         $salutations = CrmSalutation::active()->get();
@@ -110,5 +125,15 @@ class Index extends Component
     {
         $this->modalShow = false;
         $this->resetForm();
+    }
+
+    public function sortBy($field)
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'asc';
+        }
     }
 }

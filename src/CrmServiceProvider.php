@@ -25,6 +25,8 @@ class CrmServiceProvider extends ServiceProvider
     {
         // Schritt 1: Config laden
         $this->mergeConfigFrom(__DIR__.'/../config/crm.php', 'crm');
+        
+
 
         // Schritt 2: Existenzprüfung (config jetzt verfügbar)
         if (
@@ -101,4 +103,6 @@ class CrmServiceProvider extends ServiceProvider
             Livewire::component($alias, $class);
         }
     }
+    
+
 }

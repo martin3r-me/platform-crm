@@ -15,5 +15,9 @@
     }
   },
   "minimum-stability": "dev",
-  "prefer-stable": true
+  "prefer-stable": true,
+  "require": {
+    "propaganistas/laravel-phone": "^6.0",
+    "giggsey/libphonenumber-for-php": "^9.0"
+  }
 }

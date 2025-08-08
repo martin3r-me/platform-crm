@@ -36,6 +36,7 @@ class CrmLookupSeeder extends Seeder
             CrmIndustrySeeder::class,
             CrmCountrySeeder::class,
             CrmStateSeeder::class,
+            CrmContactRelationTypeSeeder::class,
         ]);
     }
 } 

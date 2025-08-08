@@ -3,13 +3,17 @@
 namespace Platform\Crm\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Platform\ActivityLog\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Symfony\Component\Uid\UuidV7;
+use Platform\Crm\Models\CrmContactRelation;
 
 class CrmContact extends Model
 {
+    use LogsActivity;
+    
     protected $table = 'crm_contacts';
     
     protected $fillable = [
@@ -114,7 +118,15 @@ class CrmContact extends Model
     }
     
     /**
-     * Beziehungen zu Unternehmen
+     * Kontakt-Beziehungen zu Unternehmen
+     */
+    public function contactRelations(): HasMany
+    {
+        return $this->hasMany(CrmContactRelation::class, 'contact_id');
+    }
+    
+    /**
+     * Unternehmen-Beziehungen (veraltet, verwende contactRelations)
      */
     public function companyRelations(): HasMany
     {
