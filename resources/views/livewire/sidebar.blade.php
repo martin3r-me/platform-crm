@@ -1,5 +1,8 @@
 {{-- resources/views/vendor/crm/livewire/sidebar-content.blade.php --}}
 <div>
+    {{-- Modul Header --}}
+    <x-sidebar-module-header module-name="CRM" />
+    
     {{-- Abschnitt: Allgemein --}}
     <div>
         <h4 x-show="!collapsed" class="p-3 text-sm italic text-secondary uppercase">Allgemein</h4>

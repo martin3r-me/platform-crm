@@ -4,15 +4,17 @@ namespace Platform\Crm\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Platform\ActivityLog\Traits\LogsActivity;
+use Platform\Media\Traits\HasMedia;
+use Platform\Crm\Contracts\CompanyInterface;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Symfony\Component\Uid\UuidV7;
 use Platform\Crm\Models\CrmContactRelation;
 
-class CrmCompany extends Model
+class CrmCompany extends Model implements CompanyInterface
 {
-    use LogsActivity;
+    use LogsActivity, HasMedia;
     
     protected $table = 'crm_companies';
     
@@ -82,17 +84,39 @@ class CrmCompany extends Model
      */
     public function createdByUser(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'created_by_user_id');
+        return $this->belongsTo(\Platform\Core\Models\User::class, 'created_by_user_id');
     }
     
     public function ownedByUser(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'owned_by_user_id');
+        return $this->belongsTo(\Platform\Core\Models\User::class, 'owned_by_user_id');
     }
     
     public function team(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Team::class, 'team_id');
+        return $this->belongsTo(\Platform\Core\Models\Team::class, 'team_id');
+    }
+    
+    /**
+     * Polymorphe Company-Links
+     */
+    public function companyLinks(): MorphMany
+    {
+        return $this->hasMany(CrmCompanyLink::class, 'company_id');
+    }
+    
+    /**
+     * Verknüpfte Models über Company-Links
+     */
+    public function linkedModels(string $linkableType): \Illuminate\Database\Eloquent\Relations\MorphToMany
+    {
+        return $this->morphedByMany(
+            $linkableType,
+            'linkable',
+            'crm_company_links',
+            'company_id',
+            'linkable_id'
+        );
     }
     
     /**
@@ -182,6 +206,118 @@ class CrmCompany extends Model
     }
     
     /**
+     * Interface-Implementierung
+     */
+    public function getCompanyId(): int
+    {
+        return $this->id;
+    }
+    
+    public function getName(): string
+    {
+        return $this->name;
+    }
+    
+    public function getLegalName(): ?string
+    {
+        return $this->legal_name;
+    }
+    
+    public function getTradingName(): ?string
+    {
+        return $this->trading_name;
+    }
+    
+    public function getDisplayName(): string
+    {
+        return $this->display_name;
+    }
+    
+    public function getFullName(): string
+    {
+        return $this->full_name;
+    }
+    
+    public function getRegistrationNumber(): ?string
+    {
+        return $this->registration_number;
+    }
+    
+    public function getTaxNumber(): ?string
+    {
+        return $this->tax_number;
+    }
+    
+    public function getVatNumber(): ?string
+    {
+        return $this->vat_number;
+    }
+    
+    public function getWebsite(): ?string
+    {
+        return $this->website;
+    }
+    
+    public function getEmailAddresses(): array
+    {
+        return $this->emailAddresses()
+            ->active()
+            ->get()
+            ->map(function ($email) {
+                return [
+                    'email' => $email->email_address,
+                    'type' => $email->emailType?->name,
+                    'is_primary' => $email->is_primary,
+                ];
+            })
+            ->toArray();
+    }
+    
+    public function getPhoneNumbers(): array
+    {
+        return $this->phoneNumbers()
+            ->active()
+            ->get()
+            ->map(function ($phone) {
+                return [
+                    'number' => $phone->international,
+                    'type' => $phone->phoneType?->name,
+                    'is_primary' => $phone->is_primary,
+                ];
+            })
+            ->toArray();
+    }
+    
+    public function getPostalAddresses(): array
+    {
+        return $this->postalAddresses()
+            ->active()
+            ->get()
+            ->map(function ($address) {
+                return [
+                    'street' => $address->street,
+                    'house_number' => $address->house_number,
+                    'postal_code' => $address->postal_code,
+                    'city' => $address->city,
+                    'country' => $address->country?->name,
+                    'type' => $address->addressType?->name,
+                    'is_primary' => $address->is_primary,
+                ];
+            })
+            ->toArray();
+    }
+    
+    public function getTeamId(): int
+    {
+        return $this->team_id;
+    }
+    
+    public function isActive(): bool
+    {
+        return $this->is_active;
+    }
+    
+    /**
      * Accessors
      */
     public function getDisplayNameAttribute(): string
@@ -268,5 +404,72 @@ class CrmCompany extends Model
     public function hasRegistrationNumber(): bool
     {
         return !empty($this->registration_number);
+    }
+    
+    /**
+     * Contact-Links Beziehung (für Loose Coupling mit anderen Modulen)
+     */
+    public function contactLinks(): HasMany
+    {
+        return $this->hasMany(CrmContactLink::class, 'company_id');
+    }
+    
+    /**
+     * Interface-Implementierung für Loose Coupling
+     */
+    public function getLinkedEntitiesCount(string $entityType): int
+    {
+        return $this->contactLinks()
+            ->where('linkable_type', $entityType)
+            ->count();
+    }
+    
+    public function hasLinkedEntity(string $entityType, int $entityId): bool
+    {
+        return $this->contactLinks()
+            ->where('linkable_type', $entityType)
+            ->where('linkable_id', $entityId)
+            ->exists();
+    }
+    
+    public function linkEntity(string $entityType, int $entityId, array $additionalData = []): void
+    {
+        // Diese Methode würde über Contact-Links implementiert werden
+        // Für HCM-Mitarbeiter über HasEmployeeContact Trait
+    }
+    
+    public function unlinkEntity(string $entityType, int $entityId): void
+    {
+        $this->contactLinks()
+            ->where('linkable_type', $entityType)
+            ->where('linkable_id', $entityId)
+            ->delete();
+    }
+
+    /**
+     * HCM-spezifische Interface-Methoden für Loose Coupling
+     */
+    public function getHcmEmployeesCount(): int
+    {
+        return $this->getLinkedEntitiesCount('Platform\\Hcm\\Models\\HcmEmployee');
+    }
+
+    public function hasHcmEmployees(): bool
+    {
+        return $this->getHcmEmployeesCount() > 0;
+    }
+
+    public function getHcmEmployeesWithCompanyNumbersCount(): int
+    {
+        // Hole alle HCM-Mitarbeiter für dieses Unternehmen
+        $employeeIds = $this->contactLinks()
+            ->where('linkable_type', 'Platform\\Hcm\\Models\\HcmEmployee')
+            ->pluck('linkable_id');
+            
+        // Zähle Mitarbeiter mit employee_number (aus HCM-Modell)
+        return \Platform\Hcm\Models\HcmEmployee::whereIn('id', $employeeIds)
+            ->whereNotNull('employee_number')
+            ->where('employee_number', '!=', '')
+            ->count();
     }
 } 

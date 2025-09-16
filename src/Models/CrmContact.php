@@ -4,15 +4,17 @@ namespace Platform\Crm\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Platform\ActivityLog\Traits\LogsActivity;
+use Platform\Media\Traits\HasMedia;
+use Platform\Crm\Contracts\ContactInterface;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Symfony\Component\Uid\UuidV7;
 use Platform\Crm\Models\CrmContactRelation;
 
-class CrmContact extends Model
+class CrmContact extends Model implements ContactInterface
 {
-    use LogsActivity;
+    use LogsActivity, HasMedia;
     
     protected $table = 'crm_contacts';
     
@@ -86,17 +88,17 @@ class CrmContact extends Model
      */
     public function createdByUser(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'created_by_user_id');
+        return $this->belongsTo(\Platform\Core\Models\User::class, 'created_by_user_id');
     }
     
     public function ownedByUser(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'owned_by_user_id');
+        return $this->belongsTo(\Platform\Core\Models\User::class, 'owned_by_user_id');
     }
     
     public function team(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Team::class, 'team_id');
+        return $this->belongsTo(\Platform\Core\Models\Team::class, 'team_id');
     }
     
     /**
@@ -171,6 +173,103 @@ class CrmContact extends Model
     public function scopePrivate($query)
     {
         return $query->whereNotNull('owned_by_user_id');
+    }
+    
+    /**
+     * Interface-Implementierung
+     */
+    public function getContactId(): int
+    {
+        return $this->id;
+    }
+    
+    public function getFirstName(): string
+    {
+        return $this->first_name;
+    }
+    
+    public function getLastName(): string
+    {
+        return $this->last_name;
+    }
+    
+    public function getFullName(): string
+    {
+        return $this->full_name;
+    }
+    
+    public function getDisplayName(): string
+    {
+        return $this->display_name;
+    }
+    
+    public function getBirthDate(): ?\Carbon\Carbon
+    {
+        return $this->birth_date;
+    }
+    
+    public function getAge(): ?int
+    {
+        return $this->age;
+    }
+    
+    public function getEmailAddresses(): array
+    {
+        return $this->emailAddresses()
+            ->active()
+            ->get()
+            ->map(function ($email) {
+                return [
+                    'email' => $email->email_address,
+                    'type' => $email->emailType?->name,
+                    'is_primary' => $email->is_primary,
+                ];
+            })
+            ->toArray();
+    }
+    
+    public function getPhoneNumbers(): array
+    {
+        return $this->phoneNumbers()
+            ->active()
+            ->get()
+            ->map(function ($phone) {
+                return [
+                    'number' => $phone->international,
+                    'type' => $phone->phoneType?->name,
+                    'is_primary' => $phone->is_primary,
+                ];
+            })
+            ->toArray();
+    }
+    
+    public function getPostalAddresses(): array
+    {
+        return $this->postalAddresses()
+            ->active()
+            ->get()
+            ->map(function ($address) {
+                return [
+                    'street' => $address->street,
+                    'house_number' => $address->house_number,
+                    'postal_code' => $address->postal_code,
+                    'city' => $address->city,
+                    'country' => $address->country?->name,
+                    'type' => $address->addressType?->name,
+                    'is_primary' => $address->is_primary,
+                ];
+            })
+            ->toArray();
+    }
+    
+    public function getTeamId(): int
+    {
+        return $this->team_id;
+    }
+    
+    public function isActive(): bool
+    {
+        return $this->is_active;
     }
     
     /**

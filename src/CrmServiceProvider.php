@@ -10,6 +10,10 @@ use Platform\Core\PlatformCore;
 use Platform\Core\Routing\ModuleRouter;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Platform\Core\Contracts\CrmCompanyOptionsProviderInterface;
+use Platform\Crm\Services\CoreCrmCompanyOptionsProvider;
+use Platform\Core\Contracts\CrmCompanyResolverInterface;
+use Platform\Crm\Services\CoreCrmCompanyResolver;
 
 class CrmServiceProvider extends ServiceProvider
 {
@@ -19,6 +23,10 @@ class CrmServiceProvider extends ServiceProvider
         
         // Services registrieren
         $this->app->singleton(\Platform\Crm\Services\ContactLinkService::class);
+
+        // Core Contracts binden (überschreiben Null-Implementierungen)
+        $this->app->singleton(CrmCompanyOptionsProviderInterface::class, fn() => new CoreCrmCompanyOptionsProvider());
+        $this->app->singleton(CrmCompanyResolverInterface::class, fn() => new CoreCrmCompanyResolver());
     }
 
     public function boot(): void

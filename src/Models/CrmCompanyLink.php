@@ -7,14 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Symfony\Component\Uid\UuidV7;
 
-class CrmContactLink extends Model
+class CrmCompanyLink extends Model
 {
-    protected $table = 'crm_contact_links';
-
+    protected $table = 'crm_company_links';
+    
     protected $fillable = [
         'uuid',
-        'contact_id',
-        'company_id', // Optionale Company-Referenz
+        'company_id',
         'linkable_id',
         'linkable_type',
         'team_id',
@@ -48,7 +47,7 @@ class CrmContactLink extends Model
             }
         });
     }
-
+    
     /**
      * Scope für aktuelles Team
      */
@@ -58,25 +57,17 @@ class CrmContactLink extends Model
     }
 
     /**
-     * Scope für sichtbare Links (dynamische Prüfung über Kontakt)
+     * Scope für sichtbare Links (dynamische Prüfung über Company)
      */
     public function scopeVisible($query)
     {
-        return $query->with('contact')->get()->filter(function ($link) {
-            return $link->contact && $link->contact->isVisible();
+        return $query->with('company')->get()->filter(function ($link) {
+            return $link->company && $link->company->is_active;
         });
     }
 
     /**
-     * Zugehöriger Kontakt
-     */
-    public function contact(): BelongsTo
-    {
-        return $this->belongsTo(CrmContact::class, 'contact_id');
-    }
-
-    /**
-     * Zugehöriges Unternehmen (optional)
+     * Zugehörige Company
      */
     public function company(): BelongsTo
     {
@@ -84,7 +75,7 @@ class CrmContactLink extends Model
     }
 
     /**
-     * Verlinkte Entität (Thread, Ticket, etc.)
+     * Verlinkte Entität (Employer, etc.)
      */
     public function linkable(): MorphTo
     {
@@ -106,28 +97,22 @@ class CrmContactLink extends Model
     {
         return $this->belongsTo(\Platform\Core\Models\Team::class, 'team_id');
     }
-
+    
     /**
-     * Scope für spezifische Linkable-Typen
+     * Scopes
      */
-    public function scopeOfType($query, string $type)
+    public function scopeForTeam($query, $teamId)
     {
-        return $query->where('linkable_type', $type);
+        return $query->where('team_id', $teamId);
     }
-
-    /**
-     * Scope für spezifische Kontakte
-     */
-    public function scopeForContact($query, $contactId)
-    {
-        return $query->where('contact_id', $contactId);
-    }
-
-    /**
-     * Scope für spezifische Unternehmen
-     */
+    
     public function scopeForCompany($query, $companyId)
     {
         return $query->where('company_id', $companyId);
     }
-} 
+    
+    public function scopeOfType($query, $linkableType)
+    {
+        return $query->where('linkable_type', $linkableType);
+    }
+}
