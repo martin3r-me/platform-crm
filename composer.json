@@ -4,7 +4,7 @@
   "autoload": {
     "psr-4": {
       "Platform\\Crm\\": "src/",
-      "Platform\\Crm\\Database\\": "database/"
+      "Platform\\Crm\\Database\\Seeders\\": "database/seeders/"
     }
   },
   "extra": {
