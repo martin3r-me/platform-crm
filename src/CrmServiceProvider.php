@@ -23,7 +23,12 @@ class CrmServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Falls in Zukunft Artisan Commands o.ä. nötig sind, hier rein
+        // Commands registrieren
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Platform\Crm\Console\Commands\SeedCrmLookupData::class,
+            ]);
+        }
         
         // Services registrieren
         $this->app->singleton(\Platform\Crm\Services\ContactLinkService::class);
