@@ -3,7 +3,6 @@
 namespace Platform\Crm\Console\Commands;
 
 use Illuminate\Console\Command;
-use Platform\Crm\Database\Seeders\CrmLookupSeeder;
 
 class SeedCrmLookupData extends Command
 {
@@ -30,7 +29,8 @@ class SeedCrmLookupData extends Command
         $this->info('Seeding CRM lookup data...');
         
         try {
-            $seeder = new CrmLookupSeeder();
+            // Seeder direkt instanziieren und ausführen
+            $seeder = app(\Platform\Crm\Database\Seeders\CrmLookupSeeder::class);
             $seeder->run();
             
             $this->info('✅ CRM lookup data seeded successfully!');
