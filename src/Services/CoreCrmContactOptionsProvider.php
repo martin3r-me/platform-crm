@@ -22,12 +22,15 @@ class CoreCrmContactOptionsProvider
             $q->where(function ($w) use ($like) {
                 $w->where('first_name', 'like', $like)
                   ->orWhere('last_name', 'like', $like)
-                  ->orWhere('email', 'like', $like);
+                  ->orWhereHas('emailAddresses', function ($emailQuery) use ($like) {
+                      $emailQuery->where('email_address', 'like', $like);
+                  });
             });
         }
 
-        return $q->limit($limit)
-            ->get(['id', 'first_name', 'last_name', 'email'])
+        return $q->with('emailAddresses')
+            ->limit($limit)
+            ->get(['id', 'first_name', 'last_name'])
             ->map(fn($c) => [
                 'value' => $c->id,
                 'label' => $c->display_name,
