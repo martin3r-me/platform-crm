@@ -14,6 +14,10 @@ use Platform\Core\Contracts\CrmCompanyOptionsProviderInterface;
 use Platform\Crm\Services\CoreCrmCompanyOptionsProvider;
 use Platform\Core\Contracts\CrmCompanyResolverInterface;
 use Platform\Crm\Services\CoreCrmCompanyResolver;
+use Platform\Core\Contracts\CrmContactOptionsProviderInterface;
+use Platform\Crm\Services\CoreCrmContactOptionsProvider;
+use Platform\Core\Contracts\CrmContactResolverInterface;
+use Platform\Crm\Services\CoreCrmContactResolver;
 
 class CrmServiceProvider extends ServiceProvider
 {
@@ -27,6 +31,8 @@ class CrmServiceProvider extends ServiceProvider
         // Core Contracts binden (überschreiben Null-Implementierungen)
         $this->app->singleton(CrmCompanyOptionsProviderInterface::class, fn() => new CoreCrmCompanyOptionsProvider());
         $this->app->singleton(CrmCompanyResolverInterface::class, fn() => new CoreCrmCompanyResolver());
+        $this->app->singleton(CrmContactOptionsProviderInterface::class, fn() => new CoreCrmContactOptionsProvider());
+        $this->app->singleton(CrmContactResolverInterface::class, fn() => new CoreCrmContactResolver());
     }
 
     public function boot(): void
