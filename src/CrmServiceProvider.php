@@ -30,6 +30,21 @@ class CrmServiceProvider extends ServiceProvider
             ]);
         }
         
+        // Seeder registrieren
+        $this->app->singleton('CrmSalutationSeeder', \Platform\Crm\Database\Seeders\CrmSalutationSeeder::class);
+        $this->app->singleton('CrmContactStatusSeeder', \Platform\Crm\Database\Seeders\CrmContactStatusSeeder::class);
+        $this->app->singleton('CrmGenderSeeder', \Platform\Crm\Database\Seeders\CrmGenderSeeder::class);
+        $this->app->singleton('CrmLanguageSeeder', \Platform\Crm\Database\Seeders\CrmLanguageSeeder::class);
+        $this->app->singleton('CrmAcademicTitleSeeder', \Platform\Crm\Database\Seeders\CrmAcademicTitleSeeder::class);
+        $this->app->singleton('CrmEmailTypeSeeder', \Platform\Crm\Database\Seeders\CrmEmailTypeSeeder::class);
+        $this->app->singleton('CrmPhoneTypeSeeder', \Platform\Crm\Database\Seeders\CrmPhoneTypeSeeder::class);
+        $this->app->singleton('CrmAddressTypeSeeder', \Platform\Crm\Database\Seeders\CrmAddressTypeSeeder::class);
+        $this->app->singleton('CrmLegalFormSeeder', \Platform\Crm\Database\Seeders\CrmLegalFormSeeder::class);
+        $this->app->singleton('CrmIndustrySeeder', \Platform\Crm\Database\Seeders\CrmIndustrySeeder::class);
+        $this->app->singleton('CrmCountrySeeder', \Platform\Crm\Database\Seeders\CrmCountrySeeder::class);
+        $this->app->singleton('CrmStateSeeder', \Platform\Crm\Database\Seeders\CrmStateSeeder::class);
+        $this->app->singleton('CrmContactRelationTypeSeeder', \Platform\Crm\Database\Seeders\CrmContactRelationTypeSeeder::class);
+        
         // Services registrieren
         $this->app->singleton(\Platform\Crm\Services\ContactLinkService::class);
 

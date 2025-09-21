@@ -29,10 +29,46 @@ class SeedCrmLookupData extends Command
         $this->info('Seeding CRM lookup data...');
         
         try {
-            // Seeder-Datei direkt laden
-            require_once __DIR__ . '/../../database/seeders/CrmLookupSeeder.php';
-            $seeder = new \Platform\Crm\Database\Seeders\CrmLookupSeeder();
-            $seeder->run();
+            // Alle CRM Seeder direkt ausführen
+            $this->call('db:seed', [
+                '--class' => 'CrmSalutationSeeder'
+            ]);
+            $this->call('db:seed', [
+                '--class' => 'CrmContactStatusSeeder'
+            ]);
+            $this->call('db:seed', [
+                '--class' => 'CrmGenderSeeder'
+            ]);
+            $this->call('db:seed', [
+                '--class' => 'CrmLanguageSeeder'
+            ]);
+            $this->call('db:seed', [
+                '--class' => 'CrmAcademicTitleSeeder'
+            ]);
+            $this->call('db:seed', [
+                '--class' => 'CrmEmailTypeSeeder'
+            ]);
+            $this->call('db:seed', [
+                '--class' => 'CrmPhoneTypeSeeder'
+            ]);
+            $this->call('db:seed', [
+                '--class' => 'CrmAddressTypeSeeder'
+            ]);
+            $this->call('db:seed', [
+                '--class' => 'CrmLegalFormSeeder'
+            ]);
+            $this->call('db:seed', [
+                '--class' => 'CrmIndustrySeeder'
+            ]);
+            $this->call('db:seed', [
+                '--class' => 'CrmCountrySeeder'
+            ]);
+            $this->call('db:seed', [
+                '--class' => 'CrmStateSeeder'
+            ]);
+            $this->call('db:seed', [
+                '--class' => 'CrmContactRelationTypeSeeder'
+            ]);
             
             $this->info('✅ CRM lookup data seeded successfully!');
             $this->line('');
