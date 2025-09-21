@@ -3,6 +3,7 @@
 namespace Platform\Crm\Console\Commands;
 
 use Illuminate\Console\Command;
+use Platform\Crm\Database\Seeders\CrmLookupSeeder;
 
 class SeedCrmLookupData extends Command
 {
@@ -29,48 +30,8 @@ class SeedCrmLookupData extends Command
         $this->info('Seeding CRM lookup data...');
         
         try {
-            // Alle CRM Seeder direkt ausführen
-            $forceFlag = $this->option('force') ? ['--force' => true] : [];
-            
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmSalutationSeeder'
-            ], $forceFlag));
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmContactStatusSeeder'
-            ], $forceFlag));
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmGenderSeeder'
-            ], $forceFlag));
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmLanguageSeeder'
-            ], $forceFlag));
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmAcademicTitleSeeder'
-            ], $forceFlag));
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmEmailTypeSeeder'
-            ], $forceFlag));
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmPhoneTypeSeeder'
-            ], $forceFlag));
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmAddressTypeSeeder'
-            ], $forceFlag));
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmLegalFormSeeder'
-            ], $forceFlag));
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmIndustrySeeder'
-            ], $forceFlag));
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmCountrySeeder'
-            ], $forceFlag));
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmStateSeeder'
-            ], $forceFlag));
-            $this->call('db:seed', array_merge([
-                '--class' => 'Platform\\Crm\\Database\\Seeders\\CrmContactRelationTypeSeeder'
-            ], $forceFlag));
+            $seeder = new CrmLookupSeeder();
+            $seeder->run();
             
             $this->info('✅ CRM lookup data seeded successfully!');
             $this->line('');
