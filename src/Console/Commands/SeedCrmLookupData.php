@@ -29,8 +29,9 @@ class SeedCrmLookupData extends Command
         $this->info('Seeding CRM lookup data...');
         
         try {
-            // Seeder direkt instanziieren und ausführen
-            $seeder = app(\Platform\Crm\Database\Seeders\CrmLookupSeeder::class);
+            // Seeder-Datei direkt laden
+            require_once __DIR__ . '/../../database/seeders/CrmLookupSeeder.php';
+            $seeder = new \Platform\Crm\Database\Seeders\CrmLookupSeeder();
             $seeder->run();
             
             $this->info('✅ CRM lookup data seeded successfully!');

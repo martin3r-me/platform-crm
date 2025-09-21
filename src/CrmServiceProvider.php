@@ -30,9 +30,6 @@ class CrmServiceProvider extends ServiceProvider
             ]);
         }
         
-        // Seeder registrieren
-        $this->app->singleton(\Platform\Crm\Database\Seeders\CrmLookupSeeder::class);
-        
         // Services registrieren
         $this->app->singleton(\Platform\Crm\Services\ContactLinkService::class);
 
