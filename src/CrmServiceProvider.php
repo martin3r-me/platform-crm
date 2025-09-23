@@ -120,6 +120,12 @@ class CrmServiceProvider extends ServiceProvider
             'CrmCompany Klasse existiert: ' . (class_exists(\Platform\Crm\Models\CrmCompany::class) ? 'JA' : 'NEIN'),
             'crm_contacts Tabelle existiert: ' . (\Illuminate\Support\Facades\Schema::hasTable('crm_contacts') ? 'JA' : 'NEIN'),
             'crm_companies Tabelle existiert: ' . (\Illuminate\Support\Facades\Schema::hasTable('crm_companies') ? 'JA' : 'NEIN'),
+            'Modules-Pfad: ' . (realpath(__DIR__.'/../../modules') ?: 'NICHT GEFUNDEN'),
+            'Alternative Pfade: ' . implode(', ', [
+                realpath(__DIR__.'/../../modules') ?: 'NICHT GEFUNDEN',
+                realpath(base_path('platform/modules')) ?: 'NICHT GEFUNDEN',
+                realpath(__DIR__.'/../../../modules') ?: 'NICHT GEFUNDEN',
+            ]),
         ];
         
         // Speichere Debug-Info für Chat-Ausgabe
