@@ -89,7 +89,26 @@ class CrmServiceProvider extends ServiceProvider
         $this->registerLivewireComponents();
 
         // Schritt 7: Model-Schemata automatisch registrieren lassen
+        \Log::info('CrmServiceProvider: Starte Auto-Registrar...');
         (new \Platform\Core\Services\ModelAutoRegistrar())->scanAndRegister();
+        
+        // DEBUG: Prüfe was registriert wurde
+        $registeredModels = \Platform\Core\Schema\ModelSchemaRegistry::keys();
+        \Log::info('CrmServiceProvider: Registrierte Modelle: ' . implode(', ', $registeredModels));
+        
+        // DEBUG: Prüfe spezifisch CRM-Modelle
+        $crmContacts = \Platform\Core\Schema\ModelSchemaRegistry::get('crm.contacts');
+        $crmCompanies = \Platform\Core\Schema\ModelSchemaRegistry::get('crm.companies');
+        \Log::info('CrmServiceProvider: crm.contacts registriert: ' . (empty($crmContacts) ? 'NEIN' : 'JA'));
+        \Log::info('CrmServiceProvider: crm.companies registriert: ' . (empty($crmCompanies) ? 'NEIN' : 'JA'));
+        
+        // DEBUG: Prüfe ob CRM-Modelle existieren
+        \Log::info('CrmServiceProvider: CrmContact Klasse existiert: ' . (class_exists(\Platform\Crm\Models\CrmContact::class) ? 'JA' : 'NEIN'));
+        \Log::info('CrmServiceProvider: CrmCompany Klasse existiert: ' . (class_exists(\Platform\Crm\Models\CrmCompany::class) ? 'JA' : 'NEIN'));
+        
+        // DEBUG: Prüfe ob Tabellen existieren
+        \Log::info('CrmServiceProvider: crm_contacts Tabelle existiert: ' . (\Illuminate\Support\Facades\Schema::hasTable('crm_contacts') ? 'JA' : 'NEIN'));
+        \Log::info('CrmServiceProvider: crm_companies Tabelle existiert: ' . (\Illuminate\Support\Facades\Schema::hasTable('crm_companies') ? 'JA' : 'NEIN'));
         
 
         // Schritt 8: Commands registrieren
