@@ -90,7 +90,6 @@ class CrmServiceProvider extends ServiceProvider
         (new \Platform\Core\Services\ModelAutoRegistrar())->scanAndRegister();
 
         // Schritt 8: Commands registrieren
-        \Log::info('CRM ServiceProvider: Commands registrieren...');
         \Platform\Core\Registry\CommandRegistry::register('crm', [
             [
                 'key' => 'crm.query',
