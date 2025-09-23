@@ -93,24 +93,24 @@ class CrmServiceProvider extends ServiceProvider
         
         // TEMP: Direkter Test - manuell registrieren für Debug
         \Platform\Core\Schema\ModelSchemaRegistry::register('crm.contacts', [
-            'fields' => ['id','first_name','last_name','email'],
-            'filterable' => ['first_name','last_name','email'],
+            'fields' => ['id','first_name','last_name'],
+            'filterable' => ['first_name','last_name'],
             'sortable' => ['first_name','last_name'],
-            'selectable' => ['id','first_name','last_name','email'],
+            'selectable' => ['id','first_name','last_name'],
             'relations' => [],
             'required' => ['first_name'],
-            'writable' => ['first_name','last_name','email'],
+            'writable' => ['first_name','last_name'],
             'meta' => ['eloquent' => \Platform\Crm\Models\CrmContact::class, 'label_key' => 'first_name'],
         ]);
         
         \Platform\Core\Schema\ModelSchemaRegistry::register('crm.companies', [
-            'fields' => ['id','name','email'],
-            'filterable' => ['name','email'],
+            'fields' => ['id','name'],
+            'filterable' => ['name'],
             'sortable' => ['name'],
-            'selectable' => ['id','name','email'],
+            'selectable' => ['id','name'],
             'relations' => [],
             'required' => ['name'],
-            'writable' => ['name','email'],
+            'writable' => ['name'],
             'meta' => ['eloquent' => \Platform\Crm\Models\CrmCompany::class, 'label_key' => 'name'],
         ]);
 
