@@ -85,6 +85,9 @@ class CrmServiceProvider extends ServiceProvider
         // Schritt 6: Views & Livewire
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'crm');
         $this->registerLivewireComponents();
+
+        // Schritt 7: Model-Schemata automatisch registrieren lassen
+        (new \Platform\Core\Services\ModelAutoRegistrar())->scanAndRegister();
     }
 
 
