@@ -110,6 +110,22 @@ class CrmServiceProvider extends ServiceProvider
         \Log::info('CrmServiceProvider: crm_contacts Tabelle existiert: ' . (\Illuminate\Support\Facades\Schema::hasTable('crm_contacts') ? 'JA' : 'NEIN'));
         \Log::info('CrmServiceProvider: crm_companies Tabelle existiert: ' . (\Illuminate\Support\Facades\Schema::hasTable('crm_companies') ? 'JA' : 'NEIN'));
         
+        // DEBUG: Ausgabe in Chat für Live-Debugging
+        $debugInfo = [
+            'Auto-Registrar gestartet',
+            'Registrierte Modelle: ' . implode(', ', $registeredModels),
+            'crm.contacts registriert: ' . (empty($crmContacts) ? 'NEIN' : 'JA'),
+            'crm.companies registriert: ' . (empty($crmCompanies) ? 'NEIN' : 'JA'),
+            'CrmContact Klasse existiert: ' . (class_exists(\Platform\Crm\Models\CrmContact::class) ? 'JA' : 'NEIN'),
+            'CrmCompany Klasse existiert: ' . (class_exists(\Platform\Crm\Models\CrmCompany::class) ? 'JA' : 'NEIN'),
+            'crm_contacts Tabelle existiert: ' . (\Illuminate\Support\Facades\Schema::hasTable('crm_contacts') ? 'JA' : 'NEIN'),
+            'crm_companies Tabelle existiert: ' . (\Illuminate\Support\Facades\Schema::hasTable('crm_companies') ? 'JA' : 'NEIN'),
+        ];
+        
+        // Speichere Debug-Info für Chat-Ausgabe
+        session(['crm_debug_info' => $debugInfo]);
+        
+        
 
         // Schritt 8: Commands registrieren
         \Log::info('CrmServiceProvider: Registriere CRM-Commands...');
