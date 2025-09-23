@@ -90,6 +90,29 @@ class CrmServiceProvider extends ServiceProvider
 
         // Schritt 7: Model-Schemata automatisch registrieren lassen
         (new \Platform\Core\Services\ModelAutoRegistrar())->scanAndRegister();
+        
+        // TEMP: Direkter Test - manuell registrieren für Debug
+        \Platform\Core\Schema\ModelSchemaRegistry::register('crm.contacts', [
+            'fields' => ['id','first_name','last_name','email'],
+            'filterable' => ['first_name','last_name','email'],
+            'sortable' => ['first_name','last_name'],
+            'selectable' => ['id','first_name','last_name','email'],
+            'relations' => [],
+            'required' => ['first_name'],
+            'writable' => ['first_name','last_name','email'],
+            'meta' => ['eloquent' => \Platform\Crm\Models\CrmContact::class, 'label_key' => 'first_name'],
+        ]);
+        
+        \Platform\Core\Schema\ModelSchemaRegistry::register('crm.companies', [
+            'fields' => ['id','name','email'],
+            'filterable' => ['name','email'],
+            'sortable' => ['name'],
+            'selectable' => ['id','name','email'],
+            'relations' => [],
+            'required' => ['name'],
+            'writable' => ['name','email'],
+            'meta' => ['eloquent' => \Platform\Crm\Models\CrmCompany::class, 'label_key' => 'name'],
+        ]);
 
         // Schritt 8: Commands registrieren
         \Log::info('CrmServiceProvider: Registriere CRM-Commands...');
