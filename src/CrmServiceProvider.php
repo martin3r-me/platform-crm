@@ -126,6 +126,8 @@ class CrmServiceProvider extends ServiceProvider
                 realpath(base_path('platform/modules')) ?: 'NICHT GEFUNDEN',
                 realpath(__DIR__.'/../../../modules') ?: 'NICHT GEFUNDEN',
             ]),
+            'Aktueller Pfad: ' . __DIR__,
+            'Base Path: ' . base_path(),
         ];
         
         // Speichere Debug-Info für Chat-Ausgabe
