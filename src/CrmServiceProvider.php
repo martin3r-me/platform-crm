@@ -88,50 +88,8 @@ class CrmServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'crm');
         $this->registerLivewireComponents();
 
-        // Schritt 7: Model-Schemata automatisch registrieren lassen
-        \Log::info('CrmServiceProvider: Starte Auto-Registrar...');
-        (new \Platform\Core\Services\ModelAutoRegistrar())->scanAndRegister();
-        
-        // DEBUG: Prüfe was registriert wurde
-        $registeredModels = \Platform\Core\Schema\ModelSchemaRegistry::keys();
-        \Log::info('CrmServiceProvider: Registrierte Modelle: ' . implode(', ', $registeredModels));
-        
-        // DEBUG: Prüfe spezifisch CRM-Modelle
-        $crmContacts = \Platform\Core\Schema\ModelSchemaRegistry::get('crm.contacts');
-        $crmCompanies = \Platform\Core\Schema\ModelSchemaRegistry::get('crm.companies');
-        \Log::info('CrmServiceProvider: crm.contacts registriert: ' . (empty($crmContacts) ? 'NEIN' : 'JA'));
-        \Log::info('CrmServiceProvider: crm.companies registriert: ' . (empty($crmCompanies) ? 'NEIN' : 'JA'));
-        
-        // DEBUG: Prüfe ob CRM-Modelle existieren
-        \Log::info('CrmServiceProvider: CrmContact Klasse existiert: ' . (class_exists(\Platform\Crm\Models\CrmContact::class) ? 'JA' : 'NEIN'));
-        \Log::info('CrmServiceProvider: CrmCompany Klasse existiert: ' . (class_exists(\Platform\Crm\Models\CrmCompany::class) ? 'JA' : 'NEIN'));
-        
-        // DEBUG: Prüfe ob Tabellen existieren
-        \Log::info('CrmServiceProvider: crm_contacts Tabelle existiert: ' . (\Illuminate\Support\Facades\Schema::hasTable('crm_contacts') ? 'JA' : 'NEIN'));
-        \Log::info('CrmServiceProvider: crm_companies Tabelle existiert: ' . (\Illuminate\Support\Facades\Schema::hasTable('crm_companies') ? 'JA' : 'NEIN'));
-        
-        // DEBUG: Ausgabe in Chat für Live-Debugging
-        $debugInfo = [
-            'Auto-Registrar gestartet',
-            'Registrierte Modelle: ' . implode(', ', $registeredModels),
-            'crm.contacts registriert: ' . (empty($crmContacts) ? 'NEIN' : 'JA'),
-            'crm.companies registriert: ' . (empty($crmCompanies) ? 'NEIN' : 'JA'),
-            'CrmContact Klasse existiert: ' . (class_exists(\Platform\Crm\Models\CrmContact::class) ? 'JA' : 'NEIN'),
-            'CrmCompany Klasse existiert: ' . (class_exists(\Platform\Crm\Models\CrmCompany::class) ? 'JA' : 'NEIN'),
-            'crm_contacts Tabelle existiert: ' . (\Illuminate\Support\Facades\Schema::hasTable('crm_contacts') ? 'JA' : 'NEIN'),
-            'crm_companies Tabelle existiert: ' . (\Illuminate\Support\Facades\Schema::hasTable('crm_companies') ? 'JA' : 'NEIN'),
-            'Modules-Pfad: ' . (realpath(__DIR__.'/../../modules') ?: 'NICHT GEFUNDEN'),
-            'Alternative Pfade: ' . implode(', ', [
-                realpath(__DIR__.'/../../modules') ?: 'NICHT GEFUNDEN',
-                realpath(base_path('platform/modules')) ?: 'NICHT GEFUNDEN',
-                realpath(__DIR__.'/../../../modules') ?: 'NICHT GEFUNDEN',
-            ]),
-            'Aktueller Pfad: ' . __DIR__,
-            'Base Path: ' . base_path(),
-        ];
-        
-        // Speichere Debug-Info für Chat-Ausgabe
-        session(['crm_debug_info' => $debugInfo]);
+        // Schritt 7: CRM-Modelle direkt registrieren
+        $this->registerCrmModels();
         
         
 
@@ -259,6 +217,154 @@ class CrmServiceProvider extends ServiceProvider
             Livewire::component($alias, $class);
         }
     }
-    
+
+    protected function registerCrmModels(): void
+    {
+        // CRM-Modelle direkt registrieren
+        $this->registerModel('crm.contacts', \Platform\Crm\Models\CrmContact::class);
+        $this->registerModel('crm.companies', \Platform\Crm\Models\CrmCompany::class);
+    }
+
+    protected function registerModel(string $modelKey, string $eloquentClass): void
+    {
+        if (!class_exists($eloquentClass)) {
+            \Log::info("CrmServiceProvider: Klasse {$eloquentClass} existiert nicht");
+            return;
+        }
+
+        $model = new $eloquentClass();
+        $table = $model->getTable();
+        if (!\Illuminate\Support\Facades\Schema::hasTable($table)) {
+            \Log::info("CrmServiceProvider: Tabelle {$table} existiert nicht");
+            return;
+        }
+
+        // Basis-Daten
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing($table);
+        $fields = array_values($columns);
+        $selectable = array_values(array_slice($fields, 0, 6));
+        $writable = $model->getFillable();
+        $sortable = array_values(array_intersect($fields, ['id','name','title','created_at','updated_at']));
+        $filterable = array_values(array_intersect($fields, ['id','uuid','name','title','team_id','user_id','status','is_done']));
+        $labelKey = in_array('name', $fields, true) ? 'name' : (in_array('title', $fields, true) ? 'title' : 'id');
+
+        // Required-Felder per Doctrine DBAL
+        $required = [];
+        try {
+            $connection = \DB::connection();
+            $schemaManager = method_exists($connection, 'getDoctrineSchemaManager')
+                ? $connection->getDoctrineSchemaManager()
+                : ($connection->getDoctrineSchemaManager ?? null);
+            if ($schemaManager) {
+                $doctrineTable = $schemaManager->listTableDetails($table);
+                foreach ($doctrineTable->getColumns() as $col) {
+                    $name = $col->getName();
+                    if ($name === 'id' || $col->getAutoincrement()) continue;
+                    $notNull = !$col->getNotnull(); // Doctrine returns true for nullable
+                    $hasDefault = $col->getDefault() !== null;
+                    if ($notNull && !$hasDefault) {
+                        $required[] = $name;
+                    }
+                }
+                $required = array_values(array_intersect($required, $fields));
+            }
+        } catch (\Throwable $e) {
+            $required = [];
+        }
+
+        // Relations (belongsTo) per Reflection
+        $relations = [];
+        $foreignKeys = [];
+        try {
+            $ref = new \ReflectionClass($eloquentClass);
+            foreach ($ref->getMethods() as $method) {
+                if (!$method->isPublic() || $method->isStatic()) continue;
+                if ($method->getNumberOfParameters() > 0) continue;
+                if ($method->getDeclaringClass()->getName() !== $eloquentClass) continue;
+                $name = $method->getName();
+
+                // DocComment für belongsTo-Relationen parsen
+                $docComment = $method->getDocComment();
+                if ($docComment && preg_match('/@return \\s*\\\\\Illuminate\\\\Database\\\\Eloquent\\\\Relations\\\\BelongsTo<([^>]+)>/', $docComment, $matches)) {
+                    $targetClass = $matches[1];
+                    if (class_exists($targetClass)) {
+                        $targetModel = new $targetClass();
+                        $targetTable = $targetModel->getTable();
+                        $targetModuleKey = \Illuminate\Support\Str::before($targetTable, '_');
+                        $targetEntityKey = \Illuminate\Support\Str::after($targetTable, '_');
+                        $targetModelKey = $targetModuleKey . '.' . $targetEntityKey;
+
+                        // Versuche, foreign_key und owner_key zu erraten
+                        $fk = \Illuminate\Support\Str::snake($name) . '_id';
+                        $ownerKey = 'id';
+
+                        // Überprüfung, ob die Spalte im aktuellen Modell existiert
+                        if (in_array($fk, $fields, true)) {
+                            $relations[$name] = [
+                                'type' => 'belongsTo',
+                                'target' => $targetModelKey,
+                                'foreign_key' => $fk,
+                                'owner_key' => $ownerKey,
+                                'fields' => ['id', \Platform\Core\Schema\ModelSchemaRegistry::meta($targetModelKey, 'label_key') ?: 'name'],
+                            ];
+                            $foreignKeys[$fk] = [
+                                'references' => $targetModelKey,
+                                'field' => $ownerKey,
+                                'label_key' => \Platform\Core\Schema\ModelSchemaRegistry::meta($targetModelKey, 'label_key') ?: 'name',
+                            ];
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::info("CrmServiceProvider: Fehler beim Ermitteln der Relationen für {$eloquentClass}: " . $e->getMessage());
+        }
+
+        // Enums und sprachmodell-relevante Daten
+        $enums = [];
+        $descriptions = [];
+        try {
+            $ref = new \ReflectionClass($eloquentClass);
+            foreach ($ref->getProperties() as $property) {
+                $docComment = $property->getDocComment();
+                if ($docComment) {
+                    // Enum-Definitionen finden
+                    if (preg_match('/@var\s+([A-Za-z0-9\\\\]+)/', $docComment, $matches)) {
+                        $type = $matches[1];
+                        if (str_contains($type, 'Enum') || str_contains($type, 'Status')) {
+                            $enums[$property->getName()] = $type;
+                        }
+                    }
+                    // Beschreibungen finden
+                    if (preg_match('/@description\s+(.+)/', $docComment, $matches)) {
+                        $descriptions[$property->getName()] = $matches[1];
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
+        \Platform\Core\Schema\ModelSchemaRegistry::register($modelKey, [
+            'fields' => $fields,
+            'filterable' => $filterable,
+            'sortable' => $sortable,
+            'selectable' => $selectable,
+            'relations' => $relations,
+            'required' => $required,
+            'writable' => $writable,
+            'foreign_keys' => $foreignKeys,
+            'enums' => $enums,
+            'descriptions' => $descriptions,
+            'meta' => [
+                'eloquent' => $eloquentClass,
+                'show_route' => null,
+                'route_param' => null,
+                'label_key' => $labelKey,
+            ],
+        ]);
+
+        \Log::info("CrmServiceProvider: Modell {$modelKey} registriert mit " . count($relations) . " Relationen und " . count($enums) . " Enums");
+    }
 
 }
