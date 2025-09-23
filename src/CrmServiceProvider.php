@@ -42,6 +42,8 @@ class CrmServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        \Log::info('CrmServiceProvider: Boot gestartet');
+        
         // Schritt 1: Config laden
         $this->mergeConfigFrom(__DIR__.'/../config/crm.php', 'crm');
         
@@ -90,6 +92,7 @@ class CrmServiceProvider extends ServiceProvider
         (new \Platform\Core\Services\ModelAutoRegistrar())->scanAndRegister();
 
         // Schritt 8: Commands registrieren
+        \Log::info('CrmServiceProvider: Registriere CRM-Commands...');
         \Platform\Core\Registry\CommandRegistry::register('crm', [
             [
                 'key' => 'crm.query',
@@ -171,6 +174,7 @@ class CrmServiceProvider extends ServiceProvider
                 ],
             ],
         ]);
+        \Log::info('CrmServiceProvider: CRM-Commands registriert!');
 
         // Dynamische Routen als Tools exportieren
         \Platform\Core\Services\RouteToolExporter::registerModuleRoutes('crm');
