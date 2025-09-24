@@ -42,11 +42,17 @@ class CrmCommandService
         }
         if ($q !== '') {
             $schemaFields = Schemas::get($modelKey)['fields'] ?? [];
+            $applied = false;
             foreach (['title','name','first_name','last_name','company_name'] as $candidate) {
                 if (in_array($candidate, $schemaFields, true)) {
                     $query->where($candidate, 'LIKE', '%'.$q.'%');
+                    $applied = true;
                     break;
                 }
+            }
+            // CONCAT-Fallback für Personen: first_name + ' ' + last_name
+            if (!$applied && in_array('first_name', $schemaFields, true) && in_array('last_name', $schemaFields, true)) {
+                $query->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ['%'.$q.'%']);
             }
         }
         $filters = Schemas::validateFilters($modelKey, (array)($slots['filters'] ?? []));
@@ -89,6 +95,22 @@ class CrmCommandService
                         return ['id' => $m->id, 'label' => $m->{$labelKey} ?? (string)$m->id];
                     })->toArray();
                     return ['ok' => false, 'message' => 'Bitte wählen', 'needResolve' => true, 'choices' => $choices];
+                }
+            } else {
+                // CONCAT-Fallback first_name + last_name
+                if (\Illuminate\Support\Facades\Schema::hasColumn((new $eloquent)->getTable(), 'first_name') && \Illuminate\Support\Facades\Schema::hasColumn((new $eloquent)->getTable(), 'last_name')) {
+                    $matches = $eloquent::whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ['%'.$name.'%'])
+                        ->orderBy('last_name')
+                        ->limit(5)
+                        ->get(['id','first_name','last_name']);
+                    if ($matches->count() === 1) {
+                        $row = $matches->first();
+                    } elseif ($matches->count() > 1) {
+                        $choices = $matches->map(function($m){
+                            return ['id' => $m->id, 'label' => trim(($m->first_name ?? '').' '.($m->last_name ?? '')) ?: (string)$m->id];
+                        })->toArray();
+                        return ['ok' => false, 'message' => 'Bitte wählen', 'needResolve' => true, 'choices' => $choices];
+                    }
                 }
             }
         }
