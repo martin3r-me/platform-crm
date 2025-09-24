@@ -88,7 +88,7 @@ class CrmServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'crm');
         $this->registerLivewireComponents();
 
-        // Schritt 7: CRM-Modelle direkt registrieren
+        // Schritt 7: CRM-Modelle automatisch scannen und registrieren
         $this->registerCrmModels();
         
         
@@ -220,9 +220,30 @@ class CrmServiceProvider extends ServiceProvider
 
     protected function registerCrmModels(): void
     {
-        // CRM-Modelle direkt registrieren
-        $this->registerModel('crm.contacts', \Platform\Crm\Models\CrmContact::class);
-        $this->registerModel('crm.companies', \Platform\Crm\Models\CrmCompany::class);
+        $baseNs = 'Platform\\Crm\\Models\\';
+        $baseDir = __DIR__ . '/Models';
+        if (!is_dir($baseDir)) {
+            return;
+        }
+        foreach (scandir($baseDir) as $file) {
+            if (!str_ends_with($file, '.php')) continue;
+            $class = $baseNs . pathinfo($file, PATHINFO_FILENAME);
+            if (!class_exists($class)) continue;
+            try {
+                $model = new $class();
+                if (!method_exists($model, 'getTable')) continue;
+                $table = $model->getTable();
+                if (!\Illuminate\Support\Facades\Schema::hasTable($table)) continue;
+                $moduleKey = \Illuminate\Support\Str::before($table, '_');
+                $entityKey = \Illuminate\Support\Str::after($table, '_');
+                if ($moduleKey !== 'crm' || $entityKey === '') continue;
+                $modelKey = $moduleKey.'.'.$entityKey;
+                $this->registerModel($modelKey, $class);
+            } catch (\Throwable $e) {
+                \Log::info('CrmServiceProvider: Scan-Registrierung übersprungen für '.$class.': '.$e->getMessage());
+                continue;
+            }
+        }
     }
 
     protected function registerModel(string $modelKey, string $eloquentClass): void

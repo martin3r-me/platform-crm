@@ -131,45 +131,24 @@ class CrmCommandService
             }
         }
         
-        // Fremdschlüssel (belongsTo) per Label auflösen, falls String übergeben
-        $fkMap = Schemas::foreignKeys($modelKey);
-        foreach ($fkMap as $fkField => $fkMeta) {
-            if (!array_key_exists($fkField, $data) || $data[$fkField] === null || $data[$fkField] === '') continue;
-            // Bereits numerisch? Dann übernehmen
-            if (is_int($data[$fkField]) || (is_string($data[$fkField]) && ctype_digit((string) $data[$fkField]))) {
-                $data[$fkField] = (int) $data[$fkField];
-                continue;
-            }
-            $targetModelKey = $fkMeta['references'] ?? ($fkMeta['target'] ?? null);
-            if (!$targetModelKey) continue;
-            $labelKey = $fkMeta['label_key'] ?? Schemas::meta($targetModelKey, 'label_key') ?? 'name';
-            $targetClass = Schemas::meta($targetModelKey, 'eloquent');
-            if (!$targetClass || !class_exists($targetClass)) continue;
-            $term = (string) $data[$fkField];
-            $matches = $targetClass::where($labelKey, 'LIKE', '%'.$term.'%')
-                ->orderByRaw('CASE WHEN '.$labelKey.' = ? THEN 0 ELSE 1 END', [$term])
-                ->orderBy($labelKey)
-                ->limit(5)
-                ->get(['id', $labelKey]);
-            if ($matches->count() === 1) {
-                $data[$fkField] = $matches->first()->id;
-            } elseif ($matches->count() > 1) {
-                $choices = $matches->map(function($m) use ($labelKey){
-                    return ['id' => $m->id, 'label' => $m->{$labelKey} ?? (string) $m->id];
-                })->toArray();
+        // Fremdschlüssel generisch auflösen (Labels -> IDs)
+        $coercion = (new \Platform\Core\Services\ForeignKeyResolver())->coerce($modelKey, $data);
+        $data = $coercion['data'];
+        if (!empty($coercion['needResolve'])) {
+            $nr = $coercion['needResolve'];
+            if (!empty($nr['choices'] ?? [])) {
                 return [
                     'ok' => false,
-                    'message' => 'Bitte wählen: '.$fkField,
+                    'message' => $nr['message'] ?? 'Bitte wählen',
                     'needResolve' => true,
-                    'choices' => $choices,
-                ];
-            } else {
-                return [
-                    'ok' => false,
-                    'message' => 'Referenz nicht gefunden: '.$fkField,
-                    'needResolve' => true,
+                    'choices' => $nr['choices'],
                 ];
             }
+            return [
+                'ok' => false,
+                'message' => $nr['message'] ?? 'Referenz nicht gefunden',
+                'needResolve' => true,
+            ];
         }
         
         // Confirm-Gate: ohne bestätigtes Flag keine Speicherung
@@ -189,6 +168,26 @@ class CrmCommandService
             }
         }
         
+        // FKs generisch auflösen
+        $coercion = (new \Platform\Core\Services\ForeignKeyResolver())->coerce($modelKey, $data);
+        $data = $coercion['data'];
+        if (!empty($coercion['needResolve'])) {
+            $nr = $coercion['needResolve'];
+            if (!empty($nr['choices'] ?? [])) {
+                return [
+                    'ok' => false,
+                    'message' => $nr['message'] ?? 'Bitte wählen',
+                    'needResolve' => true,
+                    'choices' => $nr['choices'],
+                ];
+            }
+            return [
+                'ok' => false,
+                'message' => $nr['message'] ?? 'Referenz nicht gefunden',
+                'needResolve' => true,
+            ];
+        }
+
         $payload = [];
         foreach ($writable as $f) {
             if (array_key_exists($f, $data)) {
