@@ -88,98 +88,13 @@ class CrmServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'crm');
         $this->registerLivewireComponents();
 
-        // Schritt 7: CRM-Modelle automatisch scannen und registrieren
-        $this->registerCrmModels();
+        // Dynamische Modell-Registrierung entfernt - Sidebar soll leer sein
         
         
 
-        // Schritt 8: Commands registrieren
-        \Log::info('CrmServiceProvider: Registriere CRM-Commands...');
-        \Platform\Core\Registry\CommandRegistry::register('crm', [
-            [
-                'key' => 'crm.query',
-                'description' => 'Generische Abfrage für CRM-Entitäten.',
-                'parameters' => [
-                    ['name' => 'model', 'type' => 'string', 'required' => true, 'description' => 'contacts|companies|deals|etc'],
-                    ['name' => 'q', 'type' => 'string', 'required' => false],
-                    ['name' => 'filters', 'type' => 'object', 'required' => false],
-                    ['name' => 'sort', 'type' => 'string', 'required' => false],
-                    ['name' => 'order', 'type' => 'string', 'required' => false],
-                    ['name' => 'limit', 'type' => 'integer', 'required' => false],
-                    ['name' => 'fields', 'type' => 'string', 'required' => false],
-                ],
-                'impact' => 'low',
-                'confirmRequired' => false,
-                'autoAllowed' => true,
-                'phrases' => [
-                    'suche {model} {q}',
-                    'zeige {model}',
-                    'übersicht {model}',
-                    'meine kontakte',
-                    'zeige kontakte',
-                ],
-                'slots' => [ ['name' => 'model'], ['name' => 'q'] ],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Crm\Services\CrmCommandService::class.'@query'],
-                'scope' => 'read:crm',
-                'examples' => [
-                    ['desc' => 'Kontakte anzeigen', 'slots' => ['model' => 'crm.contacts']],
-                    ['desc' => 'Unternehmen anzeigen', 'slots' => ['model' => 'crm.companies']],
-                    ['desc' => 'Kontakte suchen', 'slots' => ['model' => 'crm.contacts', 'q' => 'Max']],
-                ],
-            ],
-            [
-                'key' => 'crm.open',
-                'description' => 'Generisches Öffnen (Navigation) für CRM-Entitäten.',
-                'parameters' => [
-                    ['name' => 'model', 'type' => 'string', 'required' => true, 'description' => 'contact|company|deal'],
-                    ['name' => 'id', 'type' => 'integer', 'required' => false],
-                    ['name' => 'uuid', 'type' => 'string', 'required' => false],
-                    ['name' => 'name', 'type' => 'string', 'required' => false],
-                ],
-                'impact' => 'low',
-                'confirmRequired' => false,
-                'autoAllowed' => true,
-                'phrases' => [
-                    'öffne {model} {id}',
-                    'öffne {model} {name}',
-                    'zeige {model} {name}',
-                    'gehe zu {model} {name}',
-                ],
-                'slots' => [ ['name' => 'model'], ['name' => 'id'], ['name' => 'name'] ],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Crm\Services\CrmCommandService::class.'@open'],
-                'scope' => 'read:crm',
-                'examples' => [
-                    ['desc' => 'Kontakt öffnen', 'slots' => ['model' => 'crm.contacts', 'name' => 'Max Mustermann']],
-                    ['desc' => 'Unternehmen öffnen', 'slots' => ['model' => 'crm.companies', 'name' => 'ACME Corp']],
-                ],
-            ],
-            [
-                'key' => 'crm.create',
-                'description' => 'Generisches Anlegen (schema-validiert) für CRM-Entitäten.',
-                'parameters' => [
-                    ['name' => 'model', 'type' => 'string', 'required' => true],
-                    ['name' => 'data', 'type' => 'object', 'required' => true],
-                ],
-                'impact' => 'medium',
-                'confirmRequired' => true,
-                'autoAllowed' => false,
-                'phrases' => [ 'erstelle {model}', 'lege {model} an' ],
-                'slots' => [ ['name' => 'model'], ['name' => 'data'] ],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Crm\Services\CrmCommandService::class.'@create'],
-                'scope' => 'write:crm',
-                'examples' => [
-                    ['desc' => 'Kontakt anlegen', 'slots' => ['model' => 'crm.contacts', 'data' => ['first_name' => 'Max', 'last_name' => 'Mustermann']]],
-                    ['desc' => 'Unternehmen anlegen', 'slots' => ['model' => 'crm.companies', 'data' => ['name' => 'ACME Corp']]],
-                ],
-            ],
-        ]);
-        \Log::info('CrmServiceProvider: CRM-Commands registriert!');
+        // Commands entfernt - Sidebar soll leer sein
 
-        // Dynamische Routen als Tools exportieren
-        \Platform\Core\Services\RouteToolExporter::registerModuleRoutes('crm');
+        // RouteToolExporter entfernt - Sidebar soll leer sein
     }
 
 
