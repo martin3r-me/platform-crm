@@ -42,7 +42,7 @@ class CrmServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        \Log::info('CrmServiceProvider: Boot gestartet');
+        // Debug-Logs entfernt
         
         // Schritt 1: Config laden
         $this->mergeConfigFrom(__DIR__.'/../config/crm.php', 'crm');
@@ -88,9 +88,7 @@ class CrmServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'crm');
         $this->registerLivewireComponents();
 
-        // Dynamische Modell-Registrierung entfernt - Sidebar soll leer sein
-        
-        
+        // Modelle-Scan & Schema-Registry entfernt (war für Agent)
 
         // Commands entfernt - Sidebar soll leer sein
 
@@ -163,17 +161,11 @@ class CrmServiceProvider extends ServiceProvider
 
     protected function registerModel(string $modelKey, string $eloquentClass): void
     {
-        if (!class_exists($eloquentClass)) {
-            \Log::info("CrmServiceProvider: Klasse {$eloquentClass} existiert nicht");
-            return;
-        }
+        if (!class_exists($eloquentClass)) { return; }
 
         $model = new $eloquentClass();
         $table = $model->getTable();
-        if (!\Illuminate\Support\Facades\Schema::hasTable($table)) {
-            \Log::info("CrmServiceProvider: Tabelle {$table} existiert nicht");
-            return;
-        }
+        if (!\Illuminate\Support\Facades\Schema::hasTable($table)) { return; }
 
         // Basis-Daten
         $columns = \Illuminate\Support\Facades\Schema::getColumnListing($table);
@@ -305,26 +297,7 @@ class CrmServiceProvider extends ServiceProvider
             // ignore
         }
 
-        \Platform\Core\Schema\ModelSchemaRegistry::register($modelKey, [
-            'fields' => $fields,
-            'filterable' => $filterable,
-            'sortable' => $sortable,
-            'selectable' => $selectable,
-            'relations' => $relations,
-            'required' => $required,
-            'writable' => $writable,
-            'foreign_keys' => $foreignKeys,
-            'enums' => $enums,
-            'descriptions' => $descriptions,
-            'meta' => [
-                'eloquent' => $eloquentClass,
-                'show_route' => null,
-                'route_param' => null,
-                'label_key' => $labelKey,
-            ],
-        ]);
-
-        \Log::info("CrmServiceProvider: Modell {$modelKey} registriert mit " . count($relations) . " Relationen und " . count($enums) . " Enums");
+        // Schema-Registry Registrierung entfernt
     }
 
 }
