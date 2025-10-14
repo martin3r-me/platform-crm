@@ -16,11 +16,7 @@
     </x-slot>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="CRM" width="w-72" defaultOpen="true" storeKey="sidebarOpen" side="left">
-            @include('crm::livewire.sidebar')
-
-            <div class="px-4 py-3 border-t border-[color:var(--ui-border)]/60 mt-3"></div>
-
+        <x-ui-page-sidebar title="Einstellungen" width="w-72" defaultOpen="true" storeKey="sidebarOpen" side="left">
             <div class="p-4 space-y-4">
                 {{-- Navigation Buttons --}}
                 <div class="flex flex-col gap-2 mb-4">
@@ -40,7 +36,7 @@
 
                 {{-- Kurze Übersicht --}}
                 <div class="p-3 bg-[color:var(--ui-muted-5)] rounded-lg">
-                    <h4 class="font-semibold mb-2 text-[color:var(--ui-secondary)]">Kontakt-Übersicht</h4>
+                    <h4 class="font-semibold mb-2 text-[color:var(--ui-secondary)]">Kontakt</h4>
                     <div class="space-y-1 text-sm">
                         <div><strong>Name:</strong> {{ $contact->full_name }}</div>
                         @if($contact->academicTitle)
@@ -210,11 +206,21 @@
         </x-ui-page-sidebar>
     </x-slot>
 
+    <x-slot name="activity">
+        <x-ui-page-sidebar title="Aktivitäten" width="w-80" defaultOpen="false" storeKey="activityOpen" side="right">
+            <div class="p-4 space-y-3">
+                <livewire:activity-log.index
+                    :model="$contact"
+                    :key="get_class($contact) . '_' . $contact->id"
+                />
+            </div>
+        </x-ui-page-sidebar>
+    </x-slot>
+
     <x-ui-page-container>
             
             {{-- Persönliche Daten --}}
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold mb-4 text-secondary">Persönliche Daten</h3>
+            <x-ui-panel title="Persönliche Daten">
                 <div class="grid grid-cols-1 gap-4">
                     <x-ui-input-text 
                         name="contact.first_name"
@@ -259,11 +265,10 @@
                         :errorKey="'contact.birth_date'"
                     />
                 </div>
-            </div>
+            </x-ui-panel>
 
             {{-- Anrede & Titel --}}
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold mb-4 text-secondary">Anrede & Titel</h3>
+            <x-ui-panel title="Anrede & Titel">
                 <div class="grid grid-cols-1 gap-4">
                     <x-ui-input-select
                         name="contact.salutation_id"
@@ -286,11 +291,10 @@
                         wire:model.live="contact.academic_title_id"
                     />
                 </div>
-            </div>
+            </x-ui-panel>
 
             {{-- Weitere Informationen --}}
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold mb-4 text-secondary">Weitere Informationen</h3>
+            <x-ui-panel title="Weitere Informationen">
                 <div class="grid grid-cols-1 gap-4">
                     <x-ui-input-select
                         name="contact.gender_id"
@@ -323,7 +327,7 @@
                         :errorKey="'contact.notes'"
                     />
                 </div>
-            </div>
+            </x-ui-panel>
     </x-ui-page-container>
 
     <!-- Phone Create Modal -->
