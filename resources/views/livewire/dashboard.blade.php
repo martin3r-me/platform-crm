@@ -1,70 +1,72 @@
-<div class="h-full overflow-y-auto p-6">
-    <!-- Header mit Datum und Perspektive-Toggle -->
-    <div class="mb-6">
-        <div class="d-flex justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">CRM Dashboard</h1>
-                <p class="text-gray-600">{{ now()->format('l') }}, {{ now()->format('d.m.Y') }}</p>
-            </div>
-            <div class="d-flex items-center gap-4">
-                <!-- Perspektive-Toggle -->
-                <div class="d-flex bg-gray-100 rounded-lg p-1">
+<x-ui-page>
+    <x-slot name="navbar">
+        <x-ui-page-navbar title="CRM Dashboard" icon="heroicon-o-chart-bar">
+            <div class="flex items-center gap-2">
+                <div class="flex bg-gray-100 rounded-lg p-1">
                     <button 
                         wire:click="$set('perspective', 'personal')"
-                        class="px-4 py-2 rounded-md text-sm font-medium transition"
+                        class="px-3 py-1.5 rounded-md text-sm font-medium transition"
                         :class="'{{ $perspective }}' === 'personal' 
-                            ? 'bg-success text-on-success shadow-sm' 
-                            : 'text-gray-600 hover:text-gray-900'"
+                            ? 'bg-[color:var(--ui-success)]/10 text-[color:var(--ui-success)] shadow-sm' 
+                            : 'text-[color:var(--ui-muted)] hover:text-[color:var(--ui-secondary)]'"
                     >
-                        <div class="d-flex items-center gap-2">
+                        <div class="flex items-center gap-2">
                             @svg('heroicon-o-user', 'w-4 h-4')
                             <span>Persönlich</span>
                         </div>
                     </button>
                     <button 
                         wire:click="$set('perspective', 'team')"
-                        class="px-4 py-2 rounded-md text-sm font-medium transition"
+                        class="px-3 py-1.5 rounded-md text-sm font-medium transition"
                         :class="'{{ $perspective }}' === 'team' 
-                            ? 'bg-success text-on-success shadow-sm' 
-                            : 'text-gray-600 hover:text-gray-900'"
+                            ? 'bg-[color:var(--ui-success)]/10 text-[color:var(--ui-success)] shadow-sm' 
+                            : 'text-[color:var(--ui-muted)] hover:text-[color:var(--ui-secondary)]'"
                     >
-                        <div class="d-flex items-center gap-2">
+                        <div class="flex items-center gap-2">
                             @svg('heroicon-o-users', 'w-4 h-4')
                             <span>Team</span>
                         </div>
                     </button>
                 </div>
+                <div class="text-xs text-[color:var(--ui-muted)]">{{ now()->format('l') }}, {{ now()->format('d.m.Y') }}</div>
             </div>
-        </div>
-    </div>
+        </x-ui-page-navbar>
+    </x-slot>
 
-    <!-- Perspektive-spezifische Statistiken -->
-    @if($perspective === 'personal')
+    <x-slot name="sidebar">
+        <x-ui-page-sidebar title="CRM" width="w-72" defaultOpen="true" storeKey="sidebarOpen" side="left">
+            @include('crm::livewire.sidebar')
+        </x-ui-page-sidebar>
+    </x-slot>
+
+    <x-ui-page-container>
+        <!-- Perspektive-spezifische Statistiken -->
+        @if($perspective === 'personal')
         <!-- Persönliche Perspektive -->
         <div class="mb-4">
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div class="d-flex items-center gap-2 mb-2">
+                <div class="flex items-center gap-2 mb-2">
                     @svg('heroicon-o-user', 'w-5 h-5 text-blue-600')
                     <h3 class="text-lg font-semibold text-blue-900">Persönliche Übersicht</h3>
                 </div>
                 <p class="text-blue-700 text-sm">Deine persönlichen Kontakte und zugewiesenen Unternehmen.</p>
             </div>
         </div>
-    @else
+        @else
         <!-- Team-Perspektive -->
         <div class="mb-4">
             <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div class="d-flex items-center gap-2 mb-2">
+                <div class="flex items-center gap-2 mb-2">
                     @svg('heroicon-o-users', 'w-5 h-5 text-green-600')
                     <h3 class="text-lg font-semibold text-green-900">Team-Übersicht</h3>
                 </div>
                 <p class="text-green-700 text-sm">Alle Kontakte und Unternehmen des Teams.</p>
             </div>
         </div>
-    @endif
+        @endif
 
-    <!-- Haupt-Statistiken (4x2 Grid) -->
-    <div class="grid grid-cols-4 gap-4 mb-8">
+        <!-- Haupt-Statistiken (4x2 Grid) -->
+        <div class="grid grid-cols-4 gap-4 mb-8">
         <!-- Kontakte -->
         <x-ui-dashboard-tile
             title="Kontakte"
@@ -102,10 +104,10 @@
             variant="warning"
             size="lg"
         />
-    </div>
+        </div>
 
     <!-- Detaillierte Statistiken (2x3 Grid) -->
-    <div class="grid grid-cols-2 gap-6 mb-8">
+        <div class="grid grid-cols-2 gap-6 mb-8">
         <!-- Linke Spalte: Kommunikationsdaten -->
         <div class="space-y-4">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Kommunikationsdaten</h3>
@@ -181,8 +183,9 @@
                     variant="warning"
                     size="sm"
                 />
-            </div>
         </div>
+    </x-ui-page-container>
+</x-ui-page>
     </div>
 
     <!-- Aktuelle Aktivitäten -->

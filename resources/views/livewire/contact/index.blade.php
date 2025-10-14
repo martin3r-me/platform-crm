@@ -1,18 +1,28 @@
-<div class="p-3">
-    <h1 class="text-2xl font-bold mb-4">Kontakte</h1>
+<x-ui-page>
+    <x-slot name="navbar">
+        <x-ui-page-navbar title="Kontakte" icon="heroicon-o-user-group">
+            <x-slot name="titleActions"></x-slot>
+            <div class="flex items-center gap-2">
+                <x-ui-input-text 
+                    name="search" 
+                    placeholder="Suche Kontakte..." 
+                    class="w-64"
+                />
+                <x-ui-button variant="primary" wire:click="openCreateModal">
+                    Neuer Kontakt
+                </x-ui-button>
+            </div>
+        </x-ui-page-navbar>
+    </x-slot>
 
-    <div class="flex items-center justify-between mb-4">
-        <x-ui-input-text 
-            name="search" 
-            placeholder="Suche Kontakte..." 
-            class="w-64"
-        />
-        <x-ui-button variant="primary" wire:click="openCreateModal">
-            Neuer Kontakt
-        </x-ui-button>
-    </div>
-    
-    <x-ui-table compact="true">
+    <x-slot name="sidebar">
+        <x-ui-page-sidebar title="CRM" width="w-72" defaultOpen="true" storeKey="sidebarOpen" side="left">
+            @include('crm::livewire.sidebar')
+        </x-ui-page-sidebar>
+    </x-slot>
+
+    <x-ui-page-container>
+        <x-ui-table compact="true">
         <x-ui-table-header>
             <x-ui-table-header-cell compact="true" sortable="true" sortField="last_name" :currentSort="$sortField" :sortDirection="$sortDirection">Name</x-ui-table-header-cell>
             <x-ui-table-header-cell compact="true">Primäre Kontaktdaten</x-ui-table-header-cell>
@@ -94,7 +104,11 @@
                 </x-ui-table-row>
             @endforeach
         </x-ui-table-body>
-    </x-ui-table>
+        </x-ui-table>
+        <div class="mt-4">
+            {{ $contacts->links() }}
+        </div>
+    </x-ui-page-container>
 
     <!-- Create Contact Modal -->
     <x-ui-modal
@@ -244,4 +258,4 @@
             </div>
         </x-slot>
     </x-ui-modal>
-</div>
+</x-ui-page>
