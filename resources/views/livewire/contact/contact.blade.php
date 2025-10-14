@@ -218,7 +218,7 @@
     </x-slot>
 
     <x-ui-page-container>
-            
+            <div class="min-w-0 space-y-6">
             {{-- Persönliche Daten --}}
             <x-ui-panel title="Persönliche Daten">
                 <div class="grid grid-cols-1 gap-4">
@@ -328,6 +328,7 @@
                     />
                 </div>
             </x-ui-panel>
+            </div>
     </x-ui-page-container>
 
     <!-- Phone Create Modal -->
