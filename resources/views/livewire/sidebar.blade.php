@@ -5,18 +5,18 @@
     
     {{-- Abschnitt: Allgemein --}}
     <div>
-        <h4 x-show="!collapsed" class="p-3 text-sm italic text-secondary uppercase">Allgemein</h4>
+        <h4 x-show="!collapsed" class="px-4 py-3 text-xs tracking-wide font-semibold text-[color:var(--ui-muted)] uppercase">Allgemein</h4>
 
         {{-- Dashboard --}}
         <a href="{{ route('crm.dashboard') }}"
-           class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition"
+           class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition"
            :class="[
                window.location.pathname === '/' || 
                window.location.pathname.endsWith('/crm') || 
                window.location.pathname.endsWith('/crm/') ||
                (window.location.pathname.split('/').length === 1 && window.location.pathname === '/')
-                   ? 'bg-primary text-on-primary shadow-md'
-                   : 'text-black hover:bg-primary-10 hover:text-primary hover:shadow-md',
+                   ? 'bg-[color:var(--ui-primary)] text-[color:var(--ui-on-primary)] shadow'
+                   : 'text-[color:var(--ui-secondary)] hover:bg-[color:var(--ui-primary-5)] hover:text-[color:var(--ui-primary)]',
                collapsed ? 'justify-center' : 'gap-3'
            ]"
            wire:navigate>
@@ -26,13 +26,13 @@
 
         {{-- Kontakte --}}
         <a href="{{ route('crm.contacts.index') }}"
-           class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition"
+           class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition"
            :class="[
                window.location.pathname.includes('/contacts') || 
                window.location.pathname.endsWith('/contacts') ||
                window.location.pathname.endsWith('/contacts/')
-                   ? 'bg-primary text-on-primary shadow-md'
-                   : 'text-black hover:bg-primary-10 hover:text-primary hover:shadow-md',
+                   ? 'bg-[color:var(--ui-primary)] text-[color:var(--ui-on-primary)] shadow'
+                   : 'text-[color:var(--ui-secondary)] hover:bg-[color:var(--ui-primary-5)] hover:text-[color:var(--ui-primary)]',
                collapsed ? 'justify-center' : 'gap-3'
            ]"
            wire:navigate>
@@ -42,13 +42,13 @@
 
         {{-- Unternehmen --}}
         <a href="{{ route('crm.companies.index') }}"
-           class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition"
+           class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition"
            :class="[
                window.location.pathname.includes('/companies') || 
                window.location.pathname.endsWith('/companies') ||
                window.location.pathname.endsWith('/companies/')
-                   ? 'bg-primary text-on-primary shadow-md'
-                   : 'text-black hover:bg-primary-10 hover:text-primary hover:shadow-md',
+                   ? 'bg-[color:var(--ui-primary)] text-[color:var(--ui-on-primary)] shadow'
+                   : 'text-[color:var(--ui-secondary)] hover:bg-[color:var(--ui-primary-5)] hover:text-[color:var(--ui-primary)]',
                collapsed ? 'justify-center' : 'gap-3'
            ]"
            wire:navigate>
@@ -59,18 +59,18 @@
 
     {{-- Abschnitt: Schnellzugriff --}}
     <div x-show="!collapsed">
-        <h4 class="p-3 text-sm italic text-secondary uppercase">Schnellzugriff</h4>
+        <h4 class="px-4 py-3 text-xs tracking-wide font-semibold text-[color:var(--ui-muted)] uppercase">Schnellzugriff</h4>
 
         {{-- Neueste Kontakte --}}
         @foreach($recentContacts ?? [] as $contact)
             <a href="{{ route('crm.contacts.show', ['contact' => $contact]) }}"
-               class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition gap-3"
+               class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition gap-3"
                :class="[
                    window.location.pathname.includes('/contacts/{{ $contact->id }}/') || 
                    window.location.pathname.endsWith('/contacts/{{ $contact->id }}') ||
                    (window.location.pathname.split('/').length === 2 && window.location.pathname.endsWith('/{{ $contact->id }}'))
-                       ? 'bg-primary text-on-primary shadow-md'
-                       : 'text-black hover:bg-primary-10 hover:text-primary hover:shadow-md'
+                       ? 'bg-[color:var(--ui-primary)] text-[color:var(--ui-on-primary)] shadow'
+                       : 'text-[color:var(--ui-secondary)] hover:bg-[color:var(--ui-primary-5)] hover:text-[color:var(--ui-primary)]'
                ]"
                wire:navigate>
                 <x-heroicon-o-user class="w-6 h-6 flex-shrink-0"/>
@@ -81,13 +81,13 @@
         {{-- Neueste Unternehmen --}}
         @foreach($recentCompanies ?? [] as $company)
             <a href="{{ route('crm.companies.show', ['company' => $company]) }}"
-               class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition gap-3"
+               class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition gap-3"
                :class="[
                    window.location.pathname.includes('/companies/{{ $company->id }}/') || 
                    window.location.pathname.endsWith('/companies/{{ $company->id }}') ||
                    (window.location.pathname.split('/').length === 2 && window.location.pathname.endsWith('/{{ $company->id }}'))
-                       ? 'bg-primary text-on-primary shadow-md'
-                       : 'text-black hover:bg-primary-10 hover:text-primary hover:shadow-md'
+                       ? 'bg-[color:var(--ui-primary)] text-[color:var(--ui-on-primary)] shadow'
+                       : 'text-[color:var(--ui-secondary)] hover:bg-[color:var(--ui-primary-5)] hover:text-[color:var(--ui-primary)]'
                ]"
                wire:navigate>
                 <x-heroicon-o-building-office class="w-6 h-6 flex-shrink-0"/>

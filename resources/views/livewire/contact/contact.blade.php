@@ -1,34 +1,218 @@
-<div class="d-flex h-full">
-    <!-- Linke Spalte -->
-    <div class="flex-grow-1 d-flex flex-col">
-        <!-- Header oben (fix) -->
-        <div class="border-top-1 border-bottom-1 border-muted border-top-solid border-bottom-solid p-2 flex-shrink-0">
-            <div class="d-flex gap-1">
-                <div class="d-flex">
-                    <a href="{{ route('crm.contacts.index') }}" class="d-flex px-3 border-right-solid border-right-1 border-right-muted underline" wire:navigate>
-                        Kontakte
-                    </a>
+x-ui-page>
+    <x-slot name="navbar">
+        <x-ui-page-navbar title="{{ $contact->full_name }}" icon="heroicon-o-user">
+            <x-ui-button 
+                variant="primary" 
+                size="sm"
+                wire:click="save"
+                :disabled="!$this->isDirty"
+            >
+                <div class="flex items-center gap-2">
+                    @svg('heroicon-o-check', 'w-4 h-4')
+                    Speichern
                 </div>
-                <div class="flex-grow-1 text-right d-flex items-center justify-end gap-2">
-                    <span>{{ $contact->full_name }}</span>
-                    @if($this->isDirty)
-                        <x-ui-button 
-                            variant="primary" 
-                            size="sm"
-                            wire:click="save"
-                        >
-                            <div class="d-flex items-center gap-2">
-                                @svg('heroicon-o-check', 'w-4 h-4')
-                                Speichern
+            </x-ui-button>
+        </x-ui-page-navbar>
+    </x-slot>
+
+    <x-slot name="sidebar">
+        <x-ui-page-sidebar title="CRM" width="w-72" defaultOpen="true" storeKey="sidebarOpen" side="left">
+            @include('crm::livewire.sidebar')
+        </x-ui-page-sidebar>
+    </x-slot>
+
+    <x-slot name="activity">
+        <x-ui-page-sidebar title="Einstellungen" width="w-80" defaultOpen="false" storeKey="activityOpen" side="right">
+            <div class="p-4 space-y-4">
+                {{-- Navigation Buttons --}}
+                <div class="flex flex-col gap-2 mb-4">
+                    <x-ui-button 
+                        variant="secondary-outline" 
+                        size="md" 
+                        :href="route('crm.contacts.index')" 
+                        wire:navigate
+                        class="w-full"
+                    >
+                        <div class="flex items-center gap-2">
+                            @svg('heroicon-o-arrow-left', 'w-4 h-4')
+                            Zurück zu Kontakten
+                        </div>
+                    </x-ui-button>
+                </div>
+
+                {{-- Kurze Übersicht --}}
+                <div class="p-3 bg-[color:var(--ui-muted-5)] rounded-lg">
+                    <h4 class="font-semibold mb-2 text-[color:var(--ui-secondary)]">Kontakt-Übersicht</h4>
+                    <div class="space-y-1 text-sm">
+                        <div><strong>Name:</strong> {{ $contact->full_name }}</div>
+                        @if($contact->academicTitle)
+                            <div><strong>Titel:</strong> {{ $contact->academicTitle->name }}</div>
+                        @endif
+                        @if($contact->salutation)
+                            <div><strong>Anrede:</strong> {{ $contact->salutation->name }}</div>
+                        @endif
+                        @if($contact->nickname)
+                            <div><strong>Spitzname:</strong> {{ $contact->nickname }}</div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Status --}}
+                <x-ui-input-select
+                    name="contact.contact_status_id"
+                    label="Status"
+                    :options="$contactStatuses"
+                    optionValue="id"
+                    optionLabel="name"
+                    :nullable="true"
+                    nullLabel="– Status auswählen –"
+                    wire:model.live="contact.contact_status_id"
+                    required
+                />
+
+                <hr>
+
+                {{-- Telefonnummern --}}
+                <div class="mb-4">
+                    <h4 class="font-semibold mb-2">Telefonnummern</h4>
+                    <div class="space-y-2">
+                        @foreach($contact->phoneNumbers as $phone)
+                            <div class="flex items-center gap-2 p-2 bg-[color:var(--ui-muted-5)] rounded cursor-pointer" wire:click="editPhone({{ $phone->id }})">
+                                <span class="flex-grow text-sm">{{ $phone->raw_input }}</span>
+                                <div class="flex gap-1">
+                                    @if($phone->is_primary)
+                                        <x-ui-badge variant="success" size="xs">Primär</x-ui-badge>
+                                    @endif
+                                    <x-ui-badge variant="primary" size="xs">{{ $phone->phoneType->name }}</x-ui-badge>
+                                </div>
+                            </div>
+                        @endforeach
+                        @if($contact->phoneNumbers->count() === 0)
+                            <p class="text-sm text-[color:var(--ui-muted)]">Noch keine Telefonnummern vorhanden.</p>
+                        @endif
+                        <x-ui-button size="sm" variant="secondary-outline" wire:click="addPhone">
+                            <div class="flex items-center gap-2">
+                                @svg('heroicon-o-plus', 'w-4 h-4')
+                                Telefonnummer hinzufügen
                             </div>
                         </x-ui-button>
-                    @endif
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Haupt-Content (nimmt Restplatz, scrollt) -->
-        <div class="flex-grow-1 overflow-y-auto p-4">
+                {{-- E-Mail-Adressen --}}
+                <div class="mb-4">
+                    <h4 class="font-semibold mb-2">E-Mail-Adressen</h4>
+                    <div class="space-y-2">
+                        @foreach($contact->emailAddresses as $email)
+                            <div class="flex items-center gap-2 p-2 bg-[color:var(--ui-muted-5)] rounded cursor-pointer" wire:click="editEmail({{ $email->id }})">
+                                <span class="flex-grow text-sm">{{ $email->email_address }}</span>
+                                <div class="flex gap-1">
+                                    @if($email->is_primary)
+                                        <x-ui-badge variant="success" size="xs">Primär</x-ui-badge>
+                                    @endif
+                                    <x-ui-badge variant="primary" size="xs">{{ $email->emailType->name }}</x-ui-badge>
+                                </div>
+                            </div>
+                        @endforeach
+                        <x-ui-button size="sm" variant="secondary-outline" wire:click="addEmail">
+                            <div class="flex items-center gap-2">
+                                @svg('heroicon-o-plus', 'w-4 h-4')
+                                E-Mail-Adresse hinzufügen
+                            </div>
+                        </x-ui-button>
+                    </div>
+                </div>
+
+                <hr>
+
+                {{-- Adressen --}}
+                <div class="mb-4">
+                    <h4 class="font-semibold mb-2">Adressen</h4>
+                    <div class="space-y-2">
+                        @foreach($contact->postalAddresses as $address)
+                            <div class="flex items-center gap-2 p-2 bg-[color:var(--ui-muted-5)] rounded cursor-pointer" wire:click="editAddress({{ $address->id }})">
+                                <span class="flex-grow text-sm">{{ $address->full_address }}</span>
+                                <div class="flex gap-1">
+                                    @if($address->is_primary)
+                                        <x-ui-badge variant="success" size="xs">Primär</x-ui-badge>
+                                    @endif
+                                    <x-ui-badge variant="primary" size="xs">{{ $address->addressType->name }}</x-ui-badge>
+                                </div>
+                            </div>
+                        @endforeach
+                        @if($contact->postalAddresses->count() === 0)
+                            <p class="text-sm text-[color:var(--ui-muted)]">Noch keine Adressen vorhanden.</p>
+                        @endif
+                        <x-ui-button size="sm" variant="secondary-outline" wire:click="addAddress">
+                            <div class="flex items-center gap-2">
+                                @svg('heroicon-o-plus', 'w-4 h-4')
+                                Adresse hinzufügen
+                            </div>
+                        </x-ui-button>
+                    </div>
+                </div>
+
+                <hr>
+
+                {{-- Unternehmen --}}
+                <div class="mb-4">
+                    <h4 class="font-semibold mb-2">Unternehmen</h4>
+                    <div class="space-y-2">
+                        @foreach($contact->contactRelations as $relation)
+                            <div class="flex items-center gap-2 p-2 bg-[color:var(--ui-muted-5)] rounded cursor-pointer" wire:click="editCompany({{ $relation->id }})">
+                                <div class="flex-grow">
+                                    <div class="text-sm font-medium">
+                                        <a href="{{ route('crm.companies.show', ['company' => $relation->company->id]) }}" 
+                                           class="hover:underline text-[color:var(--ui-primary)]" 
+                                           wire:navigate
+                                           @click.stop>
+                                            {{ $relation->company->display_name }}
+                                        </a>
+                                    </div>
+                                    <div class="text-xs text-[color:var(--ui-muted)]">
+                                        @if($relation->position)
+                                            {{ $relation->position }} - 
+                                        @endif
+                                        {{ $relation->relationType->name }}
+                                        @if($relation->start_date)
+                                            ({{ $relation->start_date->format('d.m.Y') }}
+                                            @if($relation->end_date)
+                                                - {{ $relation->end_date->format('d.m.Y') }}
+                                            @endif
+                                            )
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="flex gap-1">
+                                    @if($relation->is_primary)
+                                        <x-ui-badge variant="success" size="xs">Primär</x-ui-badge>
+                                    @endif
+                                    @if($relation->is_current)
+                                        <x-ui-badge variant="primary" size="xs">Aktiv</x-ui-badge>
+                                    @else
+                                        <x-ui-badge variant="secondary" size="xs">Vergangen</x-ui-badge>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                        @if($contact->contactRelations->count() === 0)
+                            <p class="text-sm text-[color:var(--ui-muted)]">Noch keine Unternehmen verknüpft.</p>
+                        @endif
+                        <x-ui-button size="sm" variant="secondary-outline" wire:click="addCompany">
+                            <div class="flex items-center gap-2">
+                                @svg('heroicon-o-plus', 'w-4 h-4')
+                                Unternehmen hinzufügen
+                            </div>
+                        </x-ui-button>
+                    </div>
+                </div>
+
+                <hr>
+            </div>
+        </x-ui-page-sidebar>
+    </x-slot>
+
+    <x-ui-page-container>
             
             {{-- Persönliche Daten --}}
             <div class="mb-6">
@@ -142,35 +326,7 @@
                     />
                 </div>
             </div>
-        </div>
-
-        <!-- Aktivitäten (immer unten) -->
-        <div x-data="{ open: false }" class="flex-shrink-0 border-t border-muted">
-            <div 
-                @click="open = !open" 
-                class="cursor-pointer border-top-1 border-top-solid border-top-muted border-bottom-1 border-bottom-solid border-bottom-muted p-2 text-center d-flex items-center justify-center gap-1 mx-2 shadow-lg"
-            >
-                AKTIVITÄTEN 
-                <span class="text-xs">
-                    {{$contact->activities->count()}}
-                </span>
-                <x-heroicon-o-chevron-double-down 
-                    class="w-3 h-3" 
-                    x-show="!open"
-                />
-                <x-heroicon-o-chevron-double-up 
-                    class="w-3 h-3" 
-                    x-show="open"
-                />
-            </div>
-            <div x-show="open" class="p-2 max-h-xs overflow-y-auto">
-                <livewire:activity-log.index
-                    :model="$contact"
-                    :key="get_class($contact) . '_' . $contact->id"
-                />
-            </div>
-        </div>
-    </div>
+    </x-ui-page-container>
 
     <!-- Rechte Spalte -->
     <div class="min-w-80 w-80 d-flex flex-col border-left-1 border-left-solid border-left-muted">
@@ -1082,4 +1238,4 @@
         </x-slot>
     </x-ui-modal>
 
-</div>
+</x-ui-page>
