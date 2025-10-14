@@ -1,7 +1,7 @@
-<div class = "p-3">
+<div class="p-3">
     <h1 class="text-2xl font-bold mb-4">Kontakte</h1>
 
-    <div class="d-flex justify-between mb-4">
+    <div class="flex items-center justify-between mb-4">
         <x-ui-input-text 
             name="search" 
             placeholder="Suche Kontakte..." 
@@ -31,26 +31,26 @@
                     <x-ui-table-cell compact="true">
                         <div class="font-medium">{{ $contact->last_name }}, {{ $contact->first_name }}</div>
                         @if($contact->nickname)
-                            <div class="text-xs text-muted">"{{ $contact->nickname }}"</div>
+                            <div class="text-xs text-[color:var(--ui-muted)]">"{{ $contact->nickname }}"</div>
                         @endif
                     </x-ui-table-cell>
                     <x-ui-table-cell compact="true">
                         <div class="space-y-1">
                             @if($contact->phoneNumbers->where('is_primary', true)->first())
-                                <div class="text-xs d-flex items-center gap-1">
-                                    @svg('heroicon-o-phone', 'w-3 h-3 text-muted')
+                                <div class="text-xs flex items-center gap-1">
+                                    @svg('heroicon-o-phone', 'w-3 h-3 text-[color:var(--ui-muted)]')
                                     {{ $contact->phoneNumbers->where('is_primary', true)->first()->national }}
                                 </div>
                             @endif
                             @if($contact->emailAddresses->where('is_primary', true)->first())
-                                <div class="text-xs d-flex items-center gap-1">
-                                    @svg('heroicon-o-envelope', 'w-3 h-3 text-muted')
+                                <div class="text-xs flex items-center gap-1">
+                                    @svg('heroicon-o-envelope', 'w-3 h-3 text-[color:var(--ui-muted)]')
                                     {{ $contact->emailAddresses->where('is_primary', true)->first()->email_address }}
                                 </div>
                             @endif
                             @if($contact->postalAddresses->where('is_primary', true)->first())
-                                <div class="text-xs d-flex items-center gap-1">
-                                    @svg('heroicon-o-map-pin', 'w-3 h-3 text-muted')
+                                <div class="text-xs flex items-center gap-1">
+                                    @svg('heroicon-o-map-pin', 'w-3 h-3 text-[color:var(--ui-muted)]')
                                     {{ $contact->postalAddresses->where('is_primary', true)->first()->city }}
                                 </div>
                             @endif
@@ -60,20 +60,20 @@
                         @if($contact->contactRelations->count() > 0)
                             <div class="space-y-1">
                                 @foreach($contact->contactRelations->take(2) as $relation)
-                                    <div class="text-xs d-flex items-center gap-1">
-                                        @svg('heroicon-o-building-office', 'w-3 h-3 text-muted')
+                                    <div class="text-xs flex items-center gap-1">
+                                        @svg('heroicon-o-building-office', 'w-3 h-3 text-[color:var(--ui-muted)]')
                                         {{ $relation->company->name }}
                                         @if($relation->position)
-                                            <span class="text-muted">({{ $relation->position }})</span>
+                                            <span class="text-[color:var(--ui-muted)]">({{ $relation->position }})</span>
                                         @endif
                                     </div>
                                 @endforeach
                                 @if($contact->contactRelations->count() > 2)
-                                    <div class="text-xs text-muted">+{{ $contact->contactRelations->count() - 2 }} weitere</div>
+                                    <div class="text-xs text-[color:var(--ui-muted)]">+{{ $contact->contactRelations->count() - 2 }} weitere</div>
                                 @endif
                             </div>
                         @else
-                            <span class="text-xs text-muted">–</span>
+                            <span class="text-xs text-[color:var(--ui-muted)]">–</span>
                         @endif
                     </x-ui-table-cell>
                     <x-ui-table-cell compact="true">

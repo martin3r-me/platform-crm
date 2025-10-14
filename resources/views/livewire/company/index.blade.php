@@ -1,7 +1,7 @@
-<div class = "p-3">
+<div class="p-3">
     <h1 class="text-2xl font-bold mb-4">Unternehmen</h1>
     
-    <div class="d-flex justify-between mb-4">
+    <div class="flex items-center justify-between mb-4">
         <x-ui-input-text 
             name="search" 
             placeholder="Suche Unternehmen..." 
@@ -37,20 +37,20 @@
                     <x-ui-table-cell compact="true">
                         <div class="space-y-1">
                             @if($company->phoneNumbers->where('is_primary', true)->first())
-                                <div class="text-xs d-flex items-center gap-1">
-                                    @svg('heroicon-o-phone', 'w-3 h-3 text-muted')
+                                <div class="text-xs flex items-center gap-1">
+                                    @svg('heroicon-o-phone', 'w-3 h-3 text-[color:var(--ui-muted)]')
                                     {{ $company->phoneNumbers->where('is_primary', true)->first()->national }}
                                 </div>
                             @endif
                             @if($company->emailAddresses->where('is_primary', true)->first())
-                                <div class="text-xs d-flex items-center gap-1">
-                                    @svg('heroicon-o-envelope', 'w-3 h-3 text-muted')
+                                <div class="text-xs flex items-center gap-1">
+                                    @svg('heroicon-o-envelope', 'w-3 h-3 text-[color:var(--ui-muted)]')
                                     {{ $company->emailAddresses->where('is_primary', true)->first()->email_address }}
                                 </div>
                             @endif
                             @if($company->postalAddresses->where('is_primary', true)->first())
-                                <div class="text-xs d-flex items-center gap-1">
-                                    @svg('heroicon-o-map-pin', 'w-3 h-3 text-muted')
+                                <div class="text-xs flex items-center gap-1">
+                                    @svg('heroicon-o-map-pin', 'w-3 h-3 text-[color:var(--ui-muted)]')
                                     {{ $company->postalAddresses->where('is_primary', true)->first()->city }}
                                 </div>
                             @endif
@@ -60,20 +60,20 @@
                         @if($company->contactRelations->count() > 0)
                             <div class="space-y-1">
                                 @foreach($company->contactRelations->take(2) as $relation)
-                                    <div class="text-xs d-flex items-center gap-1">
-                                        @svg('heroicon-o-user', 'w-3 h-3 text-muted')
+                                    <div class="text-xs flex items-center gap-1">
+                                        @svg('heroicon-o-user', 'w-3 h-3 text-[color:var(--ui-muted)]')
                                         {{ $relation->contact->full_name }}
                                         @if($relation->position)
-                                            <span class="text-muted">({{ $relation->position }})</span>
+                                            <span class="text-[color:var(--ui-muted)]">({{ $relation->position }})</span>
                                         @endif
                                     </div>
                                 @endforeach
                                 @if($company->contactRelations->count() > 2)
-                                    <div class="text-xs text-muted">+{{ $company->contactRelations->count() - 2 }} weitere</div>
+                                    <div class="text-xs text-[color:var(--ui-muted)]">+{{ $company->contactRelations->count() - 2 }} weitere</div>
                                 @endif
                             </div>
                         @else
-                            <span class="text-xs text-muted">–</span>
+                            <span class="text-xs text-[color:var(--ui-muted)]">–</span>
                         @endif
                     </x-ui-table-cell>
                     <x-ui-table-cell compact="true">
