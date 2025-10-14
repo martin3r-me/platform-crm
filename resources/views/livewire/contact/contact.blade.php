@@ -1,4 +1,4 @@
-x-ui-page>
+<x-ui-page>
     <x-slot name="navbar">
         <x-ui-page-navbar title="{{ $contact->full_name }}" icon="heroicon-o-user">
             <x-ui-button 
