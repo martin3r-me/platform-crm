@@ -320,8 +320,6 @@
             </div>
     </x-ui-page-container>
 
-</x-ui-page>
-
     <!-- Phone Create Modal -->
     <x-ui-modal
         size="sm"
@@ -1035,4 +1033,4 @@
         </x-slot>
     </x-ui-modal>
 
-</div> 
+</x-ui-page> 
