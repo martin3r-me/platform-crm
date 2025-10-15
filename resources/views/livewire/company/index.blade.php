@@ -16,8 +16,39 @@
     </x-slot>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="CRM" width="w-72" defaultOpen="true" storeKey="sidebarOpen" side="left">
-            @include('crm::livewire.sidebar')
+        <x-ui-page-sidebar title="Übersicht" width="w-72" defaultOpen="true" storeKey="sidebarOpen" side="left">
+            <div class="p-4 space-y-4">
+                @php $total = method_exists($companies, 'total') ? $companies->total() : $companies->count(); @endphp
+
+                <div class="p-3 bg-[color:var(--ui-muted-5)] rounded-lg">
+                    <h4 class="text-sm font-semibold text-[color:var(--ui-secondary)] mb-1">Statistik</h4>
+                    <div class="text-sm text-[color:var(--ui-secondary)]">Gefundene Unternehmen: <strong>{{ $total }}</strong></div>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-semibold text-[color:var(--ui-secondary)] mb-2">Schnellfilter</h4>
+                    <div class="flex flex-col gap-2">
+                        <x-ui-button size="sm" variant="secondary-outline" wire:click="filter('all')">Alle</x-ui-button>
+                        <x-ui-button size="sm" variant="secondary-outline" wire:click="filter('with_contacts')">Mit Kontakten</x-ui-button>
+                        <x-ui-button size="sm" variant="secondary-outline" wire:click="filter('without_contacts')">Ohne Kontakte</x-ui-button>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-semibold text-[color:var(--ui-secondary)] mb-2">Aktionen</h4>
+                    <x-ui-button variant="primary" size="sm" wire:click="openCreateModal" class="w-full">
+                        @svg('heroicon-o-plus', 'w-4 h-4 mr-2') Unternehmen anlegen
+                    </x-ui-button>
+                </div>
+            </div>
+        </x-ui-page-sidebar>
+    </x-slot>
+
+    <x-slot name="activity">
+        <x-ui-page-sidebar title="Aktivitäten" width="w-80" defaultOpen="false" storeKey="activityOpen" side="right">
+            <div class="p-4">
+                <p class="text-sm text-[color:var(--ui-muted)]">Aktivitäten werden hier angezeigt...</p>
+            </div>
         </x-ui-page-sidebar>
     </x-slot>
 
