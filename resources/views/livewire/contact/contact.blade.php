@@ -208,11 +208,8 @@
 
     <x-slot name="activity">
         <x-ui-page-sidebar title="Aktivitäten" width="w-80" defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-4 space-y-3">
-                <livewire:activity-log.index
-                    :model="$contact"
-                    :key="get_class($contact) . '_' . $contact->id"
-                />
+            <div class="p-4">
+                <p class="text-sm text-[color:var(--ui-muted)]">Aktivitäten werden hier angezeigt...</p>
             </div>
         </x-ui-page-sidebar>
     </x-slot>
