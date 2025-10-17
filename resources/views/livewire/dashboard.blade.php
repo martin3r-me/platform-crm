@@ -50,126 +50,20 @@
     <x-ui-page-container>
         
 
-        <!-- Haupt-Statistiken (4x2 Grid) -->
+        <!-- Haupt-Statistiken im Planner-Stil -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- Kontakte -->
-        <x-ui-dashboard-tile
-            title="Kontakte"
-            :count="$this->totalContacts"
-            icon="user"
-            variant="primary"
-            size="lg"
-            :href="route('crm.contacts.index')"
-        />
-        
-        <!-- Unternehmen -->
-        <x-ui-dashboard-tile
-            title="Unternehmen"
-            :count="$this->totalCompanies"
-            icon="building-office"
-            variant="secondary"
-            size="lg"
-            :href="route('crm.companies.index')"
-        />
-        
-        <!-- E-Mail Adressen -->
-        <x-ui-dashboard-tile
-            title="E-Mail Adressen"
-            :count="$this->totalEmailAddresses"
-            icon="envelope"
-            variant="success"
-            size="lg"
-        />
-        
-        <!-- Telefonnummern -->
-        <x-ui-dashboard-tile
-            title="Telefonnummern"
-            :count="$this->totalPhoneNumbers"
-            icon="phone"
-            variant="warning"
-            size="lg"
-        />
+            <x-ui-dashboard-tile title="Kontakte" :count="$this->totalContacts" icon="user" variant="secondary" size="lg" :href="route('crm.contacts.index')" />
+            <x-ui-dashboard-tile title="Unternehmen" :count="$this->totalCompanies" icon="building-office" variant="secondary" size="lg" :href="route('crm.companies.index')" />
+            <x-ui-dashboard-tile title="Kontakte ohne E-Mail" :count="$this->contactsWithoutEmail" icon="exclamation-triangle" variant="warning" size="lg" />
+            <x-ui-dashboard-tile title="Kontakte ohne Telefon" :count="$this->contactsWithoutPhone" icon="exclamation-triangle" variant="warning" size="lg" />
         </div>
 
-    <!-- Detaillierte Statistiken (2x3 Grid) -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <!-- Linke Spalte: Kommunikationsdaten -->
-        <div class="space-y-4">
-            <h3 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Kommunikationsdaten</h3>
-            
-            <div class="grid grid-cols-2 gap-3">
-                <x-ui-dashboard-tile
-                    title="Primäre E-Mails"
-                    :count="$this->primaryEmailAddresses"
-                    icon="envelope"
-                    variant="success"
-                    size="sm"
-                />
-                
-                <x-ui-dashboard-tile
-                    title="Primäre Telefone"
-                    :count="$this->primaryPhoneNumbers"
-                    icon="phone"
-                    variant="warning"
-                    size="sm"
-                />
-                
-                <x-ui-dashboard-tile
-                    title="Adressen"
-                    :count="$this->totalPostalAddresses"
-                    icon="map-pin"
-                    variant="info"
-                    size="sm"
-                />
-                
-                <x-ui-dashboard-tile
-                    title="Beziehungen"
-                    :count="$this->totalRelations"
-                    icon="link"
-                    variant="danger"
-                    size="sm"
-                />
-            </div>
-        </div>
-
-        <!-- Rechte Spalte: Qualitätsmetriken -->
-        <div class="space-y-4">
-            <h3 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Qualitätsmetriken</h3>
-            
-            <div class="grid grid-cols-2 gap-3">
-                <x-ui-dashboard-tile
-                    title="Kontakte ohne E-Mail"
-                    :count="$this->contactsWithoutEmail"
-                    icon="exclamation-triangle"
-                    variant="warning"
-                    size="sm"
-                />
-                
-                <x-ui-dashboard-tile
-                    title="Kontakte ohne Telefon"
-                    :count="$this->contactsWithoutPhone"
-                    icon="exclamation-triangle"
-                    variant="warning"
-                    size="sm"
-                />
-                
-                <x-ui-dashboard-tile
-                    title="Unternehmen ohne E-Mail"
-                    :count="$this->companiesWithoutEmail"
-                    icon="exclamation-triangle"
-                    variant="warning"
-                    size="sm"
-                />
-                
-                <x-ui-dashboard-tile
-                    title="Unternehmen ohne Telefon"
-                    :count="$this->companiesWithoutPhone"
-                    icon="exclamation-triangle"
-                    variant="warning"
-                    size="sm"
-                />
-            </div>
-        </div>
+        <!-- Sekundäre Statistiken -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <x-ui-dashboard-tile title="Unternehmen ohne E-Mail" :count="$this->companiesWithoutEmail" icon="exclamation-triangle" variant="warning" size="md" />
+            <x-ui-dashboard-tile title="Unternehmen ohne Telefon" :count="$this->companiesWithoutPhone" icon="exclamation-triangle" variant="warning" size="md" />
+            <x-ui-dashboard-tile title="Primäre E-Mails" :count="$this->primaryEmailAddresses" icon="envelope" variant="neutral" size="md" />
+            <x-ui-dashboard-tile title="Primäre Telefone" :count="$this->primaryPhoneNumbers" icon="phone" variant="neutral" size="md" />
         </div>
         {{-- Zuletzt aktualisiert (Kontakte & Unternehmen) im Planner-Stil --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
