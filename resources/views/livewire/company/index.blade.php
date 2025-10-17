@@ -1,46 +1,34 @@
 <x-ui-page>
     <x-slot name="navbar">
-        <x-ui-page-navbar title="Unternehmen" icon="heroicon-o-building-office">
-            <x-slot name="titleActions"></x-slot>
-            <div class="flex items-center gap-2">
-                <x-ui-input-text 
-                    name="search" 
-                    placeholder="Suche Unternehmen..." 
-                    class="w-64"
-                />
-                <x-ui-button variant="primary" wire:click="openCreateModal">
-                    Neues Unternehmen
-                </x-ui-button>
-            </div>
-        </x-ui-page-navbar>
+        <x-ui-page-navbar title="Unternehmen" />
     </x-slot>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Übersicht" width="w-72" defaultOpen="true" storeKey="sidebarOpen" side="left">
-            <div class="p-4 space-y-4">
-                @php $total = method_exists($companies, 'total') ? $companies->total() : $companies->count(); @endphp
-
-                <div class="p-3 bg-[color:var(--ui-muted-5)] rounded-lg">
-                    <h4 class="text-sm font-semibold text-[color:var(--ui-secondary)] mb-1">Statistik</h4>
-                    <div class="text-sm text-[color:var(--ui-secondary)]">Gefundene Unternehmen: <strong>{{ $total }}</strong></div>
-                </div>
-
+        <x-ui-page-sidebar title="Schnellzugriff" width="w-80" :defaultOpen="true" side="left">
+            <div class="p-6 space-y-6">
                 <div>
-                    <h4 class="text-sm font-semibold text-[color:var(--ui-secondary)] mb-2">Schnellfilter</h4>
-                    <div class="flex flex-col gap-2">
-                        <x-ui-button size="sm" variant="secondary-outline" wire:click="filter('all')">Alle</x-ui-button>
-                        <x-ui-button size="sm" variant="secondary-outline" wire:click="filter('with_contacts')">Mit Kontakten</x-ui-button>
-                        <x-ui-button size="sm" variant="secondary-outline" wire:click="filter('without_contacts')">Ohne Kontakte</x-ui-button>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Aktionen</h3>
+                    <div class="space-y-2">
+                        <x-ui-input-text name="search" placeholder="Suche Unternehmen..." class="w-full" size="sm" />
+                        <x-ui-button variant="secondary" size="sm" wire:click="openCreateModal" class="w-full justify-start">
+                            @svg('heroicon-o-plus','w-4 h-4')
+                            <span class="ml-2">Neues Unternehmen</span>
+                        </x-ui-button>
                     </div>
                 </div>
-
                 <div>
-                    <h4 class="text-sm font-semibold text-[color:var(--ui-secondary)] mb-2">Aktionen</h4>
-                    <x-ui-button variant="primary" size="sm" wire:click="openCreateModal" class="w-full">
-                        @svg('heroicon-o-plus', 'w-4 h-4 mr-2') Unternehmen anlegen
-                    </x-ui-button>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Filter</h3>
+                    <div class="space-y-3">
+                        <x-ui-input-select name="status" label="Status" :options="$contactStatuses" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Alle –" size="sm" />
+                    </div>
                 </div>
             </div>
+        </x-ui-page-sidebar>
+    </x-slot>
+
+    <x-slot name="activity">
+        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
+            <div class="p-6 text-sm text-[var(--ui-muted)]">Keine Aktivitäten verfügbar</div>
         </x-ui-page-sidebar>
     </x-slot>
 
@@ -59,7 +47,6 @@
             <x-ui-table-header-cell compact="true">Primäre Kontaktdaten</x-ui-table-header-cell>
             <x-ui-table-header-cell compact="true">Kontakte</x-ui-table-header-cell>
             <x-ui-table-header-cell compact="true" sortable="true" sortField="contact_status_id" :currentSort="$sortField" :sortDirection="$sortDirection">Status</x-ui-table-header-cell>
-            <x-ui-table-header-cell compact="true" align="right">Aktionen</x-ui-table-header-cell>
         </x-ui-table-header>
         
         <x-ui-table-body>
@@ -118,19 +105,9 @@
                         @endif
                     </x-ui-table-cell>
                     <x-ui-table-cell compact="true">
-                        <x-ui-badge variant="primary" size="sm">
+                        <x-ui-badge variant="secondary" size="sm">
                             {{ $company->contactStatus->name }}
                         </x-ui-badge>
-                    </x-ui-table-cell>
-                    <x-ui-table-cell compact="true" align="right">
-                        <x-ui-button 
-                            size="sm" 
-                            variant="secondary" 
-                            href="{{ route('crm.companies.show', ['company' => $company->id]) }}" 
-                            wire:navigate
-                        >
-                            Bearbeiten
-                        </x-ui-button>
                     </x-ui-table-cell>
                 </x-ui-table-row>
             @endforeach

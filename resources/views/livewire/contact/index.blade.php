@@ -1,23 +1,34 @@
 <x-ui-page>
     <x-slot name="navbar">
-        <x-ui-page-navbar title="Kontakte" icon="heroicon-o-user-group">
-            <x-slot name="titleActions"></x-slot>
-            <div class="flex items-center gap-2">
-                <x-ui-input-text 
-                    name="search" 
-                    placeholder="Suche Kontakte..." 
-                    class="w-64"
-                />
-                <x-ui-button variant="primary" wire:click="openCreateModal">
-                    Neuer Kontakt
-                </x-ui-button>
-            </div>
-        </x-ui-page-navbar>
+        <x-ui-page-navbar title="Kontakte" />
     </x-slot>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="CRM" width="w-72" defaultOpen="true" storeKey="sidebarOpen" side="left">
-            @include('crm::livewire.sidebar')
+        <x-ui-page-sidebar title="Schnellzugriff" width="w-80" :defaultOpen="true" side="left">
+            <div class="p-6 space-y-6">
+                <div>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Aktionen</h3>
+                    <div class="space-y-2">
+                        <x-ui-input-text name="search" placeholder="Suche Kontakte..." class="w-full" size="sm" />
+                        <x-ui-button variant="secondary" size="sm" wire:click="openCreateModal" class="w-full justify-start">
+                            @svg('heroicon-o-plus','w-4 h-4')
+                            <span class="ml-2">Neuer Kontakt</span>
+                        </x-ui-button>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Filter</h3>
+                    <div class="space-y-3">
+                        <x-ui-input-select name="status" label="Status" :options="$contactStatuses" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Alle –" size="sm" />
+                    </div>
+                </div>
+            </div>
+        </x-ui-page-sidebar>
+    </x-slot>
+
+    <x-slot name="activity">
+        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
+            <div class="p-6 text-sm text-[var(--ui-muted)]">Keine Aktivitäten verfügbar</div>
         </x-ui-page-sidebar>
     </x-slot>
 
@@ -28,7 +39,6 @@
             <x-ui-table-header-cell compact="true">Primäre Kontaktdaten</x-ui-table-header-cell>
             <x-ui-table-header-cell compact="true">Unternehmen</x-ui-table-header-cell>
             <x-ui-table-header-cell compact="true" sortable="true" sortField="contact_status_id" :currentSort="$sortField" :sortDirection="$sortDirection">Status</x-ui-table-header-cell>
-            <x-ui-table-header-cell compact="true" align="right">Aktionen</x-ui-table-header-cell>
         </x-ui-table-header>
         
         <x-ui-table-body>
@@ -36,7 +46,7 @@
                 <x-ui-table-row 
                     compact="true"
                     clickable="true" 
-                    :href="route('crm.contacts.show', ['contact' => $contact->id]) . '?edit=1'"
+                    :href="route('crm.contacts.show', ['contact' => $contact->id])"
                 >
                     <x-ui-table-cell compact="true">
                         <div class="font-medium">{{ $contact->last_name }}, {{ $contact->first_name }}</div>
@@ -87,19 +97,9 @@
                         @endif
                     </x-ui-table-cell>
                     <x-ui-table-cell compact="true">
-                        <x-ui-badge variant="primary" size="sm">
+                        <x-ui-badge variant="secondary" size="sm">
                             {{ $contact->contactStatus->name }}
                         </x-ui-badge>
-                    </x-ui-table-cell>
-                    <x-ui-table-cell compact="true" align="right">
-                        <x-ui-button 
-                            size="sm" 
-                            variant="secondary" 
-                            href="{{ route('crm.contacts.show', ['contact' => $contact->id]) }}" 
-                            wire:navigate
-                        >
-                            Bearbeiten
-                        </x-ui-button>
                     </x-ui-table-cell>
                 </x-ui-table-row>
             @endforeach
