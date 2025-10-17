@@ -1,25 +1,13 @@
 <x-ui-page>
     <x-slot name="navbar">
-        <x-ui-page-navbar title="{{ $company->display_name }}" icon="heroicon-o-building-office">
-            <x-ui-button 
-                variant="primary" 
-                size="sm"
-                wire:click="save"
-                :disabled="!$this->isDirty"
-            >
-                <div class="flex items-center gap-2">
-                    @svg('heroicon-o-check', 'w-4 h-4')
-                    Speichern
-                </div>
-            </x-ui-button>
-        </x-ui-page-navbar>
+        <x-ui-page-navbar title="{{ $company->display_name }}" />
     </x-slot>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Einstellungen" width="w-72" defaultOpen="true" storeKey="sidebarOpen" side="left">
-            <div class="p-4 space-y-4">
+        <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true" side="left">
+            <div class="p-6 space-y-6">
                 {{-- Navigation Buttons --}}
-                <div class="flex flex-col gap-2 mb-2">
+                <div class="flex flex-col gap-2">
                     <x-ui-button 
                         variant="secondary-outline" 
                         size="md" 
@@ -32,6 +20,21 @@
                             Zurück zu Unternehmen
                         </div>
                     </x-ui-button>
+                </div>
+
+                {{-- Aktionen --}}
+                <div>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Aktionen</h3>
+                    <div class="space-y-2">
+                        @if($this->isDirty)
+                            <x-ui-button variant="primary" size="sm" wire:click="save" class="w-full">
+                                <span class="inline-flex items-center gap-2">
+                                    @svg('heroicon-o-check','w-4 h-4')
+                                    Speichern
+                                </span>
+                            </x-ui-button>
+                        @endif
+                    </div>
                 </div>
 
                 {{-- Kurze Übersicht --}}
@@ -208,10 +211,8 @@
     </x-slot>
 
     <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" width="w-80" defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-4">
-                <p class="text-sm text-[color:var(--ui-muted)]">Aktivitäten werden hier angezeigt...</p>
-            </div>
+        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
+            <div class="p-6 text-sm text-[var(--ui-muted)]">Keine Aktivitäten verfügbar</div>
         </x-ui-page-sidebar>
     </x-slot>
 
