@@ -168,8 +168,9 @@
                     variant="warning"
                     size="sm"
                 />
+            </div>
         </div>
-
+        </div>
         {{-- Zuletzt aktualisiert (Kontakte & Unternehmen) im Planner-Stil --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <x-ui-panel title="Zuletzt aktualisierte Kontakte" subtitle="Top 5" >
