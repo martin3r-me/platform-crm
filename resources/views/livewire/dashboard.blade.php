@@ -50,20 +50,10 @@
     <x-ui-page-container>
         
 
-        <!-- Haupt-Statistiken im Planner-Stil -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Haupt-Statistiken (auf das Wesentliche reduziert) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
             <x-ui-dashboard-tile title="Kontakte" :count="$this->totalContacts" icon="user" variant="secondary" size="lg" :href="route('crm.contacts.index')" />
             <x-ui-dashboard-tile title="Unternehmen" :count="$this->totalCompanies" icon="building-office" variant="secondary" size="lg" :href="route('crm.companies.index')" />
-            <x-ui-dashboard-tile title="Kontakte ohne E-Mail" :count="$this->contactsWithoutEmail" icon="exclamation-triangle" variant="warning" size="lg" />
-            <x-ui-dashboard-tile title="Kontakte ohne Telefon" :count="$this->contactsWithoutPhone" icon="exclamation-triangle" variant="warning" size="lg" />
-        </div>
-
-        <!-- Sekundäre Statistiken -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <x-ui-dashboard-tile title="Unternehmen ohne E-Mail" :count="$this->companiesWithoutEmail" icon="exclamation-triangle" variant="warning" size="md" />
-            <x-ui-dashboard-tile title="Unternehmen ohne Telefon" :count="$this->companiesWithoutPhone" icon="exclamation-triangle" variant="warning" size="md" />
-            <x-ui-dashboard-tile title="Primäre E-Mails" :count="$this->primaryEmailAddresses" icon="envelope" variant="neutral" size="md" />
-            <x-ui-dashboard-tile title="Primäre Telefone" :count="$this->primaryPhoneNumbers" icon="phone" variant="neutral" size="md" />
         </div>
         {{-- Zuletzt aktualisiert (Kontakte & Unternehmen) im Planner-Stil --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
