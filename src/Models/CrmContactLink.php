@@ -38,8 +38,11 @@ class CrmContactLink extends Model
             }
 
             // Team-Kontext setzen
-            if (empty($model->team_id) && auth()->check()) {
-                $model->team_id = auth()->user()->current_team_id;
+            if (empty($model->team_id)) {
+                if (auth()->check()) {
+                    $model->team_id = auth()->user()->current_team_id;
+                }
+                // Wenn team_id bereits gesetzt ist, wird es nicht überschrieben
             }
 
             // Created by setzen
