@@ -54,7 +54,12 @@ class Index extends Component
 
     public function render()
     {
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : null;
+
         $companies = CrmCompany::with(['industry', 'legalForm', 'contactStatus', 'emailAddresses', 'phoneNumbers', 'postalAddresses', 'contactRelations.contact'])
+            ->where('team_id', $teamId)
             ->when($this->sortField === 'display_name', function($query) {
                 $query->orderBy('name', $this->sortDirection);
             })

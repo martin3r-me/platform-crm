@@ -125,7 +125,12 @@ class Contact extends Component
         $this->states = CrmState::active()->get();
         $this->phoneTypes = CrmPhoneType::active()->get();
         $this->relationTypes = CrmContactRelationType::active()->get();
-        $this->companies = CrmCompany::active()->orderBy('name')->get();
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : null;
+        $this->companies = $teamId 
+            ? CrmCompany::active()->where('team_id', $teamId)->orderBy('name')->get()
+            : collect();
 
         // Setze Deutschland als Standard-Land für neue Adressen
         $germany = CrmCountry::where('code', 'DE')->first();
@@ -719,7 +724,16 @@ class Contact extends Component
             })
             ->pluck('company_id');
         
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : null;
+        
+        if (!$teamId) {
+            return collect();
+        }
+        
         return CrmCompany::active()
+            ->where('team_id', $teamId)
             ->whereNotIn('id', $linkedCompanyIds)
             ->orderBy('name')
             ->get();

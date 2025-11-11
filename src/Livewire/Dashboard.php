@@ -11,6 +11,7 @@ use Platform\Crm\Models\CrmPhoneNumber;
 use Platform\Crm\Models\CrmPostalAddress;
 use Platform\Crm\Models\CrmContactRelation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class Dashboard extends Component
 {
@@ -21,16 +22,34 @@ class Dashboard extends Component
         $this->perspective = $this->perspective === 'personal' ? 'team' : 'personal';
     }
 
+    private function getTeamId(): ?int
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return null;
+        }
+        $baseTeam = $user->currentTeamRelation;
+        return $baseTeam ? $baseTeam->getRootTeam()->id : null;
+    }
+
     #[Computed]
     public function totalContacts()
     {
-        return CrmContact::active()->count();
+        $teamId = $this->getTeamId();
+        if (!$teamId) {
+            return 0;
+        }
+        return CrmContact::active()->where('team_id', $teamId)->count();
     }
 
     #[Computed]
     public function totalCompanies()
     {
-        return CrmCompany::active()->count();
+        $teamId = $this->getTeamId();
+        if (!$teamId) {
+            return 0;
+        }
+        return CrmCompany::active()->where('team_id', $teamId)->count();
     }
 
     #[Computed]
@@ -84,7 +103,12 @@ class Dashboard extends Component
     #[Computed]
     public function contactsWithoutEmail()
     {
+        $teamId = $this->getTeamId();
+        if (!$teamId) {
+            return 0;
+        }
         return CrmContact::active()
+            ->where('team_id', $teamId)
             ->whereDoesntHave('emailAddresses')
             ->count();
     }
@@ -92,7 +116,12 @@ class Dashboard extends Component
     #[Computed]
     public function contactsWithoutPhone()
     {
+        $teamId = $this->getTeamId();
+        if (!$teamId) {
+            return 0;
+        }
         return CrmContact::active()
+            ->where('team_id', $teamId)
             ->whereDoesntHave('phoneNumbers')
             ->count();
     }
@@ -100,7 +129,12 @@ class Dashboard extends Component
     #[Computed]
     public function companiesWithoutEmail()
     {
+        $teamId = $this->getTeamId();
+        if (!$teamId) {
+            return 0;
+        }
         return CrmCompany::active()
+            ->where('team_id', $teamId)
             ->whereDoesntHave('emailAddresses')
             ->count();
     }
@@ -108,7 +142,12 @@ class Dashboard extends Component
     #[Computed]
     public function companiesWithoutPhone()
     {
+        $teamId = $this->getTeamId();
+        if (!$teamId) {
+            return 0;
+        }
         return CrmCompany::active()
+            ->where('team_id', $teamId)
             ->whereDoesntHave('phoneNumbers')
             ->count();
     }
@@ -116,7 +155,12 @@ class Dashboard extends Component
     #[Computed]
     public function recentContacts()
     {
+        $teamId = $this->getTeamId();
+        if (!$teamId) {
+            return collect();
+        }
         return CrmContact::active()
+            ->where('team_id', $teamId)
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
@@ -125,7 +169,12 @@ class Dashboard extends Component
     #[Computed]
     public function recentCompanies()
     {
+        $teamId = $this->getTeamId();
+        if (!$teamId) {
+            return collect();
+        }
         return CrmCompany::active()
+            ->where('team_id', $teamId)
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
@@ -134,7 +183,12 @@ class Dashboard extends Component
     #[Computed]
     public function topContactStatuses()
     {
+        $teamId = $this->getTeamId();
+        if (!$teamId) {
+            return collect();
+        }
         return CrmContact::where('crm_contacts.is_active', true)
+            ->where('crm_contacts.team_id', $teamId)
             ->join('crm_contact_statuses', 'crm_contacts.contact_status_id', '=', 'crm_contact_statuses.id')
             ->select('crm_contact_statuses.name', DB::raw('count(*) as count'))
             ->groupBy('crm_contact_statuses.id', 'crm_contact_statuses.name')

@@ -122,7 +122,12 @@ class Company extends Component
         $this->countries = CrmCountry::active()->get();
         $this->states = CrmState::active()->get();
         $this->relationTypes = CrmContactRelationType::active()->get();
-        $this->contacts = CrmContact::active()->orderBy('first_name')->orderBy('last_name')->get();
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : null;
+        $this->contacts = $teamId 
+            ? CrmContact::active()->where('team_id', $teamId)->orderBy('first_name')->orderBy('last_name')->get()
+            : collect();
         $this->legalForms = CrmLegalForm::active()->get();
         
         // Setze Deutschland als Standard-Land für neue Adressen
@@ -643,6 +648,14 @@ class Company extends Component
     #[Computed]
     public function filteredContacts()
     {
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : null;
+        
+        if (!$teamId) {
+            return collect();
+        }
+        
         $linkedContactIds = $this->company->contactRelations()
             ->when($this->editingContactRelationId, function($query) {
                 return $query->where('id', '!=', $this->editingContactRelationId);
@@ -650,6 +663,7 @@ class Company extends Component
             ->pluck('contact_id');
         
         return CrmContact::active()
+            ->where('team_id', $teamId)
             ->whereNotIn('id', $linkedContactIds)
             ->orderBy('first_name')
             ->orderBy('last_name')
