@@ -2,10 +2,11 @@
 
 namespace Platform\Crm\Services;
 
+use Platform\Core\Contracts\CrmContactOptionsProviderInterface;
 use Platform\Crm\Models\CrmContact;
 use Illuminate\Support\Facades\Auth;
 
-class CoreCrmContactOptionsProvider
+class CoreCrmContactOptionsProvider implements CrmContactOptionsProviderInterface
 {
     public function options(?string $query = null, int $limit = 20): array
     {
