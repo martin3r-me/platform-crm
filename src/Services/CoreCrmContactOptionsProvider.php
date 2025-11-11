@@ -10,10 +10,21 @@ class CoreCrmContactOptionsProvider implements CrmContactOptionsProviderInterfac
 {
     public function options(?string $query = null, int $limit = 20): array
     {
-        $teamId = Auth::user()?->currentTeam?->id;
+        $user = Auth::user();
+        if (!$user) {
+            return [];
+        }
+
+        $baseTeam = $user->currentTeamRelation;
+        if (!$baseTeam) {
+            return [];
+        }
+
+        // CRM ist immer Root-Scoped - verwende Root-Team
+        $teamId = $baseTeam->getRootTeam()->id;
 
         $q = CrmContact::query()
-            ->when($teamId, fn($qq) => $qq->where('team_id', $teamId))
+            ->where('team_id', $teamId)
             ->where('is_active', true)
             ->orderBy('first_name')
             ->orderBy('last_name');
