@@ -52,9 +52,13 @@ trait HasCompanyLinksTrait
         }
 
         if (! $this->hasCompany($company)) {
+            $user = auth()->user();
+            $baseTeam = $user->currentTeamRelation;
+            $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
+            
             $this->companyLinks()->create([
                 'company_id' => $company->id,
-                'team_id' => auth()->user()->current_team_id,
+                'team_id' => $teamId,
                 'created_by_user_id' => auth()->id(),
             ]);
             return true;
@@ -75,10 +79,14 @@ trait HasCompanyLinksTrait
         $existingIds = $this->companyLinks()->pluck('company_id');
         $newIds = $companyIds->diff($existingIds);
         
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
+        
         foreach ($newIds as $companyId) {
             $this->companyLinks()->create([
                 'company_id' => $companyId,
-                'team_id' => auth()->user()->current_team_id,
+                'team_id' => $teamId,
                 'created_by_user_id' => auth()->id(),
             ]);
         }

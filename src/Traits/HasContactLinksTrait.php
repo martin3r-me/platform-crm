@@ -52,9 +52,13 @@ trait HasContactLinksTrait
         }
 
         if (! $this->hasContact($contact)) {
+            $user = auth()->user();
+            $baseTeam = $user->currentTeamRelation;
+            $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
+            
             $this->contactLinks()->create([
                 'contact_id' => $contact->id,
-                'team_id' => auth()->user()->current_team_id,
+                'team_id' => $teamId,
                 'created_by_user_id' => auth()->id(),
             ]);
             return true;
@@ -75,10 +79,14 @@ trait HasContactLinksTrait
         $existingIds = $this->contactLinks()->pluck('contact_id');
         $newIds = $contactIds->diff($existingIds);
         
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
+        
         foreach ($newIds as $contactId) {
             $this->contactLinks()->create([
                 'contact_id' => $contactId,
-                'team_id' => auth()->user()->current_team_id,
+                'team_id' => $teamId,
                 'created_by_user_id' => auth()->id(),
             ]);
         }

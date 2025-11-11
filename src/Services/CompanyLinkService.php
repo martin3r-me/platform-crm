@@ -9,6 +9,15 @@ use Platform\Crm\Contracts\CompanyLinkableInterface;
 
 class CompanyLinkService
 {
+    private function getRootTeamId(): int
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return 0;
+        }
+        $baseTeam = $user->currentTeamRelation;
+        return $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
+    }
     /**
      * Finde Companies basierend auf Identifikatoren
      */
@@ -93,7 +102,7 @@ class CompanyLinkService
             'legal_form_id' => $data['legal_form_id'] ?? null,
             'contact_status_id' => $data['contact_status_id'] ?? null,
             'country_id' => $data['country_id'] ?? null,
-            'team_id' => auth()->user()->current_team_id,
+            'team_id' => $this->getRootTeamId(),
             'created_by_user_id' => auth()->id(),
             'owned_by_user_id' => $data['team_visible'] ?? true ? null : auth()->id(),
         ]);

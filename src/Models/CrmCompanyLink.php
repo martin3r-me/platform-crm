@@ -38,7 +38,9 @@ class CrmCompanyLink extends Model
 
             // Team-Kontext setzen
             if (empty($model->team_id) && auth()->check()) {
-                $model->team_id = auth()->user()->current_team_id;
+                $user = auth()->user();
+                $baseTeam = $user->currentTeamRelation;
+                $model->team_id = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
             }
 
             // Created by setzen

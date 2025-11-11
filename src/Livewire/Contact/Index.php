@@ -90,6 +90,10 @@ class Index extends Component
     {
         $this->validate();
         
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
+        
         $contact = CrmContact::create([
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
@@ -102,7 +106,7 @@ class Index extends Component
             'gender_id' => $this->gender_id ?: null,
             'language_id' => $this->language_id ?: null,
             'contact_status_id' => $this->contact_status_id,
-            'team_id' => auth()->user()->current_team_id,
+            'team_id' => $teamId,
             'created_by_user_id' => auth()->id(),
         ]);
 

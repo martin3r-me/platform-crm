@@ -37,10 +37,12 @@ class CrmContactLink extends Model
                 $model->uuid = $uuid;
             }
 
-            // Team-Kontext setzen
+            // Team-Kontext setzen (CRM ist Root-Scoped)
             if (empty($model->team_id)) {
                 if (auth()->check()) {
-                    $model->team_id = auth()->user()->current_team_id;
+                    $user = auth()->user();
+                    $baseTeam = $user->currentTeamRelation;
+                    $model->team_id = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
                 }
                 // Wenn team_id bereits gesetzt ist, wird es nicht überschrieben
             }

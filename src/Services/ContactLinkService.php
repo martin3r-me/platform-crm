@@ -71,10 +71,14 @@ class ContactLinkService
      */
     public function createContact(array $data): CrmContact
     {
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
+        
         $contact = CrmContact::create([
             'first_name' => $data['first_name'],
             'last_name' => $data['last_name'],
-            'team_id' => auth()->user()->current_team_id,
+            'team_id' => $teamId,
             'created_by_user_id' => auth()->id(),
             'owned_by_user_id' => $data['team_visible'] ?? true ? null : auth()->id(),
         ]);
