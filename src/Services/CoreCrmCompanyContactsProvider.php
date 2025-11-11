@@ -5,6 +5,7 @@ namespace Platform\Crm\Services;
 use Platform\Core\Contracts\CrmCompanyContactsProviderInterface;
 use Platform\Crm\Models\CrmContactRelation;
 use Platform\Crm\Models\CrmCompany;
+use Illuminate\Support\Facades\Auth;
 
 class CoreCrmCompanyContactsProvider implements CrmCompanyContactsProviderInterface
 {
@@ -13,6 +14,19 @@ class CoreCrmCompanyContactsProvider implements CrmCompanyContactsProviderInterf
         if (!$companyId) {
             return [];
         }
+
+        $user = Auth::user();
+        if (!$user) {
+            return [];
+        }
+
+        $baseTeam = $user->currentTeamRelation;
+        if (!$baseTeam) {
+            return [];
+        }
+
+        // CRM ist Root-Scoped - verwende Root-Team
+        $teamId = $baseTeam->getRootTeam()->id;
 
         $company = CrmCompany::find($companyId);
         if (!$company) {
@@ -24,9 +38,19 @@ class CoreCrmCompanyContactsProvider implements CrmCompanyContactsProviderInterf
             ->active()
             ->current()
             ->get()
-            ->map(function ($relation) {
+            ->map(function ($relation) use ($teamId) {
                 $contact = $relation->contact;
-                if (!$contact || !$contact->isVisible()) {
+                if (!$contact) {
+                    return null;
+                }
+
+                // Prüfe Team-Zugehörigkeit direkt (Root-Team)
+                if ($contact->team_id !== $teamId) {
+                    return null;
+                }
+
+                // Prüfe ob Kontakt aktiv ist
+                if (!$contact->is_active) {
                     return null;
                 }
 
