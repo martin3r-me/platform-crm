@@ -96,6 +96,37 @@ class CrmServiceProvider extends ServiceProvider
         // Commands entfernt - Sidebar soll leer sein
 
         // RouteToolExporter entfernt - Sidebar soll leer sein
+        
+        // Tools registrieren (loose gekoppelt - für AI/Chat)
+        $this->registerTools();
+    }
+    
+    /**
+     * Registriert CRM-Tools für die AI/Chat-Funktionalität
+     * 
+     * HINWEIS: Tools werden auch automatisch via Auto-Discovery gefunden,
+     * aber manuelle Registrierung stellt sicher, dass sie verfügbar sind.
+     */
+    protected function registerTools(): void
+    {
+        try {
+            $registry = resolve(\Platform\Core\Tools\ToolRegistry::class);
+            
+            // Company-Tools
+            $registry->register(new \Platform\Crm\Tools\ListCompaniesTool());
+            $registry->register(new \Platform\Crm\Tools\CreateCompanyTool());
+            $registry->register(new \Platform\Crm\Tools\UpdateCompanyTool());
+            $registry->register(new \Platform\Crm\Tools\DeleteCompanyTool());
+            
+            // Contact-Tools
+            $registry->register(new \Platform\Crm\Tools\ListContactsTool());
+            $registry->register(new \Platform\Crm\Tools\CreateContactTool());
+            $registry->register(new \Platform\Crm\Tools\UpdateContactTool());
+            $registry->register(new \Platform\Crm\Tools\DeleteContactTool());
+        } catch (\Throwable $e) {
+            // Silent fail - ToolRegistry möglicherweise nicht verfügbar
+            \Log::warning('CRM: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);
+        }
     }
 
 

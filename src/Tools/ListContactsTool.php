@@ -1,0 +1,148 @@
+<?php
+
+namespace Platform\Crm\Tools;
+
+use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolContext;
+use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Contracts\ToolMetadataContract;
+use Platform\Core\Tools\Concerns\HasStandardGetOperations;
+use Platform\Crm\Models\CrmContact;
+
+/**
+ * Tool zum Auflisten von Contacts im CRM-Modul
+ */
+class ListContactsTool implements ToolContract, ToolMetadataContract
+{
+    use HasStandardGetOperations;
+
+    public function getName(): string
+    {
+        return 'crm.contacts.GET';
+    }
+
+    public function getDescription(): string
+    {
+        return 'Listet alle Contacts (Kontakte) auf, auf die der aktuelle User Zugriff hat. RUF DIESES TOOL AUF, wenn der Nutzer nach Contacts fragt, wenn du prüfen musst, ob ein Contact existiert, oder wenn du einen Contact finden musst, bevor du ihn bearbeitest oder löschst. Wenn der Nutzer nur einen Namen angibt, nutze dieses Tool, um die Contact-ID zu finden.';
+    }
+
+    public function getSchema(): array
+    {
+        return $this->mergeSchemas(
+            $this->getStandardGetSchema(),
+            [
+                'properties' => [
+                    'team_id' => [
+                        'type' => 'integer',
+                        'description' => 'Optional: Filter nach Team-ID. Wenn nicht angegeben, wird das aktuelle Team aus dem Kontext verwendet.'
+                    ],
+                    'is_active' => [
+                        'type' => 'boolean',
+                        'description' => 'Optional: Filter nach aktiv/inaktiv Status.'
+                    ],
+                    'name_search' => [
+                        'type' => 'string',
+                        'description' => 'Optional: Suche nach Contact-Namen (Legacy - nutze stattdessen search Parameter).'
+                    ],
+                    'company_id' => [
+                        'type' => 'integer',
+                        'description' => 'Optional: Filter nach Company-ID. Zeigt nur Contacts, die mit dieser Company verknüpft sind.'
+                    ]
+                ]
+            ]
+        );
+    }
+
+    public function execute(array $arguments, ToolContext $context): ToolResult
+    {
+        try {
+            if (!$context->user) {
+                return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
+            }
+
+            // Team bestimmen
+            $teamId = $arguments['team_id'] ?? $context->team?->id;
+            if (!$teamId) {
+                return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Nutze das Tool "core.teams.GET" um alle verfügbaren Teams zu sehen.');
+            }
+
+            // Query aufbauen
+            $query = CrmContact::query()
+                ->where('team_id', $teamId)
+                ->with(['salutation', 'academicTitle', 'gender', 'language', 'contactStatus', 'createdByUser', 'ownedByUser']);
+
+            // Standard-Operationen anwenden
+            $this->applyStandardFilters($query, $arguments, [
+                'first_name', 'last_name', 'nickname', 'notes', 'is_active', 'created_at', 'updated_at'
+            ]);
+
+            // Legacy: name_search
+            if (!empty($arguments['name_search'])) {
+                $query->where(function ($q) use ($arguments) {
+                    $q->where('first_name', 'like', '%' . $arguments['name_search'] . '%')
+                      ->orWhere('last_name', 'like', '%' . $arguments['name_search'] . '%')
+                      ->orWhere('nickname', 'like', '%' . $arguments['name_search'] . '%');
+                });
+            }
+
+            // is_active Filter
+            if (isset($arguments['is_active'])) {
+                $query->where('is_active', $arguments['is_active']);
+            }
+
+            // company_id Filter
+            if (!empty($arguments['company_id'])) {
+                $query->whereHas('contactRelations', function ($q) use ($arguments) {
+                    $q->where('company_id', $arguments['company_id']);
+                });
+            }
+
+            // Standard-Sortierung und Pagination
+            $this->applyStandardSorting($query, $arguments, 'last_name', 'asc');
+            $result = $this->applyStandardPagination($query, $arguments);
+
+            // Formatierung
+            $contacts = $result['data']->map(function ($contact) {
+                return [
+                    'id' => $contact->id,
+                    'uuid' => $contact->uuid,
+                    'first_name' => $contact->first_name,
+                    'last_name' => $contact->last_name,
+                    'middle_name' => $contact->middle_name,
+                    'nickname' => $contact->nickname,
+                    'full_name' => trim(($contact->first_name ?? '') . ' ' . ($contact->last_name ?? '')),
+                    'birth_date' => $contact->birth_date?->toDateString(),
+                    'salutation' => $contact->salutation?->name,
+                    'academic_title' => $contact->academicTitle?->name,
+                    'gender' => $contact->gender?->name,
+                    'language' => $contact->language?->name,
+                    'contact_status' => $contact->contactStatus?->name,
+                    'is_active' => $contact->is_active,
+                    'created_by' => $contact->createdByUser?->name,
+                    'owned_by' => $contact->ownedByUser?->name,
+                    'created_at' => $contact->created_at->toIso8601String(),
+                    'updated_at' => $contact->updated_at->toIso8601String(),
+                ];
+            })->toArray();
+
+            return ToolResult::success([
+                'contacts' => $contacts,
+                'pagination' => $result['pagination'],
+                'message' => count($contacts) . ' Contact(s) gefunden.'
+            ]);
+        } catch (\Throwable $e) {
+            return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Auflisten der Contacts: ' . $e->getMessage());
+        }
+    }
+
+    public function getMetadata(): array
+    {
+        return [
+            'read_only' => true,
+            'category' => 'read',
+            'tags' => ['crm', 'contact', 'list'],
+            'risk_level' => 'read',
+        ];
+    }
+}
+
