@@ -23,7 +23,7 @@ class ListContactsTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /contacts?team_id={id}&filters=[...]&search=...&sort=[...] - Listet Contacts (Kontakte) auf, auf die der aktuelle User Zugriff hat. REST-Parameter: team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung mit field, dir. limit/offset (optional) - Pagination. RUF DIESES TOOL AUF, wenn der Nutzer nach Contacts fragt.';
+        return 'GET /contacts?team_id={id}&filters=[...]&search=...&sort=[...] - Listet Contacts auf. REST-Parameter: team_id (optional, integer) - LASS WEG wenn nicht explizit angegeben, verwendet automatisch aktuelles Team. filters/search/sort/limit/offset (optional) - Standard-Filter. WICHTIG: Rufe dieses Tool DIREKT auf, wenn der Nutzer nach Contacts fragt. Du musst "core.teams.GET" NICHT vorher aufrufen - dieses Tool verwendet automatisch das aktuelle Team aus dem Kontext.';
     }
 
     public function getSchema(): array
