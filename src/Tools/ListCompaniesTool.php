@@ -23,7 +23,7 @@ class ListCompaniesTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'Listet alle Companies (Unternehmen) auf, auf die der aktuelle User Zugriff hat. RUF DIESES TOOL AUF, wenn der Nutzer nach Companies fragt, wenn du prüfen musst, ob eine Company existiert, oder wenn du eine Company finden musst, bevor du sie bearbeitest oder löschst. Wenn der Nutzer nur einen Company-Namen angibt, nutze dieses Tool, um die Company-ID zu finden.';
+        return 'GET /companies?team_id={id}&filters=[...]&search=...&sort=[...] - Listet Companies (Unternehmen) auf, auf die der aktuelle User Zugriff hat. REST-Parameter: team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung mit field, dir. limit/offset (optional) - Pagination. RUF DIESES TOOL AUF, wenn der Nutzer nach Companies fragt.';
     }
 
     public function getSchema(): array
@@ -34,7 +34,7 @@ class ListCompaniesTool implements ToolContract, ToolMetadataContract
                 'properties' => [
                     'team_id' => [
                         'type' => 'integer',
-                        'description' => 'Optional: Filter nach Team-ID. Wenn nicht angegeben, wird das aktuelle Team aus dem Kontext verwendet.'
+                        'description' => 'REST-Parameter (optional): Filter nach Team-ID. Beispiel: team_id=9. Wenn nicht angegeben, wird aktuelles Team aus Kontext verwendet. Nutze "core.teams.GET" um verfügbare Team-IDs zu sehen.'
                     ],
                     'is_active' => [
                         'type' => 'boolean',
@@ -56,15 +56,31 @@ class ListCompaniesTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
 
-            // Team bestimmen
-            $teamId = $arguments['team_id'] ?? $context->team?->id;
-            if (!$teamId) {
-                return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Nutze das Tool "core.teams.GET" um alle verfügbaren Teams zu sehen.');
+            // Team-Filter bestimmen
+            // WICHTIG: Behandle 0 als "nicht gesetzt" (OpenAI sendet manchmal 0 statt null)
+            $teamIdArg = $arguments['team_id'] ?? null;
+            if ($teamIdArg === 0 || $teamIdArg === '0') {
+                $teamIdArg = null;
             }
-
-            // Query aufbauen
+            
+            // Wenn team_id nicht angegeben, verwende aktuelles Team aus Kontext
+            if ($teamIdArg === null) {
+                $teamIdArg = $context->team?->id;
+            }
+            
+            if (!$teamIdArg) {
+                return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Nutze "core.teams.GET" um verfügbare Teams zu sehen, oder gib team_id explizit an.');
+            }
+            
+            // Prüfe, ob User Zugriff auf dieses Team hat
+            $userHasAccess = $context->user->teams()->where('teams.id', $teamIdArg)->exists();
+            if (!$userHasAccess) {
+                return ToolResult::error('ACCESS_DENIED', "Du hast keinen Zugriff auf Team-ID {$teamIdArg}. Nutze 'core.teams.GET' um verfügbare Teams zu sehen.");
+            }
+            
+            // Query aufbauen - nur Companies dieses Teams
             $query = CrmCompany::query()
-                ->where('team_id', $teamId)
+                ->where('team_id', $teamIdArg)
                 ->with(['industry', 'legalForm', 'contactStatus', 'country', 'createdByUser', 'ownedByUser']);
 
             // Standard-Operationen anwenden
@@ -115,7 +131,8 @@ class ListCompaniesTool implements ToolContract, ToolMetadataContract
             return ToolResult::success([
                 'companies' => $companies,
                 'pagination' => $result['pagination'],
-                'message' => count($companies) . ' Company(s) gefunden.'
+                'team_id' => $teamIdArg,
+                'message' => count($companies) . ' Company(s) gefunden (Team-ID: ' . $teamIdArg . ').'
             ]);
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Auflisten der Companies: ' . $e->getMessage());
