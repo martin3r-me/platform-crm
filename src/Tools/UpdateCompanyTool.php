@@ -22,7 +22,7 @@ class UpdateCompanyTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'Bearbeitet eine bestehende Company. RUF DIESES TOOL AUF, wenn der Nutzer eine Company ändern möchte (Name, Beschreibung, Status, etc.). Die Company-ID ist erforderlich. Nutze "crm.companies.GET" um Companies zu finden.';
+        return 'PUT /companies/{id} - Aktualisiert eine bestehende Company. REST-Parameter: id (required, integer) - Company-ID. name (optional, string) - Name. description (optional, string) - Beschreibung. is_active (optional, boolean) - Status.';
     }
 
     public function getSchema(): array

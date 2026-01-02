@@ -22,7 +22,7 @@ class DeleteCompanyTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'Löscht eine Company. RUF DIESES TOOL AUF, wenn der Nutzer eine Company löschen möchte. Die Company-ID ist erforderlich. Nutze "crm.companies.GET" um Companies zu finden. WICHTIG: Beim Löschen einer Company werden auch alle zugehörigen Kontakte und Beziehungen gelöscht. Frage den Nutzer nach Bestätigung, wenn die Company viele Kontakte hat.';
+        return 'DELETE /companies/{id} - Löscht eine Company. REST-Parameter: id (required, integer) - Company-ID. Hinweis: Beim Löschen werden auch alle zugehörigen Kontakte und Beziehungen gelöscht.';
     }
 
     public function getSchema(): array

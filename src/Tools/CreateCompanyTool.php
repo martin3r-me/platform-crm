@@ -20,7 +20,7 @@ class CreateCompanyTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'Erstellt eine neue Company (Unternehmen) im CRM-Modul. RUF DIESES TOOL AUF, wenn der Nutzer eine Company erstellen möchte. Der Name ist erforderlich. Wenn der Nutzer nur den Namen angibt, rufe zuerst "core.teams.GET" auf, um die verfügbaren Teams zu sehen. Alle anderen Felder sind optional - frage nur nach, wenn der Nutzer sie erwähnt oder wenn sie für den Kontext wichtig sind.';
+        return 'POST /companies - Erstellt eine neue Company. REST-Parameter: name (required, string) - Name der Company. team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. description (optional, string) - Beschreibung. is_active (optional, boolean) - Status.';
     }
 
     public function getSchema(): array

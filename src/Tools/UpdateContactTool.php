@@ -22,7 +22,7 @@ class UpdateContactTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'Bearbeitet einen bestehenden Contact. RUF DIESES TOOL AUF, wenn der Nutzer einen Contact ändern möchte (Name, Status, etc.). Die Contact-ID ist erforderlich. Nutze "crm.contacts.GET" um Contacts zu finden.';
+        return 'PUT /contacts/{id} - Aktualisiert einen bestehenden Contact. REST-Parameter: id (required, integer) - Contact-ID. first_name (optional, string) - Vorname. last_name (optional, string) - Nachname. company_id (optional, integer) - zugehörige Company-ID. email (optional, string) - E-Mail. phone (optional, string) - Telefon. is_active (optional, boolean) - Status.';
     }
 
     public function getSchema(): array

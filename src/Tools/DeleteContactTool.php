@@ -22,7 +22,7 @@ class DeleteContactTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'Löscht einen Contact. RUF DIESES TOOL AUF, wenn der Nutzer einen Contact löschen möchte. Die Contact-ID ist erforderlich. Nutze "crm.contacts.GET" um Contacts zu finden. WICHTIG: Beim Löschen eines Contacts werden auch alle zugehörigen Beziehungen gelöscht. Frage den Nutzer nach Bestätigung, wenn der Contact wichtig erscheint.';
+        return 'DELETE /contacts/{id} - Löscht einen Contact. REST-Parameter: id (required, integer) - Contact-ID. Hinweis: Beim Löschen werden auch alle zugehörigen Beziehungen gelöscht.';
     }
 
     public function getSchema(): array

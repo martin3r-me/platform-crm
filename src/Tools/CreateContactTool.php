@@ -20,7 +20,7 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'Erstellt einen neuen Contact (Kontakt) im CRM-Modul. RUF DIESES TOOL AUF, wenn der Nutzer einen Contact erstellen möchte. Vorname oder Nachname ist erforderlich. Wenn der Nutzer nur den Namen angibt, rufe zuerst "core.teams.GET" auf, um die verfügbaren Teams zu sehen. Alle anderen Felder sind optional - frage nur nach, wenn der Nutzer sie erwähnt oder wenn sie für den Kontext wichtig sind.';
+        return 'POST /contacts - Erstellt einen neuen Contact. REST-Parameter: first_name (optional, string) - Vorname. last_name (optional, string) - Nachname. Mindestens einer der beiden ist erforderlich. team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. company_id (optional, integer) - zugehörige Company-ID. email (optional, string) - E-Mail. phone (optional, string) - Telefon. is_active (optional, boolean) - Status.';
     }
 
     public function getSchema(): array
