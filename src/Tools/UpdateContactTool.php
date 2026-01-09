@@ -65,7 +65,12 @@ class UpdateContactTool implements ToolContract
                 ],
                 'academic_title_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: Neue akademische Titel-ID.'
+                    'description' => 'Optional: Neue akademische Titel-ID. WICHTIG: Setze dies nur, wenn der Titel explizit genannt wurde. Niemals "raten" (z.B. nicht automatisch 1/Dr.). Setze auf 0/null/leeren String, um den Titel zu entfernen.'
+                ],
+                'academic_title_confirm' => [
+                    'type' => 'boolean',
+                    'description' => 'Optional: Bestätigung, dass der akademische Titel wirklich gesetzt werden soll. ERFORDERLICH, wenn academic_title_id auf einen nicht-leeren Wert gesetzt wird.',
+                    'default' => false
                 ],
                 'gender_id' => [
                     'type' => 'integer',
@@ -127,7 +132,12 @@ class UpdateContactTool implements ToolContract
 
             foreach ($fields as $field) {
                 if (isset($arguments[$field])) {
-                    $updateData[$field] = $arguments[$field];
+                    $v = $arguments[$field];
+                    // FK-IDs: 0/"0" ist KEIN gültiger FK-Wert → als null behandeln (verhindert FK-Constraint Errors)
+                    if (in_array($field, ['salutation_id', 'academic_title_id', 'gender_id', 'language_id', 'contact_status_id'], true)) {
+                        if ($v === 0 || $v === '0' || $v === '') { $v = null; }
+                    }
+                    $updateData[$field] = $v;
                 }
             }
 
@@ -145,7 +155,24 @@ class UpdateContactTool implements ToolContract
             }
 
             if (isset($arguments['owned_by_user_id'])) {
-                $updateData['owned_by_user_id'] = $arguments['owned_by_user_id'];
+                $owned = $arguments['owned_by_user_id'];
+                if ($owned === 0 || $owned === 1 || $owned === '0' || $owned === '1') { $owned = null; }
+                // null bedeutet: Owner nicht ändern (wir setzen kein "owned_by_user_id = null" automatisch)
+                if ($owned !== null) {
+                    $updateData['owned_by_user_id'] = $owned;
+                }
+            }
+
+            // Guard: akademischen Titel nie "raten" – nur setzen, wenn explizit bestätigt.
+            // (Titel entfernen ist immer erlaubt ohne confirm.)
+            if (array_key_exists('academic_title_id', $updateData) && $updateData['academic_title_id'] !== null) {
+                $confirm = (bool) ($arguments['academic_title_confirm'] ?? false);
+                if (!$confirm) {
+                    return ToolResult::error(
+                        'VALIDATION_ERROR',
+                        'academic_title_id soll gesetzt werden, ist aber nicht bestätigt. Bitte setze academic_title_confirm: true (oder lasse academic_title_id weg).'
+                    );
+                }
             }
 
             // Contact aktualisieren

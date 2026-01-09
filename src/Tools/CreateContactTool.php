@@ -67,7 +67,12 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                 ],
                 'academic_title_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID des akademischen Titels. Frage nach, wenn der Nutzer einen Titel angibt.'
+                    'description' => 'Optional: ID des akademischen Titels. WICHTIG: Setze dies nur, wenn der Titel explizit genannt wurde. Niemals "raten" (z.B. nicht automatisch 1/Dr.).'
+                ],
+                'academic_title_confirm' => [
+                    'type' => 'boolean',
+                    'description' => 'Optional: Bestätigung, dass der akademische Titel wirklich gesetzt werden soll. ERFORDERLICH, wenn academic_title_id angegeben ist.',
+                    'default' => false
                 ],
                 'gender_id' => [
                     'type' => 'integer',
@@ -131,11 +136,34 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
 
             // Owner bestimmen (behandle 1/0 als null)
             $ownedByUserId = $arguments['owned_by_user_id'] ?? null;
-            if ($ownedByUserId === 1 || $ownedByUserId === 0) {
+            if ($ownedByUserId === 1 || $ownedByUserId === 0 || $ownedByUserId === '1' || $ownedByUserId === '0') {
                 $ownedByUserId = null;
             }
             if (!$ownedByUserId) {
                 $ownedByUserId = $context->user->id;
+            }
+
+            // FK-IDs: 0/"0" ist KEIN gültiger FK-Wert → als null behandeln (verhindert FK-Constraint Errors)
+            $salutationId = $arguments['salutation_id'] ?? null;
+            if ($salutationId === 0 || $salutationId === '0') { $salutationId = null; }
+            $academicTitleId = $arguments['academic_title_id'] ?? null;
+            if ($academicTitleId === 0 || $academicTitleId === '0') { $academicTitleId = null; }
+            $genderId = $arguments['gender_id'] ?? null;
+            if ($genderId === 0 || $genderId === '0') { $genderId = null; }
+            $languageId = $arguments['language_id'] ?? null;
+            if ($languageId === 0 || $languageId === '0') { $languageId = null; }
+            $contactStatusId = $arguments['contact_status_id'] ?? null;
+            if ($contactStatusId === 0 || $contactStatusId === '0') { $contactStatusId = null; }
+
+            // Guard: akademischen Titel nie "raten" – nur setzen, wenn explizit bestätigt
+            if ($academicTitleId !== null) {
+                $confirm = (bool) ($arguments['academic_title_confirm'] ?? false);
+                if (!$confirm) {
+                    return ToolResult::error(
+                        'VALIDATION_ERROR',
+                        'academic_title_id wurde angegeben, aber nicht bestätigt. Bitte setze academic_title_confirm: true (oder lasse academic_title_id weg).'
+                    );
+                }
             }
 
             // Geburtsdatum parsen
@@ -159,11 +187,11 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                 'nickname' => $arguments['nickname'] ?? null,
                 'birth_date' => $birthDate,
                 'notes' => $arguments['notes'] ?? null,
-                'salutation_id' => $arguments['salutation_id'] ?? null,
-                'academic_title_id' => $arguments['academic_title_id'] ?? null,
-                'gender_id' => $arguments['gender_id'] ?? null,
-                'language_id' => $arguments['language_id'] ?? null,
-                'contact_status_id' => $arguments['contact_status_id'] ?? null,
+                'salutation_id' => $salutationId,
+                'academic_title_id' => $academicTitleId,
+                'gender_id' => $genderId,
+                'language_id' => $languageId,
+                'contact_status_id' => $contactStatusId,
                 'is_active' => $arguments['is_active'] ?? true,
             ]);
 

@@ -135,12 +135,22 @@ class CreateCompanyTool implements ToolContract, ToolMetadataContract
 
             // Owner bestimmen (behandle 1/0 als null)
             $ownedByUserId = $arguments['owned_by_user_id'] ?? null;
-            if ($ownedByUserId === 1 || $ownedByUserId === 0) {
+            if ($ownedByUserId === 1 || $ownedByUserId === 0 || $ownedByUserId === '1' || $ownedByUserId === '0') {
                 $ownedByUserId = null;
             }
             if (!$ownedByUserId) {
                 $ownedByUserId = $context->user->id;
             }
+
+            // FK-IDs: 0/"0" ist KEIN gültiger FK-Wert → als null behandeln (verhindert FK-Constraint Errors)
+            $industryId = $arguments['industry_id'] ?? null;
+            if ($industryId === 0 || $industryId === '0') { $industryId = null; }
+            $legalFormId = $arguments['legal_form_id'] ?? null;
+            if ($legalFormId === 0 || $legalFormId === '0') { $legalFormId = null; }
+            $contactStatusId = $arguments['contact_status_id'] ?? null;
+            if ($contactStatusId === 0 || $contactStatusId === '0') { $contactStatusId = null; }
+            $countryId = $arguments['country_id'] ?? null;
+            if ($countryId === 0 || $countryId === '0') { $countryId = null; }
 
             // Company erstellen
             $company = CrmCompany::create([
@@ -153,10 +163,10 @@ class CreateCompanyTool implements ToolContract, ToolMetadataContract
                 'website' => $arguments['website'] ?? null,
                 'description' => $arguments['description'] ?? null,
                 'notes' => $arguments['notes'] ?? null,
-                'industry_id' => $arguments['industry_id'] ?? null,
-                'legal_form_id' => $arguments['legal_form_id'] ?? null,
-                'contact_status_id' => $arguments['contact_status_id'] ?? null,
-                'country_id' => $arguments['country_id'] ?? null,
+                'industry_id' => $industryId,
+                'legal_form_id' => $legalFormId,
+                'contact_status_id' => $contactStatusId,
+                'country_id' => $countryId,
                 'registration_number' => $arguments['registration_number'] ?? null,
                 'tax_number' => $arguments['tax_number'] ?? null,
                 'vat_number' => $arguments['vat_number'] ?? null,

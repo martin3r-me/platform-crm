@@ -135,12 +135,22 @@ class UpdateCompanyTool implements ToolContract
 
             foreach ($fields as $field) {
                 if (isset($arguments[$field])) {
-                    $updateData[$field] = $arguments[$field];
+                    $v = $arguments[$field];
+                    // FK-IDs: 0/"0" ist KEIN gültiger FK-Wert → als null behandeln (verhindert FK-Constraint Errors)
+                    if (in_array($field, ['industry_id', 'legal_form_id', 'contact_status_id', 'country_id'], true)) {
+                        if ($v === 0 || $v === '0') { $v = null; }
+                    }
+                    $updateData[$field] = $v;
                 }
             }
 
             if (isset($arguments['owned_by_user_id'])) {
-                $updateData['owned_by_user_id'] = $arguments['owned_by_user_id'];
+                $owned = $arguments['owned_by_user_id'];
+                if ($owned === 0 || $owned === 1 || $owned === '0' || $owned === '1') { $owned = null; }
+                // null bedeutet: Owner nicht ändern (wir setzen kein "owned_by_user_id = null" automatisch)
+                if ($owned !== null) {
+                    $updateData['owned_by_user_id'] = $owned;
+                }
             }
 
             // Company aktualisieren
