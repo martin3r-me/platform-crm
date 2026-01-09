@@ -53,6 +53,10 @@ class UpdateEmailAddressTool implements ToolContract, ToolMetadataContract
                     'type' => 'integer',
                     'description' => 'Optional: Typ-ID (crm_email_types.id).',
                 ],
+                'email_type_code' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Typ-Code (crm_email_types.code). Nutze crm.lookup.GET lookup=email_types. Niemals raten.',
+                ],
                 'is_primary' => [
                     'type' => 'boolean',
                     'description' => 'Optional: primär setzen/entfernen.',
@@ -129,8 +133,21 @@ class UpdateEmailAddressTool implements ToolContract, ToolMetadataContract
             }
 
             if (array_key_exists('email_type_id', $arguments)) {
-                // Default: 1 (UI-Standard). Wichtig: niemals 0 schreiben.
-                $update['email_type_id'] = ($arguments['email_type_id'] ?? null) ?? 1;
+                $v = $arguments['email_type_id'] ?? null;
+                if ($v === null) {
+                    return ToolResult::error('VALIDATION_ERROR', 'email_type_id darf nicht 0/leer sein. Nutze crm.lookup.GET lookup=email_types.');
+                }
+                $update['email_type_id'] = (int)$v;
+            } elseif (array_key_exists('email_type_code', $arguments)) {
+                $code = strtoupper(trim((string)($arguments['email_type_code'] ?? '')));
+                if ($code === '') {
+                    return ToolResult::error('VALIDATION_ERROR', 'email_type_code darf nicht leer sein.');
+                }
+                $resolved = \Platform\Crm\Models\CrmEmailType::query()->where('code', $code)->value('id');
+                if (!$resolved) {
+                    return ToolResult::error('VALIDATION_ERROR', "Unbekannter email_type_code '{$code}'. Nutze crm.lookup.GET lookup=email_types.");
+                }
+                $update['email_type_id'] = (int)$resolved;
             }
 
             if (array_key_exists('notes', $arguments)) {

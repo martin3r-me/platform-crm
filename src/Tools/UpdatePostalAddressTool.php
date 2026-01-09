@@ -54,8 +54,13 @@ class UpdatePostalAddressTool implements ToolContract, ToolMetadataContract
                 'city' => ['type' => 'string'],
                 'additional_info' => ['type' => 'string'],
                 'country_id' => ['type' => 'integer'],
+                'country_code' => ['type' => 'string', 'description' => 'Optional: ISO2-Ländercode (z.B. "DE"). Wenn gesetzt, wird country_id automatisch aufgelöst (ohne Raten).'],
                 'state_id' => ['type' => 'integer'],
+                'state_code' => ['type' => 'string', 'description' => 'Optional: Bundesland-Code (crm_states.code). Wird (wenn möglich) innerhalb des Landes aufgelöst.'],
+                'state_name' => ['type' => 'string', 'description' => 'Optional: Bundesland-Name (crm_states.name). Wird (wenn möglich) innerhalb des Landes aufgelöst.'],
                 'address_type_id' => ['type' => 'integer'],
+                'address_type_code' => ['type' => 'string', 'description' => 'Optional: Adresstyp-Code (crm_address_types.code). Wird automatisch aufgelöst (ohne Raten).'],
+                'address_type_name' => ['type' => 'string', 'description' => 'Optional: Adresstyp-Name (crm_address_types.name). Wird automatisch aufgelöst (ohne Raten).'],
                 'is_primary' => ['type' => 'boolean'],
                 'is_active' => ['type' => 'boolean'],
             ],
@@ -71,6 +76,7 @@ class UpdatePostalAddressTool implements ToolContract, ToolMetadataContract
             }
 
             $arguments = $this->normalizeLookupIds($arguments, ['country_id', 'state_id', 'address_type_id']);
+            $warnings = [];
 
             $addrId = $arguments['postal_address_id'] ?? null;
             $type = $arguments['entity_type'] ?? null;
@@ -108,6 +114,52 @@ class UpdatePostalAddressTool implements ToolContract, ToolMetadataContract
             foreach (['street', 'house_number', 'postal_code', 'city', 'additional_info'] as $field) {
                 if (array_key_exists($field, $arguments)) {
                     $update[$field] = $arguments[$field] ?? null;
+                }
+            }
+
+            // Optional: resolve codes/names to IDs (deterministic, no guessing)
+            if (!array_key_exists('country_id', $arguments)) {
+                $countryCode = strtoupper(trim((string)($arguments['country_code'] ?? '')));
+                if ($countryCode !== '') {
+                    $resolved = CrmCountry::query()->where('code', $countryCode)->value('id');
+                    if ($resolved) {
+                        $arguments['country_id'] = (int)$resolved;
+                    } else {
+                        $warnings[] = "country_code '{$countryCode}' konnte nicht aufgelöst werden.";
+                    }
+                }
+            }
+            if (!array_key_exists('state_id', $arguments)) {
+                $stateCode = strtoupper(trim((string)($arguments['state_code'] ?? '')));
+                $stateName = trim((string)($arguments['state_name'] ?? ''));
+                if ($stateCode !== '' || $stateName !== '') {
+                    $q = CrmState::query();
+                    if (array_key_exists('country_id', $arguments) && $arguments['country_id'] !== null) {
+                        $q->where('country_id', $arguments['country_id']);
+                    }
+                    if ($stateCode !== '') $q->where('code', $stateCode);
+                    else $q->where('name', $stateName);
+                    $resolved = $q->value('id');
+                    if ($resolved) {
+                        $arguments['state_id'] = (int)$resolved;
+                    } else {
+                        $warnings[] = 'Bundesland konnte nicht aufgelöst werden (state_code/state_name).';
+                    }
+                }
+            }
+            if (!array_key_exists('address_type_id', $arguments)) {
+                $typeCode = strtoupper(trim((string)($arguments['address_type_code'] ?? '')));
+                $typeName = trim((string)($arguments['address_type_name'] ?? ''));
+                if ($typeCode !== '' || $typeName !== '') {
+                    $q = CrmAddressType::query();
+                    if ($typeCode !== '') $q->where('code', $typeCode);
+                    else $q->where('name', $typeName);
+                    $resolved = $q->value('id');
+                    if ($resolved) {
+                        $arguments['address_type_id'] = (int)$resolved;
+                    } else {
+                        $warnings[] = 'address_type konnte nicht aufgelöst werden (address_type_code/address_type_name).';
+                    }
                 }
             }
 
@@ -170,6 +222,7 @@ class UpdatePostalAddressTool implements ToolContract, ToolMetadataContract
                 'address_type_id' => $address->address_type_id,
                 'is_primary' => (bool)$address->is_primary,
                 'is_active' => (bool)$address->is_active,
+                'warnings' => $warnings,
                 'message' => 'Postadresse wurde aktualisiert.',
             ]);
         } catch (\Throwable $e) {

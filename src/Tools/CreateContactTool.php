@@ -6,10 +6,13 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Contracts\ToolMetadataContract;
+use Platform\Core\Tools\Concerns\NormalizesLookupIds;
 use Platform\Crm\Models\CrmContact;
+use Platform\Crm\Models\CrmContactRelation;
 use Platform\Crm\Tools\Concerns\ResolvesCrmTeam;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Tool zum Erstellen von Contacts im CRM-Modul
@@ -17,6 +20,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 class CreateContactTool implements ToolContract, ToolMetadataContract
 {
     use ResolvesCrmTeam;
+    use NormalizesLookupIds;
 
     public function getName(): string
     {
@@ -25,7 +29,7 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'POST /contacts - Erstellt einen neuen Contact. REST-Parameter: first_name (optional, string) - Vorname. last_name (optional, string) - Nachname. Mindestens einer der beiden ist erforderlich. team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. company_id (optional, integer) - zugehörige Company-ID. email (optional, string) - E-Mail. phone (optional, string) - Telefon. is_active (optional, boolean) - Status.';
+        return 'POST /contacts - Erstellt einen neuen Contact. WICHTIG: Lookup/FK-IDs (z.B. salutation_id, gender_id, language_id, contact_status_id, academic_title_id) niemals raten. Setze Lookup-IDs nur, wenn sie explizit bestätigt sind (*_confirm=true) oder lasse sie weg. Wenn company_id angegeben ist und eine Relation erstellt werden soll, muss company_relation_type_id gesetzt sein.';
     }
 
     public function getSchema(): array
@@ -63,7 +67,12 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                 ],
                 'salutation_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID der Anrede. Frage nach, wenn der Nutzer eine Anrede angibt.'
+                    'description' => 'Optional: ID der Anrede (Lookup). Niemals raten. Setze nur, wenn salutation_confirm=true.'
+                ],
+                'salutation_confirm' => [
+                    'type' => 'boolean',
+                    'description' => 'Optional: Bestätigung, dass salutation_id wirklich gesetzt werden soll.',
+                    'default' => false
                 ],
                 'academic_title_id' => [
                     'type' => 'integer',
@@ -76,15 +85,30 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                 ],
                 'gender_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID des Geschlechts. Frage nach, wenn der Nutzer ein Geschlecht angibt.'
+                    'description' => 'Optional: ID des Geschlechts (Lookup). Niemals raten. Setze nur, wenn gender_confirm=true.'
+                ],
+                'gender_confirm' => [
+                    'type' => 'boolean',
+                    'description' => 'Optional: Bestätigung, dass gender_id wirklich gesetzt werden soll.',
+                    'default' => false
                 ],
                 'language_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID der Sprache. Frage nach, wenn der Nutzer eine Sprache angibt.'
+                    'description' => 'Optional: ID der Sprache (Lookup). Niemals raten. Setze nur, wenn language_confirm=true.'
+                ],
+                'language_confirm' => [
+                    'type' => 'boolean',
+                    'description' => 'Optional: Bestätigung, dass language_id wirklich gesetzt werden soll.',
+                    'default' => false
                 ],
                 'contact_status_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID des Kontaktstatus. Frage nach, wenn der Nutzer einen Status angibt.'
+                    'description' => 'Optional: ID des Kontaktstatus (Lookup). Niemals raten. Setze nur, wenn contact_status_confirm=true.'
+                ],
+                'contact_status_confirm' => [
+                    'type' => 'boolean',
+                    'description' => 'Optional: Bestätigung, dass contact_status_id wirklich gesetzt werden soll.',
+                    'default' => false
                 ],
                 'owned_by_user_id' => [
                     'type' => 'integer',
@@ -97,6 +121,14 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                 'company_id' => [
                     'type' => 'integer',
                     'description' => 'Optional: ID der Company, mit der der Contact verknüpft werden soll. Nutze "crm.companies.GET" um Companies zu finden.'
+                ],
+                'company_relation_type_id' => [
+                    'type' => 'integer',
+                    'description' => 'Optional: Beziehungstyp-ID für die Contact↔Company-Verknüpfung. WICHTIG: Wenn company_id angegeben ist und eine Relation erstellt werden soll, muss company_relation_type_id gesetzt sein (Pflichtfeld in crm_contact_relations).'
+                ],
+                'company_relation_position' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Position/Rolle in der Company (z.B. Geschäftsführer). Wird nur verwendet, wenn eine Relation erstellt wird.'
                 ]
             ],
             'required' => []
@@ -109,6 +141,15 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
             if (!$context->user) {
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
+
+            // Normalize nullable lookup IDs early (prevents FK=0 issues).
+            $arguments = $this->normalizeLookupIds($arguments, [
+                'salutation_id',
+                'academic_title_id',
+                'gender_id',
+                'language_id',
+                'contact_status_id',
+            ]);
 
             // Validierung
             if (empty($arguments['first_name']) && empty($arguments['last_name'])) {
@@ -143,27 +184,34 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                 $ownedByUserId = $context->user->id;
             }
 
-            // FK-IDs: 0/"0" ist KEIN gültiger FK-Wert → als null behandeln (verhindert FK-Constraint Errors)
-            $salutationId = $arguments['salutation_id'] ?? null;
-            if ($salutationId === 0 || $salutationId === '0') { $salutationId = null; }
-            $academicTitleId = $arguments['academic_title_id'] ?? null;
-            if ($academicTitleId === 0 || $academicTitleId === '0') { $academicTitleId = null; }
-            $genderId = $arguments['gender_id'] ?? null;
-            if ($genderId === 0 || $genderId === '0') { $genderId = null; }
-            $languageId = $arguments['language_id'] ?? null;
-            if ($languageId === 0 || $languageId === '0') { $languageId = null; }
-            $contactStatusId = $arguments['contact_status_id'] ?? null;
-            if ($contactStatusId === 0 || $contactStatusId === '0') { $contactStatusId = null; }
+            $warnings = [];
 
-            // Guard: akademischen Titel nie "raten" – nur setzen, wenn explizit bestätigt
-            if ($academicTitleId !== null) {
+            // Guard: akademischen Titel nie "raten".
+            // Für CREATE: ohne Confirm ignorieren wir den Titel (statt hart zu failen → weniger Loops, kein falsches "Dr.").
+            if (($arguments['academic_title_id'] ?? null) !== null) {
                 $confirm = (bool) ($arguments['academic_title_confirm'] ?? false);
                 if (!$confirm) {
-                    return ToolResult::error(
-                        'VALIDATION_ERROR',
-                        'academic_title_id wurde angegeben, aber nicht bestätigt. Bitte setze academic_title_confirm: true (oder lasse academic_title_id weg).'
-                    );
+                    $arguments['academic_title_id'] = null;
+                    $warnings[] = 'academic_title_id wurde ohne Bestätigung ignoriert (academic_title_confirm fehlt/false).';
                 }
+            }
+
+            // Guard: weitere Lookups niemals raten – ohne Confirm ignorieren.
+            if (($arguments['salutation_id'] ?? null) !== null && !((bool)($arguments['salutation_confirm'] ?? false))) {
+                $arguments['salutation_id'] = null;
+                $warnings[] = 'salutation_id wurde ohne Bestätigung ignoriert (salutation_confirm fehlt/false).';
+            }
+            if (($arguments['gender_id'] ?? null) !== null && !((bool)($arguments['gender_confirm'] ?? false))) {
+                $arguments['gender_id'] = null;
+                $warnings[] = 'gender_id wurde ohne Bestätigung ignoriert (gender_confirm fehlt/false).';
+            }
+            if (($arguments['language_id'] ?? null) !== null && !((bool)($arguments['language_confirm'] ?? false))) {
+                $arguments['language_id'] = null;
+                $warnings[] = 'language_id wurde ohne Bestätigung ignoriert (language_confirm fehlt/false).';
+            }
+            if (($arguments['contact_status_id'] ?? null) !== null && !((bool)($arguments['contact_status_confirm'] ?? false))) {
+                $arguments['contact_status_id'] = null;
+                $warnings[] = 'contact_status_id wurde ohne Bestätigung ignoriert (contact_status_confirm fehlt/false).';
             }
 
             // Geburtsdatum parsen
@@ -176,32 +224,47 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                 }
             }
 
-            // Contact erstellen
-            $contact = CrmContact::create([
-                'first_name' => $arguments['first_name'] ?? null,
-                'last_name' => $arguments['last_name'] ?? null,
-                'team_id' => $teamId,
-                'created_by_user_id' => $context->user->id,
-                'owned_by_user_id' => $ownedByUserId,
-                'middle_name' => $arguments['middle_name'] ?? null,
-                'nickname' => $arguments['nickname'] ?? null,
-                'birth_date' => $birthDate,
-                'notes' => $arguments['notes'] ?? null,
-                'salutation_id' => $salutationId,
-                'academic_title_id' => $academicTitleId,
-                'gender_id' => $genderId,
-                'language_id' => $languageId,
-                'contact_status_id' => $contactStatusId,
-                'is_active' => $arguments['is_active'] ?? true,
-            ]);
+            $companyId = $arguments['company_id'] ?? null;
+            $relationTypeId = $arguments['company_relation_type_id'] ?? null;
+            $relationPosition = $arguments['company_relation_position'] ?? null;
 
-            // Company-Verknüpfung erstellen (falls angegeben)
-            if (!empty($arguments['company_id'])) {
-                \Platform\Crm\Models\CrmContactRelation::create([
-                    'contact_id' => $contact->id,
-                    'company_id' => $arguments['company_id'],
+            // Create contact (+ optional relation) transactionally to avoid "half-success" states.
+            $contact = DB::transaction(function () use ($arguments, $teamId, $context, $ownedByUserId, $birthDate, $companyId, $relationTypeId, $relationPosition, &$warnings) {
+                $contact = CrmContact::create([
+                    'first_name' => $arguments['first_name'] ?? null,
+                    'last_name' => $arguments['last_name'] ?? null,
+                    'team_id' => $teamId,
+                    'created_by_user_id' => $context->user->id,
+                    'owned_by_user_id' => $ownedByUserId,
+                    'middle_name' => $arguments['middle_name'] ?? null,
+                    'nickname' => $arguments['nickname'] ?? null,
+                    'birth_date' => $birthDate,
+                    'notes' => $arguments['notes'] ?? null,
+                    'salutation_id' => $arguments['salutation_id'] ?? null,
+                    'academic_title_id' => $arguments['academic_title_id'] ?? null,
+                    'gender_id' => $arguments['gender_id'] ?? null,
+                    'language_id' => $arguments['language_id'] ?? null,
+                    'contact_status_id' => $arguments['contact_status_id'] ?? null,
+                    'is_active' => $arguments['is_active'] ?? true,
                 ]);
-            }
+
+                if (!empty($companyId)) {
+                    if (empty($relationTypeId)) {
+                        $warnings[] = 'company_id wurde angegeben, aber keine Relation erstellt, weil company_relation_type_id fehlt. Nutze crm.contact_relations.POST für die Verknüpfung.';
+                    } else {
+                        CrmContactRelation::create([
+                            'contact_id' => $contact->id,
+                            'company_id' => (int) $companyId,
+                            'relation_type_id' => (int) $relationTypeId,
+                            'position' => $relationPosition ?: null,
+                            'is_primary' => true,
+                            'is_active' => true,
+                        ]);
+                    }
+                }
+
+                return $contact;
+            });
 
             // Beziehungen laden
             $contact->load(['salutation', 'academicTitle', 'gender', 'language', 'contactStatus', 'createdByUser', 'ownedByUser']);
@@ -222,6 +285,7 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                 'is_active' => $contact->is_active,
                 'owned_by' => $contact->ownedByUser?->name,
                 'created_at' => $contact->created_at->toIso8601String(),
+                'warnings' => $warnings,
                 'message' => "Contact '{$contact->first_name} {$contact->last_name}' erfolgreich erstellt."
             ]);
         } catch (\Throwable $e) {

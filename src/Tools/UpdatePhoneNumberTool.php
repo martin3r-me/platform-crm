@@ -59,6 +59,10 @@ class UpdatePhoneNumberTool implements ToolContract, ToolMetadataContract
                     'type' => 'integer',
                     'description' => 'Optional: Typ-ID (crm_phone_types.id).',
                 ],
+                'phone_type_code' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Typ-Code (crm_phone_types.code). Nutze crm.lookup.GET lookup=phone_types. Niemals raten.',
+                ],
                 'is_primary' => [
                     'type' => 'boolean',
                     'description' => 'Optional: primär setzen/entfernen.',
@@ -154,8 +158,21 @@ class UpdatePhoneNumberTool implements ToolContract, ToolMetadataContract
             }
 
             if (array_key_exists('phone_type_id', $arguments)) {
-                // Default: 1 (UI-Standard). Wichtig: niemals 0 schreiben.
-                $update['phone_type_id'] = ($arguments['phone_type_id'] ?? null) ?? 1;
+                $v = $arguments['phone_type_id'] ?? null;
+                if ($v === null) {
+                    return ToolResult::error('VALIDATION_ERROR', 'phone_type_id darf nicht 0/leer sein. Nutze crm.lookup.GET lookup=phone_types.');
+                }
+                $update['phone_type_id'] = (int)$v;
+            } elseif (array_key_exists('phone_type_code', $arguments)) {
+                $code = strtoupper(trim((string)($arguments['phone_type_code'] ?? '')));
+                if ($code === '') {
+                    return ToolResult::error('VALIDATION_ERROR', 'phone_type_code darf nicht leer sein.');
+                }
+                $resolved = \Platform\Crm\Models\CrmPhoneType::query()->where('code', $code)->value('id');
+                if (!$resolved) {
+                    return ToolResult::error('VALIDATION_ERROR', "Unbekannter phone_type_code '{$code}'. Nutze crm.lookup.GET lookup=phone_types.");
+                }
+                $update['phone_type_id'] = (int)$resolved;
             }
 
             if (array_key_exists('notes', $arguments)) {

@@ -49,6 +49,10 @@ class CreateEmailAddressTool implements ToolContract, ToolMetadataContract
                     'type' => 'integer',
                     'description' => 'Optional: Typ-ID (crm_email_types.id).',
                 ],
+                'email_type_code' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Typ-Code (crm_email_types.code). Nutze crm.lookup.GET lookup=email_types, um Codes/IDs zu finden. Niemals raten.',
+                ],
                 'is_primary' => [
                     'type' => 'boolean',
                     'description' => 'Optional: true, um als primär zu markieren.',
@@ -80,6 +84,18 @@ class CreateEmailAddressTool implements ToolContract, ToolMetadataContract
             $email = trim((string)($arguments['email_address'] ?? ''));
             if (!$type || !$id || $email === '') {
                 return ToolResult::error('VALIDATION_ERROR', 'entity_type, entity_id und email_address sind erforderlich.');
+            }
+
+            // email_type_id ist DB-required → entweder explizit setzen oder via code auflösen
+            $emailTypeId = $arguments['email_type_id'] ?? null;
+            if ($emailTypeId === null) {
+                $code = strtoupper(trim((string)($arguments['email_type_code'] ?? '')));
+                if ($code !== '') {
+                    $emailTypeId = \Platform\Crm\Models\CrmEmailType::query()->where('code', $code)->value('id');
+                }
+            }
+            if (!$emailTypeId) {
+                return ToolResult::error('VALIDATION_ERROR', 'email_type_id oder email_type_code ist erforderlich (crm_email_types hat kein Default). Nutze crm.lookup.GET lookup=email_types.');
             }
 
             $entity = null;
@@ -116,8 +132,7 @@ class CreateEmailAddressTool implements ToolContract, ToolMetadataContract
             /** @var CrmEmailAddress $created */
             $created = $entity->emailAddresses()->create([
                 'email_address' => $email,
-                // Default: 1 (UI-Standard). Wichtig: niemals 0 schreiben.
-                'email_type_id' => ($arguments['email_type_id'] ?? null) ?? 1,
+                'email_type_id' => (int)$emailTypeId,
                 'is_primary' => $isPrimary,
                 'notes' => $arguments['notes'] ?? null,
                 'is_active' => $arguments['is_active'] ?? true,

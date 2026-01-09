@@ -55,6 +55,10 @@ class CreatePhoneNumberTool implements ToolContract, ToolMetadataContract
                     'type' => 'integer',
                     'description' => 'Optional: Typ-ID (crm_phone_types.id).',
                 ],
+                'phone_type_code' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Typ-Code (crm_phone_types.code). Nutze crm.lookup.GET lookup=phone_types. Niemals raten.',
+                ],
                 'is_primary' => [
                     'type' => 'boolean',
                     'description' => 'Optional: true, um als primär zu markieren.',
@@ -116,6 +120,18 @@ class CreatePhoneNumberTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('VALIDATION_ERROR', 'Diese Telefonnummer existiert bereits bei dieser Entity.');
             }
 
+            // phone_type_id ist DB-required → entweder explizit setzen oder via code auflösen
+            $phoneTypeId = $arguments['phone_type_id'] ?? null;
+            if ($phoneTypeId === null) {
+                $code = strtoupper(trim((string)($arguments['phone_type_code'] ?? '')));
+                if ($code !== '') {
+                    $phoneTypeId = \Platform\Crm\Models\CrmPhoneType::query()->where('code', $code)->value('id');
+                }
+            }
+            if (!$phoneTypeId) {
+                return ToolResult::error('VALIDATION_ERROR', 'phone_type_id oder phone_type_code ist erforderlich (crm_phone_types hat kein Default). Nutze crm.lookup.GET lookup=phone_types.');
+            }
+
             $country = strtoupper((string)($arguments['country_code'] ?? 'DE'));
             $phoneUtil = PhoneNumberUtil::getInstance();
             try {
@@ -137,8 +153,7 @@ class CreatePhoneNumberTool implements ToolContract, ToolMetadataContract
                 'international' => $phoneUtil->format($phoneNumber, PhoneNumberFormat::E164),
                 'national' => $phoneUtil->format($phoneNumber, PhoneNumberFormat::NATIONAL),
                 'country_code' => $phoneUtil->getRegionCodeForNumber($phoneNumber),
-                // Default: 1 (UI-Standard). Wichtig: niemals 0 schreiben.
-                'phone_type_id' => ($arguments['phone_type_id'] ?? null) ?? 1,
+                'phone_type_id' => (int)$phoneTypeId,
                 'is_primary' => $isPrimary,
                 'notes' => $arguments['notes'] ?? null,
                 'extension' => $arguments['extension'] ?? null,

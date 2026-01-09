@@ -50,8 +50,13 @@ class CreatePostalAddressTool implements ToolContract, ToolMetadataContract
                 'city' => ['type' => 'string', 'description' => 'Optional: Stadt.'],
                 'additional_info' => ['type' => 'string', 'description' => 'Optional: Zusatz.'],
                 'country_id' => ['type' => 'integer', 'description' => 'Optional: Land-ID (crm_countries.id).'],
+                'country_code' => ['type' => 'string', 'description' => 'Optional: ISO2-Ländercode (z.B. "DE"). Wenn gesetzt, wird country_id automatisch aufgelöst (ohne Raten).'],
                 'state_id' => ['type' => 'integer', 'description' => 'Optional: Bundesland-ID (crm_states.id).'],
+                'state_code' => ['type' => 'string', 'description' => 'Optional: Bundesland-Code (crm_states.code). Wird (wenn möglich) innerhalb des Landes aufgelöst.'],
+                'state_name' => ['type' => 'string', 'description' => 'Optional: Bundesland-Name (crm_states.name). Wird (wenn möglich) innerhalb des Landes aufgelöst.'],
                 'address_type_id' => ['type' => 'integer', 'description' => 'Optional: Adresstyp-ID (crm_address_types.id).'],
+                'address_type_code' => ['type' => 'string', 'description' => 'Optional: Adresstyp-Code (crm_address_types.code, z.B. BUSINESS/HEADQUARTERS). Wird automatisch aufgelöst (ohne Raten).'],
+                'address_type_name' => ['type' => 'string', 'description' => 'Optional: Adresstyp-Name (crm_address_types.name). Wird automatisch aufgelöst (ohne Raten).'],
                 'is_primary' => ['type' => 'boolean', 'description' => 'Optional: primär setzen.'],
                 'is_active' => ['type' => 'boolean', 'description' => 'Optional: aktiv/inaktiv (default: true).'],
             ],
@@ -93,10 +98,64 @@ class CreatePostalAddressTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('ACCESS_DENIED', 'Du darfst diese Entity nicht bearbeiten (Policy).');
             }
 
+            $warnings = [];
+
             $countryId = $arguments['country_id'] ?? null;
+            $countryCode = strtoupper(trim((string)($arguments['country_code'] ?? '')));
+            if ($countryId === null && $countryCode !== '') {
+                $resolved = CrmCountry::query()->where('code', $countryCode)->value('id');
+                if ($resolved) {
+                    $countryId = (int)$resolved;
+                } else {
+                    $warnings[] = "country_code '{$countryCode}' konnte nicht aufgelöst werden. country_id bleibt leer.";
+                }
+            }
+
             $stateId = $arguments['state_id'] ?? null;
-            // Default: 1 (UI-Standard). Wichtig: niemals 0 schreiben.
-            $addressTypeId = ($arguments['address_type_id'] ?? null) ?? 1;
+            if ($stateId === null) {
+                $stateCode = strtoupper(trim((string)($arguments['state_code'] ?? '')));
+                $stateName = trim((string)($arguments['state_name'] ?? ''));
+                if ($stateCode !== '' || $stateName !== '') {
+                    $q = CrmState::query();
+                    if ($countryId !== null) {
+                        $q->where('country_id', $countryId);
+                    }
+                    if ($stateCode !== '') {
+                        $q->where('code', $stateCode);
+                    } else {
+                        $q->where('name', $stateName);
+                    }
+                    $resolved = $q->value('id');
+                    if ($resolved) {
+                        $stateId = (int)$resolved;
+                    } else {
+                        $warnings[] = 'Bundesland konnte nicht aufgelöst werden (state_code/state_name). state_id bleibt leer.';
+                    }
+                }
+            }
+
+            $addressTypeId = $arguments['address_type_id'] ?? null;
+            if ($addressTypeId === null) {
+                $typeCode = strtoupper(trim((string)($arguments['address_type_code'] ?? '')));
+                $typeName = trim((string)($arguments['address_type_name'] ?? ''));
+                if ($typeCode !== '' || $typeName !== '') {
+                    $q = CrmAddressType::query();
+                    if ($typeCode !== '') {
+                        $q->where('code', $typeCode);
+                    } else {
+                        $q->where('name', $typeName);
+                    }
+                    $resolved = $q->value('id');
+                    if ($resolved) {
+                        $addressTypeId = (int)$resolved;
+                    } else {
+                        $warnings[] = 'address_type konnte nicht aufgelöst werden (address_type_code/address_type_name). address_type_id bleibt leer.';
+                    }
+                }
+            }
+            if ($addressTypeId === null) {
+                return ToolResult::error('VALIDATION_ERROR', 'address_type_id oder address_type_code/address_type_name ist erforderlich (crm_postal_addresses.address_type_id hat kein Default). Nutze crm.lookup.GET lookup=address_types.');
+            }
 
             if ($countryId !== null && !CrmCountry::whereKey($countryId)->exists()) {
                 return ToolResult::error('VALIDATION_ERROR', 'country_id ist ungültig.');
@@ -147,6 +206,7 @@ class CreatePostalAddressTool implements ToolContract, ToolMetadataContract
                 'address_type_id' => $created->address_type_id,
                 'is_primary' => (bool)$created->is_primary,
                 'is_active' => (bool)$created->is_active,
+                'warnings' => $warnings,
                 'message' => 'Postadresse wurde hinzugefügt.',
             ]);
         } catch (\Throwable $e) {

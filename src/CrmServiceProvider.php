@@ -151,6 +151,10 @@ class CrmServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Crm\Tools\CreateContactRelationTool());
             $registry->register(new \Platform\Crm\Tools\UpdateContactRelationTool());
             $registry->register(new \Platform\Crm\Tools\DeleteContactRelationTool());
+
+            // Lookup Tools (IDs/Codes deterministisch nachschlagen – niemals raten)
+            $registry->register(new \Platform\Crm\Tools\CrmLookupsTool());
+            $registry->register(new \Platform\Crm\Tools\GetLookupTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('CRM: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);
