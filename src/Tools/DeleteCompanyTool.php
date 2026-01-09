@@ -7,6 +7,8 @@ use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Crm\Models\CrmCompany;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Löschen von Companies im CRM-Modul
@@ -61,13 +63,11 @@ class DeleteCompanyTool implements ToolContract
             
             $company = $validation['model'];
 
-            // Prüfe Zugriff (nur Owner kann löschen)
-            $accessCheck = $this->checkAccess($company, $context, function($model, $ctx) {
-                return $model->owned_by_user_id === $ctx->user->id;
-            });
-            
-            if ($accessCheck) {
-                return $accessCheck;
+            // Policy: delete
+            try {
+                Gate::forUser($context->user)->authorize('delete', $company);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du darfst diese Company nicht löschen (Policy).');
             }
 
             // Prüfe Anzahl der Kontakte (für Warnung)

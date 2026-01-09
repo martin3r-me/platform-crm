@@ -7,12 +7,17 @@ use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Crm\Models\CrmCompany;
+use Platform\Crm\Tools\Concerns\ResolvesCrmTeam;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Erstellen von Companies im CRM-Modul
  */
 class CreateCompanyTool implements ToolContract, ToolMetadataContract
 {
+    use ResolvesCrmTeam;
+
     public function getName(): string
     {
         return 'crm.companies.POST';
@@ -110,9 +115,22 @@ class CreateCompanyTool implements ToolContract, ToolMetadataContract
             }
 
             // Team bestimmen
-            $teamId = $arguments['team_id'] ?? $context->team?->id;
+            $teamId = $arguments['team_id'] ?? $this->resolveRootTeamId($context->user) ?? $context->team?->id;
             if (!$teamId) {
                 return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Nutze das Tool "core.teams.GET" um alle verfügbaren Teams zu sehen.');
+            }
+
+            // Zugriff: User muss im Team sein
+            $userHasAccess = $context->user->teams()->where('teams.id', $teamId)->exists();
+            if (!$userHasAccess) {
+                return ToolResult::error('ACCESS_DENIED', "Du hast keinen Zugriff auf Team-ID {$teamId}.");
+            }
+
+            // Policy: create
+            try {
+                Gate::forUser($context->user)->authorize('create', CrmCompany::class);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du darfst keine Companies erstellen (Policy).');
             }
 
             // Owner bestimmen (behandle 1/0 als null)

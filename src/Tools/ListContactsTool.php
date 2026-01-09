@@ -8,6 +8,8 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Crm\Models\CrmContact;
+use Platform\Crm\Tools\Concerns\ResolvesCrmTeam;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Tool zum Auflisten von Contacts im CRM-Modul
@@ -15,6 +17,7 @@ use Platform\Crm\Models\CrmContact;
 class ListContactsTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardGetOperations;
+    use ResolvesCrmTeam;
 
     public function getName(): string
     {
@@ -69,7 +72,7 @@ class ListContactsTool implements ToolContract, ToolMetadataContract
             
             // Wenn team_id nicht angegeben, verwende aktuelles Team aus Kontext
             if ($teamIdArg === null) {
-                $teamIdArg = $context->team?->id;
+                $teamIdArg = $this->resolveRootTeamId($context->user) ?? $context->team?->id;
             }
             
             if (!$teamIdArg) {
@@ -82,7 +85,7 @@ class ListContactsTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('ACCESS_DENIED', "Du hast keinen Zugriff auf Team-ID {$teamIdArg}. Nutze 'core.teams.GET' um verfügbare Teams zu sehen.");
             }
             
-            // Query aufbauen - nur Contacts dieses Teams
+            // Query aufbauen - nur Contacts dieses Teams (CRM-UI arbeitet root-scoped)
             $query = CrmContact::query()
                 ->where('team_id', $teamIdArg)
                 ->with(['salutation', 'academicTitle', 'gender', 'language', 'contactStatus', 'createdByUser', 'ownedByUser']);
@@ -117,8 +120,10 @@ class ListContactsTool implements ToolContract, ToolMetadataContract
             $this->applyStandardSorting($query, $arguments, 'last_name', 'asc');
             $result = $this->applyStandardPaginationResult($query, $arguments);
 
-            // Formatierung
-            $contacts = $result['data']->map(function ($contact) {
+            // Formatierung (Safety: nie Contacts zurückgeben, die Policy-seitig nicht sichtbar sind)
+            $contacts = $result['data']->filter(fn($c) => Gate::forUser($context->user)->allows('view', $c))
+                ->values()
+                ->map(function ($contact) {
                 return [
                     'id' => $contact->id,
                     'uuid' => $contact->uuid,

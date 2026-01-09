@@ -8,6 +8,8 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Crm\Models\CrmCompany;
+use Platform\Crm\Tools\Concerns\ResolvesCrmTeam;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Tool zum Auflisten von Companies im CRM-Modul
@@ -15,6 +17,7 @@ use Platform\Crm\Models\CrmCompany;
 class ListCompaniesTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardGetOperations;
+    use ResolvesCrmTeam;
 
     public function getName(): string
     {
@@ -65,7 +68,7 @@ class ListCompaniesTool implements ToolContract, ToolMetadataContract
             
             // Wenn team_id nicht angegeben, verwende aktuelles Team aus Kontext
             if ($teamIdArg === null) {
-                $teamIdArg = $context->team?->id;
+                $teamIdArg = $this->resolveRootTeamId($context->user) ?? $context->team?->id;
             }
             
             if (!$teamIdArg) {
@@ -78,7 +81,7 @@ class ListCompaniesTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('ACCESS_DENIED', "Du hast keinen Zugriff auf Team-ID {$teamIdArg}. Nutze 'core.teams.GET' um verfügbare Teams zu sehen.");
             }
             
-            // Query aufbauen - nur Companies dieses Teams
+            // Query aufbauen - nur Companies dieses Teams (CRM-UI arbeitet root-scoped)
             $query = CrmCompany::query()
                 ->where('team_id', $teamIdArg)
                 ->with(['industry', 'legalForm', 'contactStatus', 'country', 'createdByUser', 'ownedByUser']);
@@ -106,8 +109,10 @@ class ListCompaniesTool implements ToolContract, ToolMetadataContract
             $this->applyStandardSorting($query, $arguments, 'name', 'asc');
             $result = $this->applyStandardPaginationResult($query, $arguments);
 
-            // Formatierung
-            $companies = $result['data']->map(function ($company) {
+            // Formatierung (Safety: nie Companies zurückgeben, die Policy-seitig nicht sichtbar sind)
+            $companies = $result['data']->filter(fn($c) => Gate::forUser($context->user)->allows('view', $c))
+                ->values()
+                ->map(function ($company) {
                 return [
                     'id' => $company->id,
                     'uuid' => $company->uuid,

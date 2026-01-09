@@ -7,6 +7,8 @@ use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Crm\Models\CrmContact;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Bearbeiten von Contacts im CRM-Modul
@@ -109,15 +111,11 @@ class UpdateContactTool implements ToolContract
             
             $contact = $validation['model'];
 
-            // Prüfe Zugriff (optional - kann überschrieben werden)
-            $accessCheck = $this->checkAccess($contact, $context, function($model, $ctx) {
-                // Custom Access-Check: Owner oder Team-Mitglied
-                return $model->owned_by_user_id === $ctx->user->id || 
-                       $model->team_id === $ctx->team?->id;
-            });
-            
-            if ($accessCheck) {
-                return $accessCheck;
+            // Policy wie Planner: update
+            try {
+                Gate::forUser($context->user)->authorize('update', $contact);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du darfst diesen Contact nicht bearbeiten (Policy).');
             }
 
             // Update-Daten sammeln

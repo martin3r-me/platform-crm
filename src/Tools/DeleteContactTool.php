@@ -7,6 +7,8 @@ use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Crm\Models\CrmContact;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Löschen von Contacts im CRM-Modul
@@ -61,13 +63,11 @@ class DeleteContactTool implements ToolContract
             
             $contact = $validation['model'];
 
-            // Prüfe Zugriff (nur Owner kann löschen)
-            $accessCheck = $this->checkAccess($contact, $context, function($model, $ctx) {
-                return $model->owned_by_user_id === $ctx->user->id;
-            });
-            
-            if ($accessCheck) {
-                return $accessCheck;
+            // Policy: delete
+            try {
+                Gate::forUser($context->user)->authorize('delete', $contact);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du darfst diesen Contact nicht löschen (Policy).');
             }
 
             // Bestätigung prüfen (wenn Contact wichtig erscheint)

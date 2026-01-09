@@ -20,6 +20,11 @@ use Platform\Core\Contracts\CrmContactResolverInterface;
 use Platform\Crm\Services\CoreCrmContactResolver;
 use Platform\Core\Contracts\CrmCompanyContactsProviderInterface;
 use Platform\Crm\Services\CoreCrmCompanyContactsProvider;
+use Illuminate\Support\Facades\Gate;
+use Platform\Crm\Models\CrmContact;
+use Platform\Crm\Models\CrmCompany;
+use Platform\Crm\Policies\CrmContactPolicy;
+use Platform\Crm\Policies\CrmCompanyPolicy;
 
 class CrmServiceProvider extends ServiceProvider
 {
@@ -99,6 +104,9 @@ class CrmServiceProvider extends ServiceProvider
         
         // Tools registrieren (loose gekoppelt - für AI/Chat)
         $this->registerTools();
+
+        // Policies registrieren (wie Planner: Gate/Policies in Tools nutzbar machen)
+        $this->registerPolicies();
     }
     
     /**
@@ -114,18 +122,55 @@ class CrmServiceProvider extends ServiceProvider
             
             // Company-Tools
             $registry->register(new \Platform\Crm\Tools\ListCompaniesTool());
+            $registry->register(new \Platform\Crm\Tools\GetCompanyTool());
             $registry->register(new \Platform\Crm\Tools\CreateCompanyTool());
             $registry->register(new \Platform\Crm\Tools\UpdateCompanyTool());
             $registry->register(new \Platform\Crm\Tools\DeleteCompanyTool());
             
             // Contact-Tools
             $registry->register(new \Platform\Crm\Tools\ListContactsTool());
+            $registry->register(new \Platform\Crm\Tools\GetContactTool());
             $registry->register(new \Platform\Crm\Tools\CreateContactTool());
             $registry->register(new \Platform\Crm\Tools\UpdateContactTool());
             $registry->register(new \Platform\Crm\Tools\DeleteContactTool());
+
+            // Communication Tools (Phone/Email)
+            $registry->register(new \Platform\Crm\Tools\CreateEmailAddressTool());
+            $registry->register(new \Platform\Crm\Tools\UpdateEmailAddressTool());
+            $registry->register(new \Platform\Crm\Tools\DeleteEmailAddressTool());
+            $registry->register(new \Platform\Crm\Tools\CreatePhoneNumberTool());
+            $registry->register(new \Platform\Crm\Tools\UpdatePhoneNumberTool());
+            $registry->register(new \Platform\Crm\Tools\DeletePhoneNumberTool());
+
+            // Postal Address Tools
+            $registry->register(new \Platform\Crm\Tools\CreatePostalAddressTool());
+            $registry->register(new \Platform\Crm\Tools\UpdatePostalAddressTool());
+            $registry->register(new \Platform\Crm\Tools\DeletePostalAddressTool());
+
+            // Contact↔Company Relations
+            $registry->register(new \Platform\Crm\Tools\CreateContactRelationTool());
+            $registry->register(new \Platform\Crm\Tools\UpdateContactRelationTool());
+            $registry->register(new \Platform\Crm\Tools\DeleteContactRelationTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('CRM: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Registriert Policies für das CRM-Modul
+     */
+    protected function registerPolicies(): void
+    {
+        $policies = [
+            CrmContact::class => CrmContactPolicy::class,
+            CrmCompany::class => CrmCompanyPolicy::class,
+        ];
+
+        foreach ($policies as $model => $policy) {
+            if (class_exists($model) && class_exists($policy)) {
+                Gate::policy($model, $policy);
+            }
         }
     }
 
