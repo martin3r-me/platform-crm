@@ -257,12 +257,12 @@
                 </div>
                 <div class="mt-4">
                     <x-ui-input-date 
-                        name="contact.birth_date"
+                        name="birthDate"
                         label="Geburtsdatum"
-                        wire:model.live.debounce.500ms="contact.birth_date"
+                        wire:model.live.debounce.500ms="birthDate"
                         placeholder="Geburtsdatum (optional)"
                         :nullable="true"
-                        :errorKey="'contact.birth_date'"
+                        :errorKey="'birthDate'"
                     />
                 </div>
             </x-ui-panel>

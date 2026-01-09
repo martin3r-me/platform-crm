@@ -30,6 +30,12 @@ class Contact extends Component
 {
     public CrmContact $contact;
 
+    /**
+     * Date-Inputs erwarten typischerweise einen String im Format YYYY-MM-DD.
+     * Das Eloquent-Casting für birth_date liefert aber Carbon-Instanzen -> UI zeigt sonst oft leer.
+     */
+    public ?string $birthDate = null;
+
     public $salutations = [];
     public $academicTitles = [];
     public $genders = [];
@@ -114,12 +120,8 @@ class Contact extends Component
     {
         $this->contact = $contact->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.company', 'activities']);
 
-        // Normalisiere birth_date für Date-Inputs (Livewire/Blade Components erwarten i.d.R. einen String im Format YYYY-MM-DD).
-        // Wichtig: danach Original synchronisieren, damit der Save-Button nicht sofort als "dirty" erscheint.
-        if ($this->contact->birth_date instanceof \Carbon\CarbonInterface) {
-            $this->contact->birth_date = $this->contact->birth_date->toDateString();
-            $this->contact->syncOriginalAttribute('birth_date');
-        }
+        // birth_date in String-Property für Date-Input normalisieren
+        $this->birthDate = $this->contact->birth_date?->toDateString();
         
         // Daten für die rechte Spalte laden
         $this->salutations = CrmSalutation::active()->get();
@@ -156,7 +158,7 @@ class Contact extends Component
         $nullableFields = [
             'contact.middle_name',
             'contact.nickname', 
-            'contact.birth_date',
+            'birthDate',
             'contact.notes',
             'contact.salutation_id',
             'contact.academic_title_id',
@@ -171,6 +173,15 @@ class Contact extends Component
         }
 
         return $attributes;
+    }
+
+    public function updatedBirthDate($value): void
+    {
+        $raw = is_string($value) ? trim($value) : $value;
+        $this->birthDate = $raw === '' ? null : $raw;
+
+        // Damit "Speichern" erscheint, müssen wir das Model-Attribut ebenfalls setzen
+        $this->contact->birth_date = $this->birthDate;
     }
 
     public function rendered()
@@ -192,7 +203,7 @@ class Contact extends Component
             'contact.last_name' => 'required|string|max:255',
             'contact.middle_name' => 'nullable|string|max:255',
             'contact.nickname' => 'nullable|string|max:255',
-            'contact.birth_date' => 'nullable|date',
+            'birthDate' => 'nullable|date',
             'contact.notes' => 'nullable|string|max:1000',
             'contact.salutation_id' => 'nullable|integer|exists:crm_salutations,id',
             'contact.academic_title_id' => 'nullable|integer|exists:crm_academic_titles,id',
@@ -205,22 +216,25 @@ class Contact extends Component
     public function save(): void
     {
         // birth_date robust normalisieren, falls UI z.B. "dd.mm.yyyy" liefert
-        if (is_string($this->contact->birth_date)) {
-            $raw = trim($this->contact->birth_date);
+        if (is_string($this->birthDate)) {
+            $raw = trim($this->birthDate);
             if ($raw === '') {
-                $this->contact->birth_date = null;
+                $this->birthDate = null;
             } elseif (str_contains($raw, '.')) {
                 try {
-                    $this->contact->birth_date = Carbon::createFromFormat('d.m.Y', $raw)->toDateString();
+                    $this->birthDate = Carbon::createFromFormat('d.m.Y', $raw)->toDateString();
                 } catch (\Throwable $e) {
                     // fallback: Validierung wird dann greifen
-                    $this->contact->birth_date = $raw;
+                    $this->birthDate = $raw;
                 }
             }
         }
 
+        $this->contact->birth_date = $this->birthDate;
         $this->validate();
         $this->contact->save();
+        $this->contact->refresh();
+        $this->birthDate = $this->contact->birth_date?->toDateString();
 
         session()->flash('message', 'Kontakt erfolgreich aktualisiert.');
     }
@@ -769,7 +783,14 @@ class Contact extends Component
     public function isDirty()
     {
         // Prüfe ob das Contact-Model geändert wurde
-        return $this->contact->isDirty();
+        if ($this->contact->isDirty()) {
+            return true;
+        }
+
+        $original = $this->contact->getOriginal('birth_date');
+        $originalString = $original ? Carbon::parse($original)->toDateString() : null;
+
+        return $this->birthDate !== $originalString;
     }
 
     public function render()
