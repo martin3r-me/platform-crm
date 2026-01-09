@@ -4,6 +4,7 @@ namespace Platform\Crm\Livewire\Contact;
 
 use Livewire\Component;
 use Livewire\Attributes\Computed;
+use Carbon\Carbon;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmSalutation;
 use Platform\Crm\Models\CrmAcademicTitle;
@@ -112,6 +113,13 @@ class Contact extends Component
     public function mount(CrmContact $contact)
     {
         $this->contact = $contact->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.company', 'activities']);
+
+        // Normalisiere birth_date für Date-Inputs (Livewire/Blade Components erwarten i.d.R. einen String im Format YYYY-MM-DD).
+        // Wichtig: danach Original synchronisieren, damit der Save-Button nicht sofort als "dirty" erscheint.
+        if ($this->contact->birth_date instanceof \Carbon\CarbonInterface) {
+            $this->contact->birth_date = $this->contact->birth_date->toDateString();
+            $this->contact->syncOriginalAttribute('birth_date');
+        }
         
         // Daten für die rechte Spalte laden
         $this->salutations = CrmSalutation::active()->get();
@@ -196,6 +204,21 @@ class Contact extends Component
 
     public function save(): void
     {
+        // birth_date robust normalisieren, falls UI z.B. "dd.mm.yyyy" liefert
+        if (is_string($this->contact->birth_date)) {
+            $raw = trim($this->contact->birth_date);
+            if ($raw === '') {
+                $this->contact->birth_date = null;
+            } elseif (str_contains($raw, '.')) {
+                try {
+                    $this->contact->birth_date = Carbon::createFromFormat('d.m.Y', $raw)->toDateString();
+                } catch (\Throwable $e) {
+                    // fallback: Validierung wird dann greifen
+                    $this->contact->birth_date = $raw;
+                }
+            }
+        }
+
         $this->validate();
         $this->contact->save();
 

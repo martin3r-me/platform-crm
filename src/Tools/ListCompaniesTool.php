@@ -104,7 +104,7 @@ class ListCompaniesTool implements ToolContract, ToolMetadataContract
 
             // Standard-Sortierung und Pagination
             $this->applyStandardSorting($query, $arguments, 'name', 'asc');
-            $result = $this->applyStandardPagination($query, $arguments);
+            $result = $this->applyStandardPaginationResult($query, $arguments);
 
             // Formatierung
             $companies = $result['data']->map(function ($company) {

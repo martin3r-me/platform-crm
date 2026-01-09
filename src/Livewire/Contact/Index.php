@@ -3,7 +3,6 @@
 namespace Platform\Crm\Livewire\Contact;
 
 use Livewire\Component;
-use Livewire\WithPagination;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmSalutation;
 use Platform\Crm\Models\CrmAcademicTitle;
@@ -13,14 +12,16 @@ use Platform\Crm\Models\CrmContactStatus;
 
 class Index extends Component
 {
-    use WithPagination;
-
     // Modal State
     public $modalShow = false;
     
     // Sorting
     public $sortField = 'last_name';
     public $sortDirection = 'asc';
+
+    // Search / Filter
+    public $searchLastName = '';
+    public $statusFilter = null;
     
     // Form Data
     public $first_name = '';
@@ -53,22 +54,29 @@ class Index extends Component
     {
         $user = auth()->user();
         $baseTeam = $user->currentTeamRelation;
-        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : null;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
 
         $contacts = CrmContact::with(['contactStatus', 'emailAddresses', 'phoneNumbers', 'postalAddresses', 'contactRelations.company'])
             ->where('team_id', $teamId)
+            ->when(trim((string) $this->searchLastName) !== '', function ($query) {
+                $query->where('last_name', 'like', '%' . trim((string) $this->searchLastName) . '%');
+            })
+            ->when(!empty($this->statusFilter), function ($query) {
+                $query->where('contact_status_id', $this->statusFilter);
+            })
             ->when($this->sortField === 'last_name', function($query) {
                 $query->orderBy('last_name', $this->sortDirection)
                       ->orderBy('first_name', $this->sortDirection);
             })
             ->when($this->sortField === 'contact_status_id', function($query) {
                 $query->join('crm_contact_statuses', 'crm_contacts.contact_status_id', '=', 'crm_contact_statuses.id')
+                      ->select('crm_contacts.*')
                       ->orderBy('crm_contact_statuses.name', $this->sortDirection);
             })
             ->when(!in_array($this->sortField, ['last_name', 'contact_status_id']), function($query) {
                 $query->orderBy($this->sortField, $this->sortDirection);
             })
-            ->paginate(10);
+            ->get();
             
         $salutations = CrmSalutation::active()->get();
         $academicTitles = CrmAcademicTitle::active()->get();

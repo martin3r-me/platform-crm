@@ -9,7 +9,13 @@
                 <div>
                     <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Aktionen</h3>
                     <div class="space-y-2">
-                        <x-ui-input-text name="search" placeholder="Suche Unternehmen..." class="w-full" size="sm" />
+                        <x-ui-input-text
+                            name="searchName"
+                            placeholder="Suche Unternehmen..."
+                            class="w-full"
+                            size="sm"
+                            wire:model.live.debounce.300ms="searchName"
+                        />
                         <x-ui-button variant="secondary" size="sm" wire:click="openCreateModal" class="w-full justify-start">
                             @svg('heroicon-o-plus','w-4 h-4')
                             <span class="ml-2">Neues Unternehmen</span>
@@ -19,16 +25,20 @@
                 <div>
                     <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Filter</h3>
                     <div class="space-y-3">
-                        <x-ui-input-select name="status" label="Status" :options="$contactStatuses" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Alle –" size="sm" />
+                        <x-ui-input-select
+                            name="statusFilter"
+                            label="Status"
+                            :options="$contactStatuses"
+                            optionValue="id"
+                            optionLabel="name"
+                            :nullable="true"
+                            nullLabel="– Alle –"
+                            size="sm"
+                            wire:model.live="statusFilter"
+                        />
                     </div>
                 </div>
             </div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-6 text-sm text-[var(--ui-muted)]">Keine Aktivitäten verfügbar</div>
         </x-ui-page-sidebar>
     </x-slot>
 
@@ -41,6 +51,11 @@
     </x-slot>
 
     <x-ui-page-container>
+        @if($companies->count() === 0)
+            <div class="rounded-lg border border-[color:var(--ui-border)] bg-[color:var(--ui-surface)] p-6 text-sm text-[color:var(--ui-muted)]">
+                Keine Unternehmen gefunden.
+            </div>
+        @else
         <x-ui-table compact="true">
         <x-ui-table-header>
             <x-ui-table-header-cell compact="true" sortable="true" sortField="display_name" :currentSort="$sortField" :sortDirection="$sortDirection">Name</x-ui-table-header-cell>
@@ -58,8 +73,8 @@
                 >
                     <x-ui-table-cell compact="true">
                         <div class="font-medium">{{ $company->display_name }}</div>
-                        @if($company->legal_form)
-                            <div class="text-xs text-muted">{{ $company->legal_form->name }}</div>
+                        @if($company->legalForm)
+                            <div class="text-xs text-[color:var(--ui-muted)]">{{ $company->legalForm->name }}</div>
                         @endif
                     </x-ui-table-cell>
                     <x-ui-table-cell compact="true">
@@ -113,9 +128,7 @@
             @endforeach
         </x-ui-table-body>
         </x-ui-table>
-        <div class="mt-4">
-            {{ $companies->links() }}
-        </div>
+        @endif
     </x-ui-page-container>
 
     <!-- Create Company Modal -->

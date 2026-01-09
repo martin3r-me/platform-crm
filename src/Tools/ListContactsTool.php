@@ -115,7 +115,7 @@ class ListContactsTool implements ToolContract, ToolMetadataContract
 
             // Standard-Sortierung und Pagination
             $this->applyStandardSorting($query, $arguments, 'last_name', 'asc');
-            $result = $this->applyStandardPagination($query, $arguments);
+            $result = $this->applyStandardPaginationResult($query, $arguments);
 
             // Formatierung
             $contacts = $result['data']->map(function ($contact) {

@@ -9,7 +9,13 @@
                 <div>
                     <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Aktionen</h3>
                     <div class="space-y-2">
-                        <x-ui-input-text name="search" placeholder="Suche Kontakte..." class="w-full" size="sm" />
+                        <x-ui-input-text
+                            name="searchLastName"
+                            placeholder="Nachname suchen..."
+                            class="w-full"
+                            size="sm"
+                            wire:model.live.debounce.300ms="searchLastName"
+                        />
                         <x-ui-button variant="secondary" size="sm" wire:click="openCreateModal" class="w-full justify-start">
                             @svg('heroicon-o-plus','w-4 h-4')
                             <span class="ml-2">Neuer Kontakt</span>
@@ -19,7 +25,17 @@
                 <div>
                     <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Filter</h3>
                     <div class="space-y-3">
-                        <x-ui-input-select name="status" label="Status" :options="$contactStatuses" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Alle –" size="sm" />
+                        <x-ui-input-select
+                            name="statusFilter"
+                            label="Status"
+                            :options="$contactStatuses"
+                            optionValue="id"
+                            optionLabel="name"
+                            :nullable="true"
+                            nullLabel="– Alle –"
+                            size="sm"
+                            wire:model.live="statusFilter"
+                        />
                     </div>
                 </div>
             </div>
@@ -33,6 +49,11 @@
     </x-slot>
 
     <x-ui-page-container>
+        @if($contacts->count() === 0)
+            <div class="rounded-lg border border-[color:var(--ui-border)] bg-[color:var(--ui-surface)] p-6 text-sm text-[color:var(--ui-muted)]">
+                Keine Kontakte gefunden.
+            </div>
+        @else
         <x-ui-table compact="true">
         <x-ui-table-header>
             <x-ui-table-header-cell compact="true" sortable="true" sortField="last_name" :currentSort="$sortField" :sortDirection="$sortDirection">Name</x-ui-table-header-cell>
@@ -105,9 +126,7 @@
             @endforeach
         </x-ui-table-body>
         </x-ui-table>
-        <div class="mt-4">
-            {{ $contacts->links() }}
-        </div>
+        @endif
     </x-ui-page-container>
 
     <!-- Create Contact Modal -->

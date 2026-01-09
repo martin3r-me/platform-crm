@@ -3,7 +3,6 @@
 namespace Platform\Crm\Livewire\Company;
 
 use Livewire\Component;
-use Livewire\WithPagination;
 use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Models\CrmIndustry;
 use Platform\Crm\Models\CrmLegalForm;
@@ -12,14 +11,16 @@ use Platform\Crm\Models\CrmCountry;
 
 class Index extends Component
 {
-    use WithPagination;
-
     // Modal State
     public $modalShow = false;
     
     // Sorting
     public $sortField = 'display_name';
     public $sortDirection = 'asc';
+
+    // Search / Filter
+    public $searchName = '';
+    public $statusFilter = null;
     
     // Form Data
     public $name = '';
@@ -56,21 +57,33 @@ class Index extends Component
     {
         $user = auth()->user();
         $baseTeam = $user->currentTeamRelation;
-        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : null;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
 
         $companies = CrmCompany::with(['industry', 'legalForm', 'contactStatus', 'emailAddresses', 'phoneNumbers', 'postalAddresses', 'contactRelations.contact'])
             ->where('team_id', $teamId)
+            ->when(trim((string) $this->searchName) !== '', function ($query) {
+                $search = trim((string) $this->searchName);
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%')
+                      ->orWhere('legal_name', 'like', '%' . $search . '%')
+                      ->orWhere('trading_name', 'like', '%' . $search . '%');
+                });
+            })
+            ->when(!empty($this->statusFilter), function ($query) {
+                $query->where('contact_status_id', $this->statusFilter);
+            })
             ->when($this->sortField === 'display_name', function($query) {
                 $query->orderBy('name', $this->sortDirection);
             })
             ->when($this->sortField === 'contact_status_id', function($query) {
                 $query->join('crm_contact_statuses', 'crm_companies.contact_status_id', '=', 'crm_contact_statuses.id')
+                      ->select('crm_companies.*')
                       ->orderBy('crm_contact_statuses.name', $this->sortDirection);
             })
             ->when(!in_array($this->sortField, ['display_name', 'contact_status_id']), function($query) {
                 $query->orderBy($this->sortField, $this->sortDirection);
             })
-            ->paginate(10);
+            ->get();
             
         $industries = CrmIndustry::active()->get();
         $legalForms = CrmLegalForm::active()->get();
