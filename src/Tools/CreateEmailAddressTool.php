@@ -8,12 +8,15 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\NormalizesLookupIds;
 use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmEmailAddress;
 
 class CreateEmailAddressTool implements ToolContract, ToolMetadataContract
 {
+    use NormalizesLookupIds;
+
     public function getName(): string
     {
         return 'crm.email_addresses.POST';
@@ -70,6 +73,8 @@ class CreateEmailAddressTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
 
+            $arguments = $this->normalizeLookupIds($arguments, ['email_type_id']);
+
             $type = $arguments['entity_type'] ?? null;
             $id = $arguments['entity_id'] ?? null;
             $email = trim((string)($arguments['email_address'] ?? ''));
@@ -111,7 +116,8 @@ class CreateEmailAddressTool implements ToolContract, ToolMetadataContract
             /** @var CrmEmailAddress $created */
             $created = $entity->emailAddresses()->create([
                 'email_address' => $email,
-                'email_type_id' => $arguments['email_type_id'] ?? 1,
+                // Default: 1 (UI-Standard). Wichtig: niemals 0 schreiben.
+                'email_type_id' => ($arguments['email_type_id'] ?? null) ?? 1,
                 'is_primary' => $isPrimary,
                 'notes' => $arguments['notes'] ?? null,
                 'is_active' => $arguments['is_active'] ?? true,

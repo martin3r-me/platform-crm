@@ -8,6 +8,7 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\NormalizesLookupIds;
 use Platform\Crm\Models\CrmAddressType;
 use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Models\CrmContact;
@@ -17,6 +18,8 @@ use Platform\Crm\Models\CrmPostalAddress;
 
 class UpdatePostalAddressTool implements ToolContract, ToolMetadataContract
 {
+    use NormalizesLookupIds;
+
     public function getName(): string
     {
         return 'crm.postal_addresses.PUT';
@@ -66,6 +69,8 @@ class UpdatePostalAddressTool implements ToolContract, ToolMetadataContract
             if (!$context->user) {
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
+
+            $arguments = $this->normalizeLookupIds($arguments, ['country_id', 'state_id', 'address_type_id']);
 
             $addrId = $arguments['postal_address_id'] ?? null;
             $type = $arguments['entity_type'] ?? null;

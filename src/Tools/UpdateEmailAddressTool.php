@@ -8,12 +8,15 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\NormalizesLookupIds;
 use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmEmailAddress;
 
 class UpdateEmailAddressTool implements ToolContract, ToolMetadataContract
 {
+    use NormalizesLookupIds;
+
     public function getName(): string
     {
         return 'crm.email_addresses.PUT';
@@ -74,6 +77,8 @@ class UpdateEmailAddressTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
 
+            $arguments = $this->normalizeLookupIds($arguments, ['email_type_id']);
+
             $emailId = $arguments['email_address_id'] ?? null;
             $type = $arguments['entity_type'] ?? null;
             $entityId = $arguments['entity_id'] ?? null;
@@ -124,7 +129,8 @@ class UpdateEmailAddressTool implements ToolContract, ToolMetadataContract
             }
 
             if (array_key_exists('email_type_id', $arguments)) {
-                $update['email_type_id'] = $arguments['email_type_id'] ?? 1;
+                // Default: 1 (UI-Standard). Wichtig: niemals 0 schreiben.
+                $update['email_type_id'] = ($arguments['email_type_id'] ?? null) ?? 1;
             }
 
             if (array_key_exists('notes', $arguments)) {

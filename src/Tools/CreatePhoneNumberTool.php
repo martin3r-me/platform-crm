@@ -8,6 +8,7 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\NormalizesLookupIds;
 use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Models\CrmContact;
 use libphonenumber\PhoneNumberUtil;
@@ -16,6 +17,8 @@ use libphonenumber\PhoneNumberFormat;
 
 class CreatePhoneNumberTool implements ToolContract, ToolMetadataContract
 {
+    use NormalizesLookupIds;
+
     public function getName(): string
     {
         return 'crm.phone_numbers.POST';
@@ -80,6 +83,8 @@ class CreatePhoneNumberTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
 
+            $arguments = $this->normalizeLookupIds($arguments, ['phone_type_id']);
+
             $type = $arguments['entity_type'] ?? null;
             $id = $arguments['entity_id'] ?? null;
             $raw = trim((string)($arguments['raw_input'] ?? ''));
@@ -132,7 +137,8 @@ class CreatePhoneNumberTool implements ToolContract, ToolMetadataContract
                 'international' => $phoneUtil->format($phoneNumber, PhoneNumberFormat::E164),
                 'national' => $phoneUtil->format($phoneNumber, PhoneNumberFormat::NATIONAL),
                 'country_code' => $phoneUtil->getRegionCodeForNumber($phoneNumber),
-                'phone_type_id' => $arguments['phone_type_id'] ?? 1,
+                // Default: 1 (UI-Standard). Wichtig: niemals 0 schreiben.
+                'phone_type_id' => ($arguments['phone_type_id'] ?? null) ?? 1,
                 'is_primary' => $isPrimary,
                 'notes' => $arguments['notes'] ?? null,
                 'extension' => $arguments['extension'] ?? null,

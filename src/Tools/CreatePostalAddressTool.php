@@ -8,6 +8,7 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\NormalizesLookupIds;
 use Platform\Crm\Models\CrmAddressType;
 use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Models\CrmContact;
@@ -17,6 +18,8 @@ use Platform\Crm\Models\CrmPostalAddress;
 
 class CreatePostalAddressTool implements ToolContract, ToolMetadataContract
 {
+    use NormalizesLookupIds;
+
     public function getName(): string
     {
         return 'crm.postal_addresses.POST';
@@ -63,6 +66,8 @@ class CreatePostalAddressTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
 
+            $arguments = $this->normalizeLookupIds($arguments, ['country_id', 'state_id', 'address_type_id']);
+
             $type = $arguments['entity_type'] ?? null;
             $id = $arguments['entity_id'] ?? null;
             if (!$type || !$id) {
@@ -90,7 +95,8 @@ class CreatePostalAddressTool implements ToolContract, ToolMetadataContract
 
             $countryId = $arguments['country_id'] ?? null;
             $stateId = $arguments['state_id'] ?? null;
-            $addressTypeId = $arguments['address_type_id'] ?? 1;
+            // Default: 1 (UI-Standard). Wichtig: niemals 0 schreiben.
+            $addressTypeId = ($arguments['address_type_id'] ?? null) ?? 1;
 
             if ($countryId !== null && !CrmCountry::whereKey($countryId)->exists()) {
                 return ToolResult::error('VALIDATION_ERROR', 'country_id ist ungültig.');

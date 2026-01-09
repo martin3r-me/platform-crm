@@ -8,6 +8,7 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\NormalizesLookupIds;
 use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Models\CrmContact;
 use libphonenumber\PhoneNumberUtil;
@@ -16,6 +17,8 @@ use libphonenumber\PhoneNumberFormat;
 
 class UpdatePhoneNumberTool implements ToolContract, ToolMetadataContract
 {
+    use NormalizesLookupIds;
+
     public function getName(): string
     {
         return 'crm.phone_numbers.PUT';
@@ -84,6 +87,8 @@ class UpdatePhoneNumberTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
 
+            $arguments = $this->normalizeLookupIds($arguments, ['phone_type_id']);
+
             $phoneId = $arguments['phone_number_id'] ?? null;
             $type = $arguments['entity_type'] ?? null;
             $entityId = $arguments['entity_id'] ?? null;
@@ -149,7 +154,8 @@ class UpdatePhoneNumberTool implements ToolContract, ToolMetadataContract
             }
 
             if (array_key_exists('phone_type_id', $arguments)) {
-                $update['phone_type_id'] = $arguments['phone_type_id'] ?? 1;
+                // Default: 1 (UI-Standard). Wichtig: niemals 0 schreiben.
+                $update['phone_type_id'] = ($arguments['phone_type_id'] ?? null) ?? 1;
             }
 
             if (array_key_exists('notes', $arguments)) {

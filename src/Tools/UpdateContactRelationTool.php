@@ -8,6 +8,7 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\NormalizesLookupIds;
 use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmContactRelation;
@@ -16,6 +17,8 @@ use Carbon\Carbon;
 
 class UpdateContactRelationTool implements ToolContract, ToolMetadataContract
 {
+    use NormalizesLookupIds;
+
     public function getName(): string
     {
         return 'crm.contact_relations.PUT';
@@ -51,6 +54,8 @@ class UpdateContactRelationTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
 
+            $arguments = $this->normalizeLookupIds($arguments, ['relation_type_id']);
+
             $relationId = $arguments['relation_id'] ?? null;
             if (!$relationId) {
                 return ToolResult::error('VALIDATION_ERROR', 'relation_id ist erforderlich.');
@@ -78,6 +83,9 @@ class UpdateContactRelationTool implements ToolContract, ToolMetadataContract
 
             if (array_key_exists('relation_type_id', $arguments)) {
                 $typeId = $arguments['relation_type_id'];
+                if ($typeId === null) {
+                    return ToolResult::error('VALIDATION_ERROR', 'relation_type_id darf nicht 0/leer sein.');
+                }
                 if ($typeId !== null && !CrmContactRelationType::whereKey($typeId)->exists()) {
                     return ToolResult::error('VALIDATION_ERROR', 'relation_type_id ist ungültig.');
                 }
