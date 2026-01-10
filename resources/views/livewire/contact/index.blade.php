@@ -103,7 +103,7 @@
                                 @foreach($contact->contactRelations->take(2) as $relation)
                                     <div class="text-xs flex items-center gap-1">
                                         @svg('heroicon-o-building-office', 'w-3 h-3 text-[color:var(--ui-muted)]')
-                                        {{ $relation->company->name }}
+                                        {{ $relation->company?->name ?? '–' }}
                                         @if($relation->position)
                                             <span class="text-[color:var(--ui-muted)]">({{ $relation->position }})</span>
                                         @endif
@@ -118,9 +118,13 @@
                         @endif
                     </x-ui-table-cell>
                     <x-ui-table-cell compact="true">
-                        <x-ui-badge variant="secondary" size="sm">
-                            {{ $contact->contactStatus->name }}
-                        </x-ui-badge>
+                        @if($contact->contactStatus)
+                            <x-ui-badge variant="secondary" size="sm">
+                                {{ $contact->contactStatus->name }}
+                            </x-ui-badge>
+                        @else
+                            <span class="text-xs text-[color:var(--ui-muted)]">–</span>
+                        @endif
                     </x-ui-table-cell>
                 </x-ui-table-row>
             @endforeach

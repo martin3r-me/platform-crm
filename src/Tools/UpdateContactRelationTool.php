@@ -106,12 +106,18 @@ class UpdateContactRelationTool implements ToolContract, ToolMetadataContract
 
             if (array_key_exists('start_date', $arguments)) {
                 $raw = $arguments['start_date'];
-                $update['start_date'] = $raw ? Carbon::parse($raw)->toDateString() : null;
+                if (is_string($raw)) {
+                    $raw = trim($raw);
+                }
+                $update['start_date'] = ($raw !== null && $raw !== '') ? Carbon::parse($raw)->toDateString() : null;
             }
 
             if (array_key_exists('end_date', $arguments)) {
                 $raw = $arguments['end_date'];
-                $update['end_date'] = $raw ? Carbon::parse($raw)->toDateString() : null;
+                if (is_string($raw)) {
+                    $raw = trim($raw);
+                }
+                $update['end_date'] = ($raw !== null && $raw !== '') ? Carbon::parse($raw)->toDateString() : null;
             }
 
             if (!empty($update) && isset($update['start_date'], $update['end_date']) && $update['start_date'] && $update['end_date']) {

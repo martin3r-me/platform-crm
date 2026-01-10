@@ -12,6 +12,7 @@ use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmContactRelation;
 use Platform\Crm\Models\CrmContactRelationType;
+use Carbon\Carbon;
 
 class CreateContactRelationTool implements ToolContract, ToolMetadataContract
 {
@@ -100,14 +101,49 @@ class CreateContactRelationTool implements ToolContract, ToolMetadataContract
                 CrmContactRelation::where('company_id', $companyId)->update(['is_primary' => false]);
             }
 
+            $startDate = null;
+            if (array_key_exists('start_date', $arguments)) {
+                $raw = $arguments['start_date'];
+                if (is_string($raw)) {
+                    $raw = trim($raw);
+                }
+                if ($raw !== null && $raw !== '') {
+                    try {
+                        $startDate = Carbon::parse($raw)->toDateString();
+                    } catch (\Throwable $e) {
+                        return ToolResult::error('VALIDATION_ERROR', 'start_date ist ungültig. Erwartet: YYYY-MM-DD.');
+                    }
+                }
+            }
+
+            $endDate = null;
+            if (array_key_exists('end_date', $arguments)) {
+                $raw = $arguments['end_date'];
+                if (is_string($raw)) {
+                    $raw = trim($raw);
+                }
+                if ($raw !== null && $raw !== '') {
+                    try {
+                        $endDate = Carbon::parse($raw)->toDateString();
+                    } catch (\Throwable $e) {
+                        return ToolResult::error('VALIDATION_ERROR', 'end_date ist ungültig. Erwartet: YYYY-MM-DD.');
+                    }
+                }
+            }
+
+            if ($startDate && $endDate && $endDate < $startDate) {
+                return ToolResult::error('VALIDATION_ERROR', 'end_date muss >= start_date sein.');
+            }
+
             $relation = CrmContactRelation::create([
                 'contact_id' => $contactId,
                 'company_id' => $companyId,
                 'relation_type_id' => $relationTypeId,
                 'position' => $arguments['position'] ?? null,
                 'notes' => $arguments['notes'] ?? null,
-                'start_date' => $arguments['start_date'] ?? null,
-                'end_date' => $arguments['end_date'] ?? null,
+                // Leere Strings (z.B. "") müssen als null gespeichert werden, sonst DB-Fehler (Incorrect date value).
+                'start_date' => $startDate,
+                'end_date' => $endDate,
                 'is_primary' => $isPrimary,
                 'is_active' => $arguments['is_active'] ?? true,
             ]);
