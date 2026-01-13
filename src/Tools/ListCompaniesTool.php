@@ -66,17 +66,18 @@ class ListCompaniesTool implements ToolContract, ToolMetadataContract
                 $teamIdArg = null;
             }
             
-            // Wenn team_id nicht angegeben, verwende aktuelles Team aus Kontext
-            if ($teamIdArg === null) {
-                $teamIdArg = $this->resolveRootTeamId($context->user) ?? $context->team?->id;
-            }
+            // CRM ist root-scoped: egal ob Root- oder Child-Team übergeben wird → immer Root-Team nutzen
+            $teamIdArg = $this->normalizeToRootTeamId(
+                is_numeric($teamIdArg) ? (int)$teamIdArg : null,
+                $context->user
+            ) ?? $context->team?->id;
             
             if (!$teamIdArg) {
                 return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Nutze "core.teams.GET" um verfügbare Teams zu sehen, oder gib team_id explizit an.');
             }
             
-            // Prüfe, ob User Zugriff auf dieses Team hat
-            $userHasAccess = $context->user->teams()->where('teams.id', $teamIdArg)->exists();
+            // Zugriff: Für CRM reicht es, wenn der User im Root-Team ODER in einem Kind-Team ist.
+            $userHasAccess = $this->userHasAccessToCrmRootTeam($context->user, (int)$teamIdArg);
             if (!$userHasAccess) {
                 return ToolResult::error('ACCESS_DENIED', "Du hast keinen Zugriff auf Team-ID {$teamIdArg}. Nutze 'core.teams.GET' um verfügbare Teams zu sehen.");
             }

@@ -157,13 +157,18 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
             }
 
             // Team bestimmen
-            $teamId = $arguments['team_id'] ?? $this->resolveRootTeamId($context->user) ?? $context->team?->id;
+            // CRM ist root-scoped: immer Root-Team verwenden (auch wenn ein Kind-Team übergeben wurde).
+            $requestedTeamId = $arguments['team_id'] ?? null;
+            $teamId = $this->normalizeToRootTeamId(
+                is_numeric($requestedTeamId) ? (int)$requestedTeamId : null,
+                $context->user
+            ) ?? $context->team?->id;
             if (!$teamId) {
                 return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Nutze das Tool "core.teams.GET" um alle verfügbaren Teams zu sehen.');
             }
 
-            // Zugriff: User muss im Team sein
-            $userHasAccess = $context->user->teams()->where('teams.id', $teamId)->exists();
+            // Zugriff: Für CRM reicht es, wenn der User im Root-Team ODER in einem Kind-Team ist.
+            $userHasAccess = $this->userHasAccessToCrmRootTeam($context->user, (int)$teamId);
             if (!$userHasAccess) {
                 return ToolResult::error('ACCESS_DENIED', "Du hast keinen Zugriff auf Team-ID {$teamId}.");
             }
