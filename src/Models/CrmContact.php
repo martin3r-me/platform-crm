@@ -4,7 +4,6 @@ namespace Platform\Crm\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Platform\ActivityLog\Traits\LogsActivity;
-use Platform\Media\Traits\HasMedia;
 use Platform\Crm\Contracts\ContactInterface;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,7 +13,7 @@ use Platform\Crm\Models\CrmContactRelation;
 
 class CrmContact extends Model implements ContactInterface
 {
-    use LogsActivity, HasMedia;
+    use LogsActivity;
     
     protected $table = 'crm_contacts';
     
