@@ -84,6 +84,9 @@ class CrmServiceProvider extends ServiceProvider
             });
         }
 
+        // Comms Webhook Routes (ohne Auth, da externe Webhooks)
+        $this->loadRoutesFrom(__DIR__.'/../routes/comms-webhooks.php');
+
         // Schritt 4: Migrationen laden
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
@@ -107,6 +110,32 @@ class CrmServiceProvider extends ServiceProvider
 
         // Policies registrieren (wie Planner: Gate/Policies in Tools nutzbar machen)
         $this->registerPolicies();
+
+        // CommsContactResolver registrieren (für WhatsApp, Email etc.)
+        $this->registerCommsContactResolver();
+
+        // WhatsApp Channel Sync Listener registrieren
+        $this->registerWhatsAppChannelSyncListener();
+
+        // ModalComms Livewire Komponente registrieren
+        \Livewire\Livewire::component('crm.modal-comms', \Platform\Crm\Livewire\ModalComms::class);
+    }
+
+    /**
+     * Registriert den WhatsApp Channel Sync Listener.
+     */
+    protected function registerWhatsAppChannelSyncListener(): void
+    {
+        try {
+            if (class_exists(\Platform\Integrations\Events\WhatsAppAccountsSynced::class)) {
+                \Illuminate\Support\Facades\Event::listen(
+                    \Platform\Integrations\Events\WhatsAppAccountsSynced::class,
+                    \Platform\Crm\Listeners\SyncWhatsAppChannelsListener::class
+                );
+            }
+        } catch (\Throwable $e) {
+            // Silent fail - Integrations module might not be installed
+        }
     }
     
     /**
@@ -155,6 +184,23 @@ class CrmServiceProvider extends ServiceProvider
             // Lookup Tools (IDs/Codes deterministisch nachschlagen – niemals raten)
             $registry->register(new \Platform\Crm\Tools\CrmLookupsTool());
             $registry->register(new \Platform\Crm\Tools\GetLookupTool());
+
+            // Communication Tools (crm.comms.*)
+            $registry->register(new \Platform\Crm\Tools\Comms\CommsOverviewTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\ListChannelsTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\CreateChannelTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\UpdateChannelTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\DeleteChannelTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\ListEmailThreadsTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\CreateEmailThreadTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\UpdateEmailThreadTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\DeleteEmailThreadTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\ListEmailMessagesTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\SendEmailMessageTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\ListWhatsAppThreadsTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\ListWhatsAppMessagesTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\SendWhatsAppMessageTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\UpdateWhatsAppThreadTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('CRM: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);
@@ -178,6 +224,22 @@ class CrmServiceProvider extends ServiceProvider
         }
     }
 
+
+    /**
+     * Registriert den CRM CommsContactResolver für Inbound-Kommunikation.
+     *
+     * Ermöglicht WhatsApp, Email etc. Kontakte im CRM zu finden/erstellen.
+     */
+    protected function registerCommsContactResolver(): void
+    {
+        try {
+            $registry = resolve(\Platform\Core\Services\Comms\ContactResolverRegistry::class);
+            $registry->register(new \Platform\Crm\Services\CrmCommsContactResolver());
+        } catch (\Throwable $e) {
+            // Silent fail - Registry möglicherweise nicht verfügbar
+            \Log::debug('CRM: CommsContactResolver-Registrierung übersprungen', ['error' => $e->getMessage()]);
+        }
+    }
 
     protected function registerLivewireComponents(): void
     {

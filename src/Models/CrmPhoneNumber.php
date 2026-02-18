@@ -24,7 +24,8 @@ class CrmPhoneNumber extends Model
         'phone_type_id',
         'is_primary',
         'is_active',
-        'verified_at'
+        'verified_at',
+        'whatsapp_status',
     ];
     
     protected $casts = [
@@ -162,5 +163,135 @@ class CrmPhoneNumber extends Model
     public function markAsUnverified(): void
     {
         $this->update(['verified_at' => null]);
+    }
+
+    // ========================================
+    // WhatsApp Status
+    // ========================================
+
+    /**
+     * WhatsApp Status Konstanten
+     */
+    public const WHATSAPP_UNKNOWN = 'unknown';
+    public const WHATSAPP_AVAILABLE = 'available';
+    public const WHATSAPP_UNAVAILABLE = 'unavailable';
+    public const WHATSAPP_OPTED_IN = 'opted_in';
+
+    /**
+     * Scope für WhatsApp-verfügbare Nummern
+     */
+    public function scopeWhatsappAvailable($query)
+    {
+        return $query->whereIn('whatsapp_status', [self::WHATSAPP_AVAILABLE, self::WHATSAPP_OPTED_IN]);
+    }
+
+    /**
+     * Scope für WhatsApp-nicht-verfügbare Nummern
+     */
+    public function scopeWhatsappUnavailable($query)
+    {
+        return $query->where('whatsapp_status', self::WHATSAPP_UNAVAILABLE);
+    }
+
+    /**
+     * Scope für ungeprüfte WhatsApp-Nummern
+     */
+    public function scopeWhatsappUnknown($query)
+    {
+        return $query->where('whatsapp_status', self::WHATSAPP_UNKNOWN);
+    }
+
+    /**
+     * Scope für Nummern mit WhatsApp Opt-In
+     */
+    public function scopeWhatsappOptedIn($query)
+    {
+        return $query->where('whatsapp_status', self::WHATSAPP_OPTED_IN);
+    }
+
+    /**
+     * WhatsApp als verfügbar markieren (Nachricht erfolgreich zugestellt)
+     */
+    public function markWhatsappAvailable(): void
+    {
+        // Nicht überschreiben wenn bereits opted_in
+        if ($this->whatsapp_status === self::WHATSAPP_OPTED_IN) {
+            return;
+        }
+        $this->update(['whatsapp_status' => self::WHATSAPP_AVAILABLE]);
+    }
+
+    /**
+     * WhatsApp als nicht verfügbar markieren (Zustellung fehlgeschlagen)
+     */
+    public function markWhatsappUnavailable(): void
+    {
+        $this->update(['whatsapp_status' => self::WHATSAPP_UNAVAILABLE]);
+    }
+
+    /**
+     * WhatsApp Opt-In markieren (Nutzer hat selbst geschrieben)
+     */
+    public function markWhatsappOptedIn(): void
+    {
+        $this->update(['whatsapp_status' => self::WHATSAPP_OPTED_IN]);
+    }
+
+    /**
+     * WhatsApp Status zurücksetzen
+     */
+    public function resetWhatsappStatus(): void
+    {
+        $this->update(['whatsapp_status' => self::WHATSAPP_UNKNOWN]);
+    }
+
+    /**
+     * Prüft ob WhatsApp verfügbar ist
+     */
+    public function isWhatsappAvailable(): bool
+    {
+        return in_array($this->whatsapp_status, [self::WHATSAPP_AVAILABLE, self::WHATSAPP_OPTED_IN]);
+    }
+
+    /**
+     * Prüft ob WhatsApp definitiv nicht verfügbar ist
+     */
+    public function isWhatsappUnavailable(): bool
+    {
+        return $this->whatsapp_status === self::WHATSAPP_UNAVAILABLE;
+    }
+
+    /**
+     * Prüft ob WhatsApp Status unbekannt ist
+     */
+    public function isWhatsappUnknown(): bool
+    {
+        return $this->whatsapp_status === self::WHATSAPP_UNKNOWN;
+    }
+
+    /**
+     * Label für WhatsApp Status
+     */
+    public function getWhatsappStatusLabelAttribute(): string
+    {
+        return match ($this->whatsapp_status) {
+            self::WHATSAPP_AVAILABLE => 'WhatsApp verfügbar',
+            self::WHATSAPP_UNAVAILABLE => 'Kein WhatsApp',
+            self::WHATSAPP_OPTED_IN => 'WhatsApp Opt-In',
+            default => 'Unbekannt',
+        };
+    }
+
+    /**
+     * Icon/Badge für WhatsApp Status
+     */
+    public function getWhatsappStatusIconAttribute(): string
+    {
+        return match ($this->whatsapp_status) {
+            self::WHATSAPP_AVAILABLE => '✅',
+            self::WHATSAPP_UNAVAILABLE => '❌',
+            self::WHATSAPP_OPTED_IN => '💬',
+            default => '❓',
+        };
     }
 } 
