@@ -100,7 +100,7 @@
                             : 'bg-white text-[var(--ui-muted)] border-[var(--ui-border)] hover:border-emerald-400/40 hover:text-[var(--ui-secondary)]'"
                     >
                         @svg('heroicon-o-chat-bubble-left-right', 'w-3.5 h-3.5')
-                        <span class="font-medium">{{ $wc['name'] ?: 'WA' }}</span>
+                        <span class="font-medium">{{ $wc['name'] ?: 'WA' }} · {{ strval($wc['label'] ?? '') }}</span>
                         @if($ctxCount > 0)
                             <span
                                 class="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold leading-none"
@@ -169,13 +169,12 @@
                         @endif
 
                         @forelse($emailThreads as $t)
-                            <button
-                                type="button"
-                                wire:click="setActiveEmailThread({{ intval($t['id']) }})"
-                                class="w-full text-left rounded-lg px-2.5 py-2 transition group
+                            <div
+                                class="w-full rounded-lg px-2.5 py-2 transition group cursor-pointer
                                     {{ (int) $activeEmailThreadId === (int) $t['id']
                                         ? 'bg-[var(--ui-primary-10)] border-l-2 border-l-[var(--ui-primary)] border border-[rgba(var(--ui-primary-rgb),0.12)]'
                                         : 'bg-white border border-[var(--ui-border)]/60 hover:border-[var(--ui-border)] hover:shadow-sm' }}"
+                                wire:click="setActiveEmailThread({{ intval($t['id']) }})"
                             >
                                 <div class="text-[11px] font-semibold text-[var(--ui-secondary)] truncate">{{ $t['subject'] }}</div>
                                 <div class="mt-0.5 text-[10px] text-[var(--ui-muted)] truncate">{{ $t['counterpart'] ?: '—' }}</div>
@@ -209,7 +208,7 @@
                                         </button>
                                     </div>
                                 </div>
-                            </button>
+                            </div>
                         @empty
                             <div class="flex flex-col items-center py-6 text-center">
                                 @svg('heroicon-o-envelope', 'w-8 h-8 text-[var(--ui-muted)]/40 mb-2')
@@ -228,13 +227,12 @@
                         @endif
 
                         @forelse($whatsappThreads as $wt)
-                            <button
-                                type="button"
-                                wire:click="setActiveWhatsAppThread({{ intval($wt['id']) }})"
-                                class="w-full text-left rounded-lg px-2.5 py-2 transition group
+                            <div
+                                class="w-full rounded-lg px-2.5 py-2 transition group cursor-pointer
                                     {{ (int) $activeWhatsAppThreadId === (int) $wt['id']
                                         ? 'bg-emerald-50 border-l-2 border-l-emerald-500 border border-emerald-200/60'
                                         : 'bg-white border border-[var(--ui-border)]/60 hover:border-[var(--ui-border)] hover:shadow-sm' }}"
+                                wire:click="setActiveWhatsAppThread({{ intval($wt['id']) }})"
                             >
                                 <div class="text-[11px] font-semibold text-[var(--ui-secondary)] truncate flex items-center gap-1.5">
                                     {{ $wt['remote_phone'] }}
@@ -277,7 +275,7 @@
                                         </button>
                                     </div>
                                 </div>
-                            </button>
+                            </div>
                         @empty
                             <div class="flex flex-col items-center py-6 text-center">
                                 @svg('heroicon-o-chat-bubble-left-right', 'w-8 h-8 text-[var(--ui-muted)]/40 mb-2')
