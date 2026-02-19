@@ -225,6 +225,40 @@ class ModalComms extends Component
         return !empty($this->contextModel) && !empty($this->contextModelId);
     }
 
+    /**
+     * Get both morph alias and full class name variants for context_model queries.
+     * This ensures backward compatibility with threads stored using either format.
+     *
+     * @return array<string>
+     */
+    private function getContextModelVariants(): array
+    {
+        if (empty($this->contextModel)) {
+            return [];
+        }
+
+        $variants = [$this->contextModel];
+
+        // If contextModel looks like a morph alias (no backslash), try to resolve full class
+        if (!str_contains($this->contextModel, '\\')) {
+            $fullClass = \Illuminate\Database\Eloquent\Relations\Relation::getMorphedModel($this->contextModel);
+            if ($fullClass && $fullClass !== $this->contextModel) {
+                $variants[] = $fullClass;
+            }
+        } else {
+            // If contextModel is a full class, try to get the morph alias
+            if (class_exists($this->contextModel)) {
+                $morphMap = \Illuminate\Database\Eloquent\Relations\Relation::morphMap();
+                $alias = array_search($this->contextModel, $morphMap, true);
+                if ($alias !== false) {
+                    $variants[] = $alias;
+                }
+            }
+        }
+
+        return array_unique($variants);
+    }
+
     #[On('open-modal-comms')]
     public function openModal(array $payload = []): void
     {
@@ -361,8 +395,15 @@ class ModalComms extends Component
             ->where('comms_channel_id', $this->activeEmailChannelId);
 
         if ($this->hasContext() && !$this->showAllThreads) {
-            $query->where('context_model', $this->contextModel)
-                  ->where('context_model_id', $this->contextModelId);
+            $contextVariants = $this->getContextModelVariants();
+            $query->where(function ($q) use ($contextVariants) {
+                foreach ($contextVariants as $variant) {
+                    $q->orWhere(function ($q2) use ($variant) {
+                        $q2->where('context_model', $variant)
+                           ->where('context_model_id', $this->contextModelId);
+                    });
+                }
+            });
         }
 
         $threads = $query
@@ -813,8 +854,15 @@ class ModalComms extends Component
             ->where('comms_channel_id', $this->activeWhatsAppChannelId);
 
         if ($this->hasContext() && !$this->showAllThreads) {
-            $query->where('context_model', $this->contextModel)
-                  ->where('context_model_id', $this->contextModelId);
+            $contextVariants = $this->getContextModelVariants();
+            $query->where(function ($q) use ($contextVariants) {
+                foreach ($contextVariants as $variant) {
+                    $q->orWhere(function ($q2) use ($variant) {
+                        $q2->where('context_model', $variant)
+                           ->where('context_model_id', $this->contextModelId);
+                    });
+                }
+            });
         }
 
         $threads = $query
