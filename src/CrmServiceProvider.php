@@ -176,6 +176,16 @@ class CrmServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Crm\Tools\UpdatePostalAddressTool());
             $registry->register(new \Platform\Crm\Tools\DeletePostalAddressTool());
 
+            // Bulk Contact-Tools
+            $registry->register(new \Platform\Crm\Tools\BulkCreateContactsTool());
+            $registry->register(new \Platform\Crm\Tools\BulkUpdateContactsTool());
+            $registry->register(new \Platform\Crm\Tools\BulkDeleteContactsTool());
+
+            // Bulk Company-Tools
+            $registry->register(new \Platform\Crm\Tools\BulkCreateCompaniesTool());
+            $registry->register(new \Platform\Crm\Tools\BulkUpdateCompaniesTool());
+            $registry->register(new \Platform\Crm\Tools\BulkDeleteCompaniesTool());
+
             // Contact↔Company Relations
             $registry->register(new \Platform\Crm\Tools\CreateContactRelationTool());
             $registry->register(new \Platform\Crm\Tools\UpdateContactRelationTool());
