@@ -19,8 +19,17 @@ class CrmCompanyPolicy
 
     public function delete(User $user, CrmCompany $company): bool
     {
-        // konservativ wie bestehende Tools: löschen nur der Owner
-        return (int)($company->owned_by_user_id ?? 0) === (int)$user->id;
+        // Owner darf immer löschen
+        if ($company->owned_by_user_id && (int)$company->owned_by_user_id === (int)$user->id) {
+            return true;
+        }
+
+        // Ownerlose Einträge (z.B. automatisch erstellt) dürfen von Team-Mitgliedern gelöscht werden
+        if (!$company->owned_by_user_id) {
+            return $this->view($user, $company);
+        }
+
+        return false;
     }
 
     public function create(User $user): bool

@@ -19,8 +19,17 @@ class CrmContactPolicy
 
     public function delete(User $user, CrmContact $contact): bool
     {
-        // konservativ wie bestehende Tools: löschen nur der Owner
-        return (int)($contact->owned_by_user_id ?? 0) === (int)$user->id;
+        // Owner darf immer löschen
+        if ($contact->owned_by_user_id && (int)$contact->owned_by_user_id === (int)$user->id) {
+            return true;
+        }
+
+        // Ownerlose Kontakte (z.B. automatisch erstellt) dürfen von Team-Mitgliedern gelöscht werden
+        if (!$contact->owned_by_user_id) {
+            return $this->view($user, $contact);
+        }
+
+        return false;
     }
 
     public function create(User $user): bool
