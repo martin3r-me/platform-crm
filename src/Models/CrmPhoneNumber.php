@@ -26,12 +26,16 @@ class CrmPhoneNumber extends Model
         'is_active',
         'verified_at',
         'whatsapp_status',
+        'whatsapp_template_attempts',
+        'whatsapp_template_last_sent_at',
     ];
-    
+
     protected $casts = [
         'is_primary' => 'boolean',
         'is_active' => 'boolean',
         'verified_at' => 'datetime',
+        'whatsapp_template_attempts' => 'integer',
+        'whatsapp_template_last_sent_at' => 'datetime',
     ];
     
     protected static function booted(): void
@@ -293,5 +297,86 @@ class CrmPhoneNumber extends Model
             self::WHATSAPP_OPTED_IN => '💬',
             default => '❓',
         };
+    }
+
+    // ========================================
+    // WhatsApp Template Tracking
+    // ========================================
+
+    /**
+     * Maximum number of template attempts before giving up.
+     */
+    public const WHATSAPP_TEMPLATE_MAX_ATTEMPTS = 3;
+
+    /**
+     * Minimum hours between template attempts.
+     */
+    public const WHATSAPP_TEMPLATE_ATTEMPT_INTERVAL_HOURS = 24;
+
+    /**
+     * Check if we can send another template message to this phone number.
+     * Returns true if: attempts < max AND (never sent OR last sent > 24h ago)
+     */
+    public function canSendWhatsAppTemplate(): bool
+    {
+        if ($this->whatsapp_template_attempts >= self::WHATSAPP_TEMPLATE_MAX_ATTEMPTS) {
+            return false;
+        }
+
+        if (!$this->whatsapp_template_last_sent_at) {
+            return true;
+        }
+
+        return $this->whatsapp_template_last_sent_at
+            ->addHours(self::WHATSAPP_TEMPLATE_ATTEMPT_INTERVAL_HOURS)
+            ->isPast();
+    }
+
+    /**
+     * Record a template send attempt.
+     */
+    public function recordWhatsAppTemplateAttempt(): void
+    {
+        $this->increment('whatsapp_template_attempts');
+        $this->update(['whatsapp_template_last_sent_at' => now()]);
+    }
+
+    /**
+     * Reset template attempts (e.g., when user responds).
+     */
+    public function resetWhatsAppTemplateAttempts(): void
+    {
+        $this->update([
+            'whatsapp_template_attempts' => 0,
+            'whatsapp_template_last_sent_at' => null,
+        ]);
+    }
+
+    /**
+     * Get remaining template attempts.
+     */
+    public function getRemainingWhatsAppTemplateAttemptsAttribute(): int
+    {
+        return max(0, self::WHATSAPP_TEMPLATE_MAX_ATTEMPTS - $this->whatsapp_template_attempts);
+    }
+
+    /**
+     * Get next allowed template send time (null if can send now or max reached).
+     */
+    public function getNextWhatsAppTemplateAttemptAtAttribute(): ?\Carbon\Carbon
+    {
+        if ($this->whatsapp_template_attempts >= self::WHATSAPP_TEMPLATE_MAX_ATTEMPTS) {
+            return null;
+        }
+
+        if (!$this->whatsapp_template_last_sent_at) {
+            return null;
+        }
+
+        $nextAttempt = $this->whatsapp_template_last_sent_at
+            ->copy()
+            ->addHours(self::WHATSAPP_TEMPLATE_ATTEMPT_INTERVAL_HOURS);
+
+        return $nextAttempt->isFuture() ? $nextAttempt : null;
     }
 } 

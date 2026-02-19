@@ -591,7 +591,10 @@ class WhatsAppMetaService
                 match ($status) {
                     'available' => $phoneNumber->markWhatsappAvailable(),
                     'unavailable' => $phoneNumber->markWhatsappUnavailable(),
-                    'opted_in' => $phoneNumber->markWhatsappOptedIn(),
+                    'opted_in' => (function () use ($phoneNumber) {
+                        $phoneNumber->markWhatsappOptedIn();
+                        $phoneNumber->resetWhatsAppTemplateAttempts();
+                    })(),
                     default => null,
                 };
             }
