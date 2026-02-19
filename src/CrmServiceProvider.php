@@ -201,6 +201,16 @@ class CrmServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Crm\Tools\Comms\ListWhatsAppMessagesTool());
             $registry->register(new \Platform\Crm\Tools\Comms\SendWhatsAppMessageTool());
             $registry->register(new \Platform\Crm\Tools\Comms\UpdateWhatsAppThreadTool());
+
+            // WhatsApp LLM-Tools (wa_contacts, wa_threads, wa_messages, wa_overview)
+            $registry->register(new \Platform\Crm\Tools\Comms\ListWhatsAppContactsTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\ShowWhatsAppContactTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\ListWhatsAppConversationThreadsTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\CreateWhatsAppConversationThreadTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\ShowWhatsAppConversationThreadTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\ShowWhatsAppMessageTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\SearchWhatsAppMessagesTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\WhatsAppOverviewTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('CRM: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);
