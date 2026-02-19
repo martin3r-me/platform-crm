@@ -198,13 +198,35 @@ trait WithCommsChat
             ->orderBy('sender_identifier')
             ->get();
 
-        $this->emailChannels = $channels->map(fn (CommsChannel $c) => [
-            'id' => (int) $c->id,
-            'label' => (string) $c->sender_identifier,
-        ])->all();
+        // Count context threads per channel for smart pre-selection & badges
+        $contextVariants = $this->hasContext() ? $this->getContextModelVariants() : [];
+
+        $this->emailChannels = $channels->map(function (CommsChannel $c) use ($contextVariants) {
+            $threadCount = 0;
+            if (!empty($contextVariants)) {
+                $threadCount = CommsEmailThread::query()
+                    ->where('comms_channel_id', $c->id)
+                    ->where(function ($q) use ($contextVariants) {
+                        foreach ($contextVariants as $variant) {
+                            $q->orWhere(function ($q2) use ($variant) {
+                                $q2->where('context_model', $variant)
+                                   ->where('context_model_id', $this->contextModelId);
+                            });
+                        }
+                    })
+                    ->count();
+            }
+            return [
+                'id' => (int) $c->id,
+                'label' => (string) $c->sender_identifier,
+                'context_thread_count' => $threadCount,
+            ];
+        })->all();
 
         if (!$this->activeEmailChannelId && $channels->isNotEmpty()) {
-            $this->activeEmailChannelId = (int) $channels->first()->id;
+            // Prefer channel that has threads for this context
+            $preferred = collect($this->emailChannels)->firstWhere(fn ($c) => ($c['context_thread_count'] ?? 0) > 0);
+            $this->activeEmailChannelId = (int) ($preferred ? $preferred['id'] : $channels->first()->id);
         }
 
         $this->refreshActiveEmailChannelLabel();
@@ -646,14 +668,36 @@ trait WithCommsChat
             }
         }
 
-        $this->whatsappChannels = $channels->map(fn (CommsChannel $c) => [
-            'id' => (int) $c->id,
-            'label' => (string) $c->sender_identifier,
-            'name' => $c->name ? (string) $c->name : null,
-        ])->all();
+        // Count context threads per channel for smart pre-selection & badges
+        $contextVariants = $this->hasContext() ? $this->getContextModelVariants() : [];
+
+        $this->whatsappChannels = $channels->map(function (CommsChannel $c) use ($contextVariants) {
+            $threadCount = 0;
+            if (!empty($contextVariants)) {
+                $threadCount = CommsWhatsAppThread::query()
+                    ->where('comms_channel_id', $c->id)
+                    ->where(function ($q) use ($contextVariants) {
+                        foreach ($contextVariants as $variant) {
+                            $q->orWhere(function ($q2) use ($variant) {
+                                $q2->where('context_model', $variant)
+                                   ->where('context_model_id', $this->contextModelId);
+                            });
+                        }
+                    })
+                    ->count();
+            }
+            return [
+                'id' => (int) $c->id,
+                'label' => (string) $c->sender_identifier,
+                'name' => $c->name ? (string) $c->name : null,
+                'context_thread_count' => $threadCount,
+            ];
+        })->all();
 
         if (!$this->activeWhatsAppChannelId && $channels->isNotEmpty()) {
-            $this->activeWhatsAppChannelId = (int) $channels->first()->id;
+            // Prefer channel that has threads for this context
+            $preferred = collect($this->whatsappChannels)->firstWhere(fn ($c) => ($c['context_thread_count'] ?? 0) > 0);
+            $this->activeWhatsAppChannelId = (int) ($preferred ? $preferred['id'] : $channels->first()->id);
         }
 
         $this->refreshActiveWhatsAppChannelLabel();
