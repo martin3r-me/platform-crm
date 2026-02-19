@@ -57,6 +57,7 @@ class SendWhatsAppMessageTool implements ToolContract, ToolMetadataContract
                 ],
                 'template_params' => [
                     'type' => 'array',
+                    'items' => ['type' => 'object'],
                     'description' => 'Optional: Template-Parameter als Array von Components. Format: [{type: "body", parameters: [{type: "text", text: "Wert"}]}]',
                 ],
                 'context_file_ids' => [
