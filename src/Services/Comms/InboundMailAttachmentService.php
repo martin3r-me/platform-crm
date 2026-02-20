@@ -117,20 +117,10 @@ class InboundMailAttachmentService
         $mimeType = (string) ($attachment['ContentType'] ?? 'application/octet-stream');
         $contentLength = (int) ($attachment['ContentLength'] ?? 0);
         $contentId = $attachment['ContentID'] ?? null;
-        $isInline = !empty($contentId);
 
         // Skip: Kein Inhalt
         if ($content === '') {
             Log::debug('[InboundMailAttachment] Anhang übersprungen: kein Inhalt', ['filename' => $name]);
-            return;
-        }
-
-        // Skip: Inline-Bilder (eingebettete CID-Referenzen im HTML-Body) – werden nicht als ContextFile behandelt
-        if ($isInline) {
-            Log::debug('[InboundMailAttachment] Inline-Anhang übersprungen', [
-                'filename' => $name,
-                'cid' => $contentId,
-            ]);
             return;
         }
 
