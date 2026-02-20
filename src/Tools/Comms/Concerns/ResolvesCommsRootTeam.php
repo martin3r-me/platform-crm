@@ -16,7 +16,9 @@ trait ResolvesCommsRootTeam
      */
     protected function resolveRootTeam(array $arguments, ToolContext $context): array
     {
-        $teamId = (int) ($arguments['team_id'] ?? $context->team?->id ?? $context->user->currentTeam?->id ?? 0);
+        // Context team takes priority over LLM-provided team_id to prevent
+        // autonomous agents from guessing wrong team IDs.
+        $teamId = (int) ($context->team?->id ?? $arguments['team_id'] ?? $context->user->currentTeam?->id ?? 0);
         if ($teamId <= 0) {
             return [
                 'team' => null,
