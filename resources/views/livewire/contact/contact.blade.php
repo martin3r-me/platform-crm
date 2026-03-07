@@ -1,42 +1,26 @@
 <x-ui-page>
     <x-slot name="navbar">
-        <x-ui-page-navbar title="{{ $contact->full_name }}" />
+        <x-ui-page-navbar title="" />
+    </x-slot>
+
+    <x-slot name="actionbar">
+        <x-ui-page-actionbar :breadcrumbs="[
+            ['label' => 'CRM', 'href' => route('crm.dashboard'), 'icon' => 'users'],
+            ['label' => 'Kontakte', 'href' => route('crm.contacts.index')],
+            ['label' => $contact->full_name],
+        ]">
+            @if($this->isDirty)
+                <x-ui-button variant="primary" size="sm" wire:click="save">
+                    @svg('heroicon-o-check', 'w-4 h-4')
+                    <span>Speichern</span>
+                </x-ui-button>
+            @endif
+        </x-ui-page-actionbar>
     </x-slot>
 
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true" side="left">
             <div class="p-6 space-y-6">
-                {{-- Navigation Buttons --}}
-                <div class="flex flex-col gap-2">
-                    <x-ui-button 
-                        variant="secondary-outline" 
-                        size="md" 
-                        :href="route('crm.contacts.index')" 
-                        wire:navigate
-                        class="w-full"
-                    >
-                        <div class="flex items-center gap-2">
-                            @svg('heroicon-o-arrow-left', 'w-4 h-4')
-                            Zurück zu Kontakten
-                        </div>
-                    </x-ui-button>
-                </div>
-
-                {{-- Aktionen --}}
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Aktionen</h3>
-                    <div class="space-y-2">
-                        @if($this->isDirty)
-                            <x-ui-button variant="primary" size="sm" wire:click="save" class="w-full">
-                                <span class="inline-flex items-center gap-2">
-                                    @svg('heroicon-o-check','w-4 h-4')
-                                    Speichern
-                                </span>
-                            </x-ui-button>
-                        @endif
-                    </div>
-                </div>
-
                 {{-- Kurze Übersicht --}}
                 <div class="p-3 bg-[color:var(--ui-muted-5)] rounded-lg">
                     <h4 class="font-semibold mb-2 text-[color:var(--ui-secondary)]">Kontakt</h4>
