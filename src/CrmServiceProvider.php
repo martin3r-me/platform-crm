@@ -20,6 +20,8 @@ use Platform\Core\Contracts\CrmContactResolverInterface;
 use Platform\Crm\Services\CoreCrmContactResolver;
 use Platform\Core\Contracts\CrmCompanyContactsProviderInterface;
 use Platform\Crm\Services\CoreCrmCompanyContactsProvider;
+use Platform\Core\Contracts\CrmContactLinkManagerInterface;
+use Platform\Crm\Services\CrmContactLinkManager;
 use Illuminate\Support\Facades\Gate;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmCompany;
@@ -46,6 +48,7 @@ class CrmServiceProvider extends ServiceProvider
         $this->app->singleton(CrmContactOptionsProviderInterface::class, fn() => new CoreCrmContactOptionsProvider());
         $this->app->singleton(CrmContactResolverInterface::class, fn() => new CoreCrmContactResolver());
         $this->app->singleton(CrmCompanyContactsProviderInterface::class, fn() => new CoreCrmCompanyContactsProvider());
+        $this->app->singleton(CrmContactLinkManagerInterface::class, fn() => new CrmContactLinkManager());
     }
 
     public function boot(): void
