@@ -85,7 +85,9 @@ class InboundPostmarkController extends Controller
                 'from' => $payload['From'] ?? null,
                 'to' => $addr($payload['ToFull'] ?? $payload['To'] ?? null),
                 'cc' => $addr($payload['CcFull'] ?? null),
+                'bcc' => $addr($payload['BccFull'] ?? null),
                 'reply_to' => $addr($payload['ReplyTo'] ?? null),
+                'original_recipient' => $payload['OriginalRecipient'] ?? null,
                 'subject' => $payload['Subject'] ?? null,
                 'html_body' => $payload['HtmlBody'] ?? null,
                 'text_body' => $payload['TextBody'] ?? null,
@@ -210,6 +212,17 @@ class InboundPostmarkController extends Controller
 
         if (isset($payload['ToFull'])) {
             $recipients = array_merge($recipients, collect($payload['ToFull'])->pluck('Email')->toArray());
+        }
+
+        // BCC / OriginalRecipient: email redirects (Umleitungen) place the
+        // actual destination only in the envelope recipient. Postmark surfaces
+        // this as BccFull / OriginalRecipient since the address is not in To/Cc.
+        if (isset($payload['BccFull']) && is_array($payload['BccFull'])) {
+            $recipients = array_merge($recipients, collect($payload['BccFull'])->pluck('Email')->toArray());
+        }
+
+        if (!empty($payload['OriginalRecipient'])) {
+            $recipients[] = $payload['OriginalRecipient'];
         }
 
         return array_values(array_unique(array_filter(array_map('trim', $recipients))));
