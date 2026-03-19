@@ -22,6 +22,7 @@ class Index extends Component
     // Search / Filter
     public $searchLastName = '';
     public $statusFilter = null;
+    public $blacklistFilter = 'not_blacklisted';
     
     // Form Data
     public $first_name = '';
@@ -63,6 +64,12 @@ class Index extends Component
             })
             ->when(!empty($this->statusFilter), function ($query) {
                 $query->where('contact_status_id', $this->statusFilter);
+            })
+            ->when($this->blacklistFilter === 'not_blacklisted', function ($query) {
+                $query->where('is_blacklisted', false);
+            })
+            ->when($this->blacklistFilter === 'blacklisted', function ($query) {
+                $query->where('is_blacklisted', true);
             })
             ->when($this->sortField === 'last_name', function($query) {
                 $query->orderBy('last_name', $this->sortDirection)

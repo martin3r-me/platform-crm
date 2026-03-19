@@ -33,12 +33,14 @@ class CrmContact extends Model implements ContactInterface
         'created_by_user_id',
         'owned_by_user_id',
         'team_id',
-        'is_active'
+        'is_active',
+        'is_blacklisted'
     ];
-    
+
     protected $casts = [
         'birth_date' => 'date',
         'is_active' => 'boolean',
+        'is_blacklisted' => 'boolean',
     ];
     
     protected static function booted(): void
@@ -154,6 +156,16 @@ class CrmContact extends Model implements ContactInterface
         return $query->where('is_active', false);
     }
     
+    public function scopeBlacklisted($query)
+    {
+        return $query->where('is_blacklisted', true);
+    }
+
+    public function scopeNotBlacklisted($query)
+    {
+        return $query->where('is_blacklisted', false);
+    }
+
     public function scopeForTeam($query, $teamId)
     {
         return $query->where('team_id', $teamId);
@@ -269,6 +281,11 @@ class CrmContact extends Model implements ContactInterface
     public function isActive(): bool
     {
         return $this->is_active;
+    }
+
+    public function isBlacklisted(): bool
+    {
+        return $this->is_blacklisted;
     }
     
     /**

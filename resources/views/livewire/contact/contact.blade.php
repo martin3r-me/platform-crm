@@ -9,6 +9,12 @@
             ['label' => 'Kontakte', 'href' => route('crm.contacts.index')],
             ['label' => $contact->full_name],
         ]">
+            @if($contact->is_blacklisted)
+                <x-ui-badge variant="danger" size="sm">
+                    @svg('heroicon-s-no-symbol', 'w-3 h-3')
+                    Blacklisted
+                </x-ui-badge>
+            @endif
             @if($this->isDirty)
                 <x-ui-button variant="primary" size="sm" wire:click="save">
                     @svg('heroicon-o-check', 'w-4 h-4')
@@ -50,6 +56,26 @@
                     wire:model.live="contact.contact_status_id"
                     required
                 />
+
+                {{-- Blacklist Toggle --}}
+                <div class="flex items-center justify-between p-3 rounded-lg {{ $contact->is_blacklisted ? 'bg-red-50 border border-red-200' : 'bg-[color:var(--ui-muted-5)]' }}">
+                    <div class="flex items-center gap-2">
+                        @if($contact->is_blacklisted)
+                            @svg('heroicon-s-no-symbol', 'w-5 h-5 text-red-600')
+                            <span class="text-sm font-medium text-red-700">Blacklisted</span>
+                        @else
+                            @svg('heroicon-o-no-symbol', 'w-5 h-5 text-[color:var(--ui-muted)]')
+                            <span class="text-sm text-[color:var(--ui-muted)]">Nicht blacklisted</span>
+                        @endif
+                    </div>
+                    <x-ui-button
+                        size="xs"
+                        variant="{{ $contact->is_blacklisted ? 'danger-outline' : 'secondary-outline' }}"
+                        wire:click="toggleBlacklist"
+                    >
+                        {{ $contact->is_blacklisted ? 'Entfernen' : 'Blacklisten' }}
+                    </x-ui-button>
+                </div>
 
                 <hr>
 

@@ -213,6 +213,13 @@ class Contact extends Component
         ];
     }
 
+    public function toggleBlacklist(): void
+    {
+        $this->contact->is_blacklisted = !$this->contact->is_blacklisted;
+        $this->contact->save();
+        $this->contact->refresh();
+    }
+
     public function save(): void
     {
         // birth_date robust normalisieren, falls UI z.B. "dd.mm.yyyy" liefert

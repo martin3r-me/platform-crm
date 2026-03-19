@@ -44,6 +44,20 @@
                             size="sm"
                             wire:model.live="statusFilter"
                         />
+                        <x-ui-input-select
+                            name="blacklistFilter"
+                            label="Blacklist"
+                            :options="collect([
+                                ['value' => 'all', 'label' => 'Alle'],
+                                ['value' => 'not_blacklisted', 'label' => 'Nicht blacklisted'],
+                                ['value' => 'blacklisted', 'label' => 'Nur blacklisted'],
+                            ])"
+                            optionValue="value"
+                            optionLabel="label"
+                            :nullable="false"
+                            size="sm"
+                            wire:model.live="blacklistFilter"
+                        />
                     </div>
                 </div>
             </div>
@@ -78,7 +92,15 @@
                     :href="route('crm.contacts.show', ['contact' => $contact->id])"
                 >
                     <x-ui-table-cell compact="true">
-                        <div class="font-medium">{{ $contact->last_name }}, {{ $contact->first_name }}</div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-medium">{{ $contact->last_name }}, {{ $contact->first_name }}</span>
+                            @if($contact->is_blacklisted)
+                                <x-ui-badge variant="danger" size="xs">
+                                    @svg('heroicon-s-no-symbol', 'w-3 h-3')
+                                    Blacklisted
+                                </x-ui-badge>
+                            @endif
+                        </div>
                         @if($contact->nickname)
                             <div class="text-xs text-[color:var(--ui-muted)]">"{{ $contact->nickname }}"</div>
                         @endif
