@@ -104,6 +104,14 @@ trait WithCommsChat
     public array $whatsappTemplatePreview = [];
     public array $whatsappTemplateVariables = [];
 
+    // --- Inline Comms: Conversation-First UX ---
+    /** Flat list of all context threads (email + whatsapp), sorted by last activity DESC */
+    public array $allContextThreads = [];
+    /** Active tab index in $allContextThreads */
+    public ?int $activeContextThreadIndex = null;
+    /** When true, show the full setup UI even when threads exist ("new message" mode) */
+    public bool $forceSetupMode = false;
+
     // -------------------------------------------------------------------------
     // Abstract: each component decides when to poll
     // -------------------------------------------------------------------------
@@ -570,6 +578,8 @@ trait WithCommsChat
         }
 
         $this->emailMessage = '✅ E‑Mail gesendet.';
+        $this->buildContextThreadsList();
+        $this->forceSetupMode = false;
         $this->dispatch('comms:scroll-bottom');
     }
 
@@ -1083,6 +1093,8 @@ trait WithCommsChat
         }
 
         $this->whatsappMessage = '✅ Nachricht gesendet.';
+        $this->buildContextThreadsList();
+        $this->forceSetupMode = false;
         $this->dispatch('comms:scroll-bottom');
     }
 
@@ -1345,6 +1357,8 @@ trait WithCommsChat
         }
 
         $this->whatsappMessage = '✅ Template-Nachricht gesendet.';
+        $this->buildContextThreadsList();
+        $this->forceSetupMode = false;
         $this->dispatch('comms:scroll-bottom');
     }
 
@@ -1384,6 +1398,122 @@ trait WithCommsChat
     }
 
     // -------------------------------------------------------------------------
+    // Inline Comms: Context Threads List
+    // -------------------------------------------------------------------------
+
+    /**
+     * Build a flat list of all email + whatsapp threads for the current context,
+     * across all channels, sorted by last activity DESC.
+     */
+    public function buildContextThreadsList(): void
+    {
+        $this->allContextThreads = [];
+
+        if (!$this->hasContext()) {
+            return;
+        }
+
+        $contextVariants = $this->getContextModelVariants();
+        if (empty($contextVariants)) {
+            return;
+        }
+
+        $contextFilter = function ($q) use ($contextVariants) {
+            foreach ($contextVariants as $variant) {
+                $q->orWhere(function ($q2) use ($variant) {
+                    $q2->where('context_model', $variant)
+                       ->where('context_model_id', $this->contextModelId);
+                });
+            }
+        };
+
+        $list = [];
+
+        // Email threads across all channels
+        $emailThreads = CommsEmailThread::query()
+            ->whereIn('comms_channel_id', collect($this->emailChannels)->pluck('id')->all())
+            ->where($contextFilter)
+            ->get();
+
+        $emailChannelLabels = collect($this->emailChannels)->keyBy('id');
+
+        foreach ($emailThreads as $t) {
+            $lastAt = $t->last_inbound_at && (!$t->last_outbound_at || $t->last_inbound_at->greaterThanOrEqualTo($t->last_outbound_at))
+                ? $t->last_inbound_at
+                : ($t->last_outbound_at ?: $t->updated_at);
+
+            $list[] = [
+                'type' => 'email',
+                'thread_id' => (int) $t->id,
+                'channel_id' => (int) $t->comms_channel_id,
+                'label' => (string) ($t->subject ?: 'Ohne Betreff'),
+                'counterpart' => (string) ($t->last_inbound_from_address ?: $t->last_outbound_to_address ?: ''),
+                'last_at' => $lastAt?->format('d.m. H:i') ?? '',
+                'last_at_sort' => $lastAt?->toDateTimeString() ?? '',
+                'channel_label' => (string) ($emailChannelLabels[(int) $t->comms_channel_id]['label'] ?? ''),
+            ];
+        }
+
+        // WhatsApp threads across all channels
+        $waThreads = CommsWhatsAppThread::query()
+            ->whereIn('comms_channel_id', collect($this->whatsappChannels)->pluck('id')->all())
+            ->where($contextFilter)
+            ->get();
+
+        $waChannelLabels = collect($this->whatsappChannels)->keyBy('id');
+
+        foreach ($waThreads as $t) {
+            $lastAt = $t->last_inbound_at && (!$t->last_outbound_at || $t->last_inbound_at->greaterThanOrEqualTo($t->last_outbound_at))
+                ? $t->last_inbound_at
+                : ($t->last_outbound_at ?: $t->updated_at);
+
+            $waChannel = $waChannelLabels[(int) $t->comms_channel_id] ?? [];
+            $channelLabel = ($waChannel['name'] ?? '') ?: ($waChannel['label'] ?? '');
+
+            $list[] = [
+                'type' => 'whatsapp',
+                'thread_id' => (int) $t->id,
+                'channel_id' => (int) $t->comms_channel_id,
+                'label' => (string) ($t->remote_phone_number ?: '—'),
+                'counterpart' => (string) ($t->remote_phone_number ?: ''),
+                'last_at' => $lastAt?->format('d.m. H:i') ?? '',
+                'last_at_sort' => $lastAt?->toDateTimeString() ?? '',
+                'channel_label' => (string) $channelLabel,
+            ];
+        }
+
+        // Sort by last activity DESC
+        usort($list, fn ($a, $b) => strcmp((string) $b['last_at_sort'], (string) $a['last_at_sort']));
+
+        $this->allContextThreads = array_values($list);
+    }
+
+    /**
+     * Switch to a context thread by its index in $allContextThreads.
+     */
+    public function switchToContextThread(int $index): void
+    {
+        if (!isset($this->allContextThreads[$index])) {
+            return;
+        }
+
+        $this->activeContextThreadIndex = $index;
+        $entry = $this->allContextThreads[$index];
+
+        if ($entry['type'] === 'email') {
+            $this->activeEmailChannelId = (int) $entry['channel_id'];
+            $this->refreshActiveEmailChannelLabel();
+            $this->loadEmailThreads();
+            $this->setActiveEmailThread((int) $entry['thread_id']);
+        } elseif ($entry['type'] === 'whatsapp') {
+            $this->activeWhatsAppChannelId = (int) $entry['channel_id'];
+            $this->refreshActiveWhatsAppChannelLabel();
+            $this->loadWhatsAppThreads();
+            $this->setActiveWhatsAppThread((int) $entry['thread_id']);
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Refresh & Permissions
     // -------------------------------------------------------------------------
 
@@ -1417,6 +1547,8 @@ trait WithCommsChat
         if ($this->activeEmailThreadId) {
             $this->loadEmailTimeline();
         }
+
+        $this->buildContextThreadsList();
     }
 
     public function canManageProviderConnections(): bool

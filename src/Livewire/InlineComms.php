@@ -34,16 +34,26 @@ class InlineComms extends Component
         $this->loadEmailRuntime();
         $this->loadWhatsAppRuntime();
 
-        // Auto-select the channel type that has context threads
-        $emailContextThreads = collect($this->emailChannels)->sum('context_thread_count');
-        $waContextThreads = collect($this->whatsappChannels)->sum('context_thread_count');
+        // Build the flat context threads list for conversation-first UX
+        $this->buildContextThreadsList();
 
-        if ($waContextThreads > 0 && $emailContextThreads === 0) {
-            $this->initialChannel = 'whatsapp';
-        } elseif ($emailContextThreads === 0 && $waContextThreads === 0) {
-            // No threads at all – prefer whichever has channels; fallback email
-            if (empty($this->emailChannels) && !empty($this->whatsappChannels)) {
+        if (!empty($this->allContextThreads)) {
+            // Threads exist → jump straight into conversation mode
+            $this->switchToContextThread(0);
+
+            // Set initialChannel based on the first thread's type
+            $this->initialChannel = $this->allContextThreads[0]['type'] === 'whatsapp' ? 'whatsapp' : 'email';
+        } else {
+            // No threads → setup mode, auto-select channel type
+            $emailContextThreads = collect($this->emailChannels)->sum('context_thread_count');
+            $waContextThreads = collect($this->whatsappChannels)->sum('context_thread_count');
+
+            if ($waContextThreads > 0 && $emailContextThreads === 0) {
                 $this->initialChannel = 'whatsapp';
+            } elseif ($emailContextThreads === 0 && $waContextThreads === 0) {
+                if (empty($this->emailChannels) && !empty($this->whatsappChannels)) {
+                    $this->initialChannel = 'whatsapp';
+                }
             }
         }
     }
