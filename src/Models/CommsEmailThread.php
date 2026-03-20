@@ -10,10 +10,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Platform\Crm\Models\Concerns\HasThreadContexts;
 
 class CommsEmailThread extends Model
 {
     use SoftDeletes;
+    use HasThreadContexts;
 
     protected $table = 'comms_email_threads';
 

@@ -13,6 +13,7 @@ use Platform\Crm\Events\CommsInboundReceived;
 use Platform\Core\Services\Comms\ContactResolverRegistry;
 use Platform\Crm\Services\Comms\InboundMailAttachmentService;
 use Platform\Comms\Services\CommsActivityService;
+use Platform\Crm\Services\Comms\CommsThreadContextResolverService;
 
 class InboundPostmarkController extends Controller
 {
@@ -69,6 +70,12 @@ class InboundPostmarkController extends Controller
             // 4b) Resolve contact if not already linked
             if (!$thread->contact_id) {
                 $this->resolveAndLinkContact($thread, $payload);
+            }
+
+            // 4c) Resolve context if contact linked but no context
+            if ($thread->contact_id && !$thread->hasAnyContext()) {
+                $thread->refresh();
+                app(CommsThreadContextResolverService::class)->resolveAndAssignContext($thread);
             }
 
             // 5) Save inbound mail

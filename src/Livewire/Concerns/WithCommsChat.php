@@ -140,37 +140,6 @@ trait WithCommsChat
         return !empty($this->contextModel) && !empty($this->contextModelId);
     }
 
-    /**
-     * Get both morph alias and full class name variants for context_model queries.
-     *
-     * @return array<string>
-     */
-    private function getContextModelVariants(): array
-    {
-        if (empty($this->contextModel)) {
-            return [];
-        }
-
-        $variants = [$this->contextModel];
-
-        if (!str_contains($this->contextModel, '\\')) {
-            $fullClass = \Illuminate\Database\Eloquent\Relations\Relation::getMorphedModel($this->contextModel);
-            if ($fullClass && $fullClass !== $this->contextModel) {
-                $variants[] = $fullClass;
-            }
-        } else {
-            if (class_exists($this->contextModel)) {
-                $morphMap = \Illuminate\Database\Eloquent\Relations\Relation::morphMap();
-                $alias = array_search($this->contextModel, $morphMap, true);
-                if ($alias !== false) {
-                    $variants[] = $alias;
-                }
-            }
-        }
-
-        return array_unique($variants);
-    }
-
     // -------------------------------------------------------------------------
     // Email Runtime
     // -------------------------------------------------------------------------
@@ -207,22 +176,12 @@ trait WithCommsChat
             ->get();
 
         // Count context threads per channel for smart pre-selection & badges
-        $contextVariants = $this->hasContext() ? $this->getContextModelVariants() : [];
+        $hasCtx = $this->hasContext();
 
-        $this->emailChannels = $channels->map(function (CommsChannel $c) use ($contextVariants) {
+        $this->emailChannels = $channels->map(function (CommsChannel $c) use ($hasCtx) {
             $threadCount = 0;
-            if (!empty($contextVariants)) {
-                $threadCount = CommsEmailThread::query()
-                    ->where('comms_channel_id', $c->id)
-                    ->where(function ($q) use ($contextVariants) {
-                        foreach ($contextVariants as $variant) {
-                            $q->orWhere(function ($q2) use ($variant) {
-                                $q2->where('context_model', $variant)
-                                   ->where('context_model_id', $this->contextModelId);
-                            });
-                        }
-                    })
-                    ->count();
+            if ($hasCtx) {
+                $threadCount = CommsEmailThread::countForContext($c->id, $this->contextModel, (int) $this->contextModelId);
             }
             return [
                 'id' => (int) $c->id,
@@ -311,15 +270,7 @@ trait WithCommsChat
             ->where('comms_channel_id', $this->activeEmailChannelId);
 
         if ($this->hasContext() && !$this->showAllThreads) {
-            $contextVariants = $this->getContextModelVariants();
-            $query->where(function ($q) use ($contextVariants) {
-                foreach ($contextVariants as $variant) {
-                    $q->orWhere(function ($q2) use ($variant) {
-                        $q2->where('context_model', $variant)
-                           ->where('context_model_id', $this->contextModelId);
-                    });
-                }
-            });
+            $query->forContext($this->contextModel, (int) $this->contextModelId);
         }
 
         $threads = $query
@@ -556,11 +507,14 @@ trait WithCommsChat
                 ->where('comms_channel_id', $channel->id)
                 ->where('token', $token)
                 ->first();
-            if ($newThread && !$newThread->context_model) {
-                $newThread->update([
-                    'context_model' => $this->contextModel,
-                    'context_model_id' => $this->contextModelId,
-                ]);
+            if ($newThread) {
+                $newThread->addContext($this->contextModel, (int) $this->contextModelId, 'outbound');
+                if (!$newThread->context_model) {
+                    $newThread->updateQuietly([
+                        'context_model' => $this->contextModel,
+                        'context_model_id' => $this->contextModelId,
+                    ]);
+                }
             }
         }
 
@@ -679,22 +633,12 @@ trait WithCommsChat
         }
 
         // Count context threads per channel for smart pre-selection & badges
-        $contextVariants = $this->hasContext() ? $this->getContextModelVariants() : [];
+        $hasCtx = $this->hasContext();
 
-        $this->whatsappChannels = $channels->map(function (CommsChannel $c) use ($contextVariants) {
+        $this->whatsappChannels = $channels->map(function (CommsChannel $c) use ($hasCtx) {
             $threadCount = 0;
-            if (!empty($contextVariants)) {
-                $threadCount = CommsWhatsAppThread::query()
-                    ->where('comms_channel_id', $c->id)
-                    ->where(function ($q) use ($contextVariants) {
-                        foreach ($contextVariants as $variant) {
-                            $q->orWhere(function ($q2) use ($variant) {
-                                $q2->where('context_model', $variant)
-                                   ->where('context_model_id', $this->contextModelId);
-                            });
-                        }
-                    })
-                    ->count();
+            if ($hasCtx) {
+                $threadCount = CommsWhatsAppThread::countForContext($c->id, $this->contextModel, (int) $this->contextModelId);
             }
             return [
                 'id' => (int) $c->id,
@@ -777,15 +721,7 @@ trait WithCommsChat
             ->where('comms_channel_id', $this->activeWhatsAppChannelId);
 
         if ($this->hasContext() && !$this->showAllThreads) {
-            $contextVariants = $this->getContextModelVariants();
-            $query->where(function ($q) use ($contextVariants) {
-                foreach ($contextVariants as $variant) {
-                    $q->orWhere(function ($q2) use ($variant) {
-                        $q2->where('context_model', $variant)
-                           ->where('context_model_id', $this->contextModelId);
-                    });
-                }
-            });
+            $query->forContext($this->contextModel, (int) $this->contextModelId);
         }
 
         $threads = $query
@@ -1077,11 +1013,14 @@ trait WithCommsChat
 
         if ($wasNewThread && $this->hasContext() && $message?->thread) {
             $newThread = $message->thread;
-            if ($newThread && !$newThread->context_model) {
-                $newThread->update([
-                    'context_model' => $this->contextModel,
-                    'context_model_id' => $this->contextModelId,
-                ]);
+            if ($newThread) {
+                $newThread->addContext($this->contextModel, (int) $this->contextModelId, 'outbound');
+                if (!$newThread->context_model) {
+                    $newThread->updateQuietly([
+                        'context_model' => $this->contextModel,
+                        'context_model_id' => $this->contextModelId,
+                    ]);
+                }
             }
         }
 
@@ -1341,11 +1280,14 @@ trait WithCommsChat
 
         if ($wasNewThread && $this->hasContext() && $message?->thread) {
             $newThread = $message->thread;
-            if ($newThread && !$newThread->context_model) {
-                $newThread->update([
-                    'context_model' => $this->contextModel,
-                    'context_model_id' => $this->contextModelId,
-                ]);
+            if ($newThread) {
+                $newThread->addContext($this->contextModel, (int) $this->contextModelId, 'outbound');
+                if (!$newThread->context_model) {
+                    $newThread->updateQuietly([
+                        'context_model' => $this->contextModel,
+                        'context_model_id' => $this->contextModelId,
+                    ]);
+                }
             }
         }
 
@@ -1413,26 +1355,12 @@ trait WithCommsChat
             return;
         }
 
-        $contextVariants = $this->getContextModelVariants();
-        if (empty($contextVariants)) {
-            return;
-        }
-
-        $contextFilter = function ($q) use ($contextVariants) {
-            foreach ($contextVariants as $variant) {
-                $q->orWhere(function ($q2) use ($variant) {
-                    $q2->where('context_model', $variant)
-                       ->where('context_model_id', $this->contextModelId);
-                });
-            }
-        };
-
         $list = [];
 
         // Email threads across all channels
         $emailThreads = CommsEmailThread::query()
             ->whereIn('comms_channel_id', collect($this->emailChannels)->pluck('id')->all())
-            ->where($contextFilter)
+            ->forContext($this->contextModel, (int) $this->contextModelId)
             ->get();
 
         $emailChannelLabels = collect($this->emailChannels)->keyBy('id');
@@ -1457,7 +1385,7 @@ trait WithCommsChat
         // WhatsApp threads across all channels
         $waThreads = CommsWhatsAppThread::query()
             ->whereIn('comms_channel_id', collect($this->whatsappChannels)->pluck('id')->all())
-            ->where($contextFilter)
+            ->forContext($this->contextModel, (int) $this->contextModelId)
             ->get();
 
         $waChannelLabels = collect($this->whatsappChannels)->keyBy('id');

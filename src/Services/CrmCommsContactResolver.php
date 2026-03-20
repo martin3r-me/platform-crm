@@ -4,6 +4,7 @@ namespace Platform\Crm\Services;
 
 use Illuminate\Support\Facades\Log;
 use Platform\Core\Contracts\CommsContactResolverInterface;
+use Platform\Core\Contracts\CommsContextAwareResolverInterface;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmEmailAddress;
 use Platform\Crm\Models\CrmPhoneNumber;
@@ -14,7 +15,7 @@ use Platform\Crm\Models\CrmPhoneNumber;
  * Resolves contacts from phone numbers and email addresses
  * by looking up CrmPhoneNumber and CrmEmailAddress records.
  */
-class CrmCommsContactResolver implements CommsContactResolverInterface
+class CrmCommsContactResolver implements CommsContactResolverInterface, CommsContextAwareResolverInterface
 {
     /**
      * CRM has high priority (100) as the primary contact source.
@@ -219,6 +220,11 @@ class CrmCommsContactResolver implements CommsContactResolverInterface
     public function supportsAutoCreate(): bool
     {
         return true;
+    }
+
+    public function getContextEligibleContactTypes(): array
+    {
+        return [CrmContact::class];
     }
 
     /**

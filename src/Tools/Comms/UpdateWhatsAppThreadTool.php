@@ -109,11 +109,18 @@ class UpdateWhatsAppThreadTool implements ToolContract, ToolMetadataContract
                 $updates['is_unread'] = (bool) $arguments['is_unread'];
             }
 
-            if (array_key_exists('context_model', $arguments)) {
+            if (array_key_exists('context_model', $arguments) && array_key_exists('context_model_id', $arguments)) {
+                $ctxModel = $arguments['context_model'] ?: null;
+                $ctxModelId = $arguments['context_model_id'] ? (int) $arguments['context_model_id'] : null;
+                if ($ctxModel && $ctxModelId) {
+                    $thread->addContext($ctxModel, $ctxModelId, 'manual');
+                }
+                // Also update legacy columns
+                $updates['context_model'] = $ctxModel;
+                $updates['context_model_id'] = $ctxModelId;
+            } elseif (array_key_exists('context_model', $arguments)) {
                 $updates['context_model'] = $arguments['context_model'] ?: null;
-            }
-
-            if (array_key_exists('context_model_id', $arguments)) {
+            } elseif (array_key_exists('context_model_id', $arguments)) {
                 $updates['context_model_id'] = $arguments['context_model_id'] ? (int) $arguments['context_model_id'] : null;
             }
 

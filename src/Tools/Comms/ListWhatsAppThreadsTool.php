@@ -119,12 +119,19 @@ class ListWhatsAppThreadsTool implements ToolContract, ToolMetadataContract
                 $query->where('is_unread', $isUnread);
             }
 
-            // Filter by context
+            // Filter by context (via pivot table)
             if ($contextModel && $contextModelId) {
-                $query->where('context_model', $contextModel)
-                    ->where('context_model_id', $contextModelId);
+                $query->forContext($contextModel, $contextModelId);
             } elseif ($contextModel) {
-                $query->where('context_model', $contextModel);
+                // Filter by context model type only (any ID)
+                $variants = CommsWhatsAppThread::getContextModelVariantsFor($contextModel);
+                $query->whereExists(function ($sub) use ($variants) {
+                    $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                        ->from('comms_thread_contexts')
+                        ->whereColumn('comms_thread_contexts.thread_id', 'comms_whatsapp_threads.id')
+                        ->where('comms_thread_contexts.thread_type', CommsWhatsAppThread::class)
+                        ->whereIn('comms_thread_contexts.context_model', $variants);
+                });
             }
 
             $this->applyStandardFilters($query, $arguments, [

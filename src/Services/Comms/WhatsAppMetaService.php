@@ -13,6 +13,7 @@ use Platform\Crm\Models\CommsWhatsAppThread;
 use Platform\Core\Models\ContextFile;
 use Platform\Core\Models\User;
 use Platform\Core\Services\Comms\ContactResolverRegistry;
+use Platform\Crm\Services\Comms\CommsThreadContextResolverService;
 use Propaganistas\LaravelPhone\PhoneNumber;
 
 class WhatsAppMetaService
@@ -180,6 +181,12 @@ class WhatsAppMetaService
         // Resolve contact if not already linked
         if (!$thread->contact_id) {
             $this->resolveAndLinkContact($thread, $phone);
+        }
+
+        // Resolve context if contact linked but no context
+        if ($thread->contact_id && !$thread->hasAnyContext()) {
+            $thread->refresh();
+            app(CommsThreadContextResolverService::class)->resolveAndAssignContext($thread);
         }
 
         // Mark phone number as WhatsApp opted-in (user sent message)

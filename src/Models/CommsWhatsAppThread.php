@@ -11,10 +11,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Str;
+use Platform\Crm\Models\Concerns\HasThreadContexts;
 
 class CommsWhatsAppThread extends Model
 {
     use SoftDeletes;
+    use HasThreadContexts;
 
     protected $table = 'comms_whatsapp_threads';
 
