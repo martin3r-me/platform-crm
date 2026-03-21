@@ -24,7 +24,7 @@ class UpdateContactTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'PUT /contacts/{id} - Aktualisiert einen bestehenden Contact. REST-Parameter: id (required, integer) - Contact-ID. first_name (optional, string) - Vorname. last_name (optional, string) - Nachname. company_id (optional, integer) - zugehörige Company-ID. email (optional, string) - E-Mail. phone (optional, string) - Telefon. is_active (optional, boolean) - Status.';
+        return 'PUT /contacts/{id} - Aktualisiert einen bestehenden Contact. Lookup-Felder können per _id oder _code gesetzt werden (z.B. salutation_code="HERR", gender_code="MALE", language_code="de"). academic_title_id erfordert academic_title_confirm=true.';
     }
 
     public function getSchema(): array
@@ -61,7 +61,11 @@ class UpdateContactTool implements ToolContract
                 ],
                 'salutation_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: Neue Anrede-ID.'
+                    'description' => 'Optional: Neue Anrede-ID. Alternativ salutation_code verwenden.'
+                ],
+                'salutation_code' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Anrede-Code, z.B. "HERR", "FRAU", "DIVERS". Wird zu salutation_id aufgelöst wenn salutation_id nicht gesetzt.'
                 ],
                 'academic_title_id' => [
                     'type' => 'integer',
@@ -74,15 +78,27 @@ class UpdateContactTool implements ToolContract
                 ],
                 'gender_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: Neue Geschlechts-ID.'
+                    'description' => 'Optional: Neue Geschlechts-ID. Alternativ gender_code verwenden.'
+                ],
+                'gender_code' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Geschlechts-Code, z.B. "MALE", "FEMALE", "DIVERSE". Wird zu gender_id aufgelöst wenn gender_id nicht gesetzt.'
                 ],
                 'language_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: Neue Sprach-ID.'
+                    'description' => 'Optional: Neue Sprach-ID. Alternativ language_code verwenden.'
+                ],
+                'language_code' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Sprach-Code (ISO), z.B. "de", "en", "fr". Wird zu language_id aufgelöst wenn language_id nicht gesetzt.'
                 ],
                 'contact_status_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: Neue Kontaktstatus-ID.'
+                    'description' => 'Optional: Neue Kontaktstatus-ID. Alternativ contact_status_code verwenden.'
+                ],
+                'contact_status_code' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Status-Code, z.B. "ACTIVE", "INACTIVE", "CUSTOMER". Wird zu contact_status_id aufgelöst wenn contact_status_id nicht gesetzt.'
                 ],
                 'owned_by_user_id' => [
                     'type' => 'integer',
@@ -121,6 +137,28 @@ class UpdateContactTool implements ToolContract
                 Gate::forUser($context->user)->authorize('update', $contact);
             } catch (AuthorizationException $e) {
                 return ToolResult::error('ACCESS_DENIED', 'Du darfst diesen Contact nicht bearbeiten (Policy).');
+            }
+
+            // Resolve _code → _id for lookup fields (if _id not already set in arguments)
+            $codeResolvers = [
+                'salutation' => \Platform\Crm\Models\CrmSalutation::class,
+                'gender' => \Platform\Crm\Models\CrmGender::class,
+                'language' => \Platform\Crm\Models\CrmLanguage::class,
+                'contact_status' => \Platform\Crm\Models\CrmContactStatus::class,
+            ];
+            foreach ($codeResolvers as $field => $modelClass) {
+                $idKey = "{$field}_id";
+                $codeKey = "{$field}_code";
+                if (!isset($arguments[$idKey]) && !empty($arguments[$codeKey])) {
+                    $code = $field === 'language'
+                        ? strtolower(trim((string) $arguments[$codeKey]))
+                        : strtoupper(trim((string) $arguments[$codeKey]));
+                    $resolved = $modelClass::query()->where('code', $code)->value('id');
+                    if ($resolved) {
+                        $arguments[$idKey] = $resolved;
+                    }
+                    // Silently ignore unresolved codes in update — don't block the update
+                }
             }
 
             // Update-Daten sammeln

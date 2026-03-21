@@ -29,7 +29,7 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'POST /contacts - Erstellt einen neuen Contact. WICHTIG: Lookup/FK-IDs (z.B. salutation_id, gender_id, language_id, contact_status_id, academic_title_id) niemals raten. Setze Lookup-IDs nur, wenn sie explizit bestätigt sind (*_confirm=true) oder lasse sie weg. Wenn company_id angegeben ist und eine Relation erstellt werden soll, muss company_relation_type_id gesetzt sein.';
+        return 'POST /contacts - Erstellt einen neuen Contact. Lookup-Felder können per _id oder _code gesetzt werden (z.B. salutation_code="HERR", gender_code="MALE", contact_status_code="ACTIVE", language_code="de"). academic_title_id erfordert academic_title_confirm=true. Wenn company_id angegeben ist und eine Relation erstellt werden soll, muss company_relation_type_id gesetzt sein.';
     }
 
     public function getSchema(): array
@@ -67,12 +67,11 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                 ],
                 'salutation_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID der Anrede (Lookup). Niemals raten. Setze nur, wenn salutation_confirm=true.'
+                    'description' => 'Optional: ID der Anrede (Lookup). Alternativ salutation_code verwenden.'
                 ],
-                'salutation_confirm' => [
-                    'type' => 'boolean',
-                    'description' => 'Optional: Bestätigung, dass salutation_id wirklich gesetzt werden soll.',
-                    'default' => false
+                'salutation_code' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Anrede-Code, z.B. "HERR", "FRAU", "DIVERS". Wird zu salutation_id aufgelöst wenn salutation_id nicht gesetzt.'
                 ],
                 'academic_title_id' => [
                     'type' => 'integer',
@@ -85,30 +84,27 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                 ],
                 'gender_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID des Geschlechts (Lookup). Niemals raten. Setze nur, wenn gender_confirm=true.'
+                    'description' => 'Optional: ID des Geschlechts (Lookup). Alternativ gender_code verwenden.'
                 ],
-                'gender_confirm' => [
-                    'type' => 'boolean',
-                    'description' => 'Optional: Bestätigung, dass gender_id wirklich gesetzt werden soll.',
-                    'default' => false
+                'gender_code' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Geschlechts-Code, z.B. "MALE", "FEMALE", "DIVERSE". Wird zu gender_id aufgelöst wenn gender_id nicht gesetzt.'
                 ],
                 'language_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID der Sprache (Lookup). Niemals raten. Setze nur, wenn language_confirm=true.'
+                    'description' => 'Optional: ID der Sprache (Lookup). Alternativ language_code verwenden.'
                 ],
-                'language_confirm' => [
-                    'type' => 'boolean',
-                    'description' => 'Optional: Bestätigung, dass language_id wirklich gesetzt werden soll.',
-                    'default' => false
+                'language_code' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Sprach-Code (ISO), z.B. "de", "en", "fr". Wird zu language_id aufgelöst wenn language_id nicht gesetzt.'
                 ],
                 'contact_status_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID des Kontaktstatus (Lookup). Niemals raten. Setze nur, wenn contact_status_confirm=true.'
+                    'description' => 'Optional: ID des Kontaktstatus (Lookup). Alternativ contact_status_code verwenden.'
                 ],
-                'contact_status_confirm' => [
-                    'type' => 'boolean',
-                    'description' => 'Optional: Bestätigung, dass contact_status_id wirklich gesetzt werden soll.',
-                    'default' => false
+                'contact_status_code' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Status-Code, z.B. "ACTIVE", "INACTIVE", "CUSTOMER". Wird zu contact_status_id aufgelöst wenn contact_status_id nicht gesetzt.'
                 ],
                 'owned_by_user_id' => [
                     'type' => 'integer',
@@ -201,22 +197,27 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                 }
             }
 
-            // Guard: weitere Lookups niemals raten – ohne Confirm ignorieren.
-            if (($arguments['salutation_id'] ?? null) !== null && !((bool)($arguments['salutation_confirm'] ?? false))) {
-                $arguments['salutation_id'] = null;
-                $warnings[] = 'salutation_id wurde ohne Bestätigung ignoriert (salutation_confirm fehlt/false).';
-            }
-            if (($arguments['gender_id'] ?? null) !== null && !((bool)($arguments['gender_confirm'] ?? false))) {
-                $arguments['gender_id'] = null;
-                $warnings[] = 'gender_id wurde ohne Bestätigung ignoriert (gender_confirm fehlt/false).';
-            }
-            if (($arguments['language_id'] ?? null) !== null && !((bool)($arguments['language_confirm'] ?? false))) {
-                $arguments['language_id'] = null;
-                $warnings[] = 'language_id wurde ohne Bestätigung ignoriert (language_confirm fehlt/false).';
-            }
-            if (($arguments['contact_status_id'] ?? null) !== null && !((bool)($arguments['contact_status_confirm'] ?? false))) {
-                $arguments['contact_status_id'] = null;
-                $warnings[] = 'contact_status_id wurde ohne Bestätigung ignoriert (contact_status_confirm fehlt/false).';
+            // Resolve _code → _id for lookup fields (if _id not already set)
+            $codeResolvers = [
+                'salutation' => \Platform\Crm\Models\CrmSalutation::class,
+                'gender' => \Platform\Crm\Models\CrmGender::class,
+                'language' => \Platform\Crm\Models\CrmLanguage::class,
+                'contact_status' => \Platform\Crm\Models\CrmContactStatus::class,
+            ];
+            foreach ($codeResolvers as $field => $modelClass) {
+                $idKey = "{$field}_id";
+                $codeKey = "{$field}_code";
+                if (($arguments[$idKey] ?? null) === null && !empty($arguments[$codeKey])) {
+                    $code = $field === 'language'
+                        ? strtolower(trim((string) $arguments[$codeKey]))
+                        : strtoupper(trim((string) $arguments[$codeKey]));
+                    $resolved = $modelClass::query()->where('code', $code)->value('id');
+                    if ($resolved) {
+                        $arguments[$idKey] = $resolved;
+                    } else {
+                        $warnings[] = "{$codeKey} '{$arguments[$codeKey]}' konnte nicht aufgelöst werden.";
+                    }
+                }
             }
 
             // Geburtsdatum parsen

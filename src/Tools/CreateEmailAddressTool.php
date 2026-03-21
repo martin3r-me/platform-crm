@@ -51,7 +51,7 @@ class CreateEmailAddressTool implements ToolContract, ToolMetadataContract
                 ],
                 'email_type_code' => [
                     'type' => 'string',
-                    'description' => 'Optional: Typ-Code (crm_email_types.code). Nutze crm.lookup.GET lookup=email_types, um Codes/IDs zu finden. Niemals raten.',
+                    'description' => 'Optional: Typ-Code (crm_email_types.code), z.B. "PRIVATE", "WORK". Default: PRIVATE wenn nicht angegeben.',
                 ],
                 'is_primary' => [
                     'type' => 'boolean',
@@ -95,7 +95,10 @@ class CreateEmailAddressTool implements ToolContract, ToolMetadataContract
                 }
             }
             if (!$emailTypeId) {
-                return ToolResult::error('VALIDATION_ERROR', 'email_type_id oder email_type_code ist erforderlich (crm_email_types hat kein Default). Nutze crm.lookup.GET lookup=email_types.');
+                $emailTypeId = \Platform\Crm\Models\CrmEmailType::query()->where('code', 'PRIVATE')->value('id');
+            }
+            if (!$emailTypeId) {
+                return ToolResult::error('VALIDATION_ERROR', 'Konnte keinen Email-Typ ermitteln (weder email_type_id/email_type_code angegeben noch PRIVATE-Fallback gefunden).');
             }
 
             $entity = null;

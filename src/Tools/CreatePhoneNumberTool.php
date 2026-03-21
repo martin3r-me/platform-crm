@@ -57,7 +57,7 @@ class CreatePhoneNumberTool implements ToolContract, ToolMetadataContract
                 ],
                 'phone_type_code' => [
                     'type' => 'string',
-                    'description' => 'Optional: Typ-Code (crm_phone_types.code). Nutze crm.lookup.GET lookup=phone_types. Niemals raten.',
+                    'description' => 'Optional: Typ-Code (crm_phone_types.code), z.B. "MOBILE", "WORK", "HOME". Default: MOBILE wenn nicht angegeben.',
                 ],
                 'is_primary' => [
                     'type' => 'boolean',
@@ -129,7 +129,10 @@ class CreatePhoneNumberTool implements ToolContract, ToolMetadataContract
                 }
             }
             if (!$phoneTypeId) {
-                return ToolResult::error('VALIDATION_ERROR', 'phone_type_id oder phone_type_code ist erforderlich (crm_phone_types hat kein Default). Nutze crm.lookup.GET lookup=phone_types.');
+                $phoneTypeId = \Platform\Crm\Models\CrmPhoneType::query()->where('code', 'MOBILE')->value('id');
+            }
+            if (!$phoneTypeId) {
+                return ToolResult::error('VALIDATION_ERROR', 'Konnte keinen Telefon-Typ ermitteln (weder phone_type_id/phone_type_code angegeben noch MOBILE-Fallback gefunden).');
             }
 
             $country = strtoupper((string)($arguments['country_code'] ?? 'DE'));
