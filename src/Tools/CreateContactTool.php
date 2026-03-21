@@ -104,7 +104,7 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                 ],
                 'contact_status_code' => [
                     'type' => 'string',
-                    'description' => 'Optional: Status-Code, z.B. "ACTIVE", "INACTIVE", "CUSTOMER". Wird zu contact_status_id aufgelöst wenn contact_status_id nicht gesetzt.'
+                    'description' => 'Optional: Status-Code, z.B. "ACTIVE", "INACTIVE", "CUSTOMER". Default: "ACTIVE". Wird zu contact_status_id aufgelöst wenn contact_status_id nicht gesetzt.'
                 ],
                 'owned_by_user_id' => [
                     'type' => 'integer',
@@ -250,7 +250,8 @@ class CreateContactTool implements ToolContract, ToolMetadataContract
                     'academic_title_id' => $arguments['academic_title_id'] ?? null,
                     'gender_id' => $arguments['gender_id'] ?? null,
                     'language_id' => $arguments['language_id'] ?? null,
-                    'contact_status_id' => $arguments['contact_status_id'] ?? null,
+                    'contact_status_id' => $arguments['contact_status_id']
+                        ?? \Platform\Crm\Models\CrmContactStatus::where('code', 'ACTIVE')->value('id'),
                     'is_active' => $arguments['is_active'] ?? true,
                 ]);
 
