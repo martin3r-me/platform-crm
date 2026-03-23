@@ -293,14 +293,13 @@ class InboundPostmarkController extends Controller
             // Try to resolve existing contact
             $resolved = $registry->resolveByEmail($senderEmail);
 
-            // Optionally auto-create if configured (default: false for now)
-            // $autoCreate = config('platform.comms.auto_create_contacts', false);
-            // if (!$resolved && $autoCreate) {
-            //     $resolved = $registry->createFromEmail($senderEmail, [
-            //         'team_id' => $thread->team_id,
-            //         'source' => 'email_inbound',
-            //     ]);
-            // }
+            // Auto-create contact if none found
+            if (!$resolved) {
+                $resolved = $registry->createFromEmail($senderEmail, [
+                    'team_id' => $thread->team_id,
+                    'source' => 'email_inbound',
+                ]);
+            }
 
             if ($resolved) {
                 $thread->update([

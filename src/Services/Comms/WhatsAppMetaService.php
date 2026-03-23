@@ -531,14 +531,13 @@ class WhatsAppMetaService
             // Try to resolve existing contact
             $resolved = $registry->resolveByPhone($phone);
 
-            // Optionally auto-create if configured (default: false for now)
-            // $autoCreate = config('platform.comms.auto_create_contacts', false);
-            // if (!$resolved && $autoCreate) {
-            //     $resolved = $registry->createFromPhone($phone, [
-            //         'team_id' => $thread->team_id,
-            //         'source' => 'whatsapp_inbound',
-            //     ]);
-            // }
+            // Auto-create contact if none found
+            if (!$resolved) {
+                $resolved = $registry->createFromPhone($phone, [
+                    'team_id' => $thread->team_id,
+                    'source' => 'whatsapp_inbound',
+                ]);
+            }
 
             if ($resolved) {
                 $thread->update([

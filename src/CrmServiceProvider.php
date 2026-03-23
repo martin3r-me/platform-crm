@@ -120,6 +120,9 @@ class CrmServiceProvider extends ServiceProvider
         // WhatsApp Channel Sync Listener registrieren
         $this->registerWhatsAppChannelSyncListener();
 
+        // Contact Enrichment Listener registrieren
+        $this->registerContactEnrichmentListener();
+
         // ModalComms Livewire Komponente registrieren
         \Livewire\Livewire::component('crm.modal-comms', \Platform\Crm\Livewire\ModalComms::class);
     }
@@ -141,6 +144,25 @@ class CrmServiceProvider extends ServiceProvider
         }
     }
     
+    /**
+     * Registriert den Contact Enrichment Listener für Inbound-Nachrichten.
+     */
+    protected function registerContactEnrichmentListener(): void
+    {
+        try {
+            \Illuminate\Support\Facades\Event::listen(
+                \Platform\Crm\Events\CommsInboundReceived::class,
+                [\Platform\Crm\Listeners\EnrichContactOnInbound::class, 'handleEmail']
+            );
+            \Illuminate\Support\Facades\Event::listen(
+                \Platform\Crm\Events\CommsWhatsAppInboundReceived::class,
+                [\Platform\Crm\Listeners\EnrichContactOnInbound::class, 'handleWhatsApp']
+            );
+        } catch (\Throwable $e) {
+            // Silent fail
+        }
+    }
+
     /**
      * Registriert CRM-Tools für die AI/Chat-Funktionalität
      * 
