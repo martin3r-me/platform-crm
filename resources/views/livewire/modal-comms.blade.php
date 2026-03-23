@@ -698,6 +698,7 @@
                                                                             $mediaDisplayType = (string) ($wm['media_display_type'] ?? $messageType);
                                                                             $hasMedia = (bool) ($wm['has_media'] ?? false);
                                                                             $attachments = $wm['attachments'] ?? [];
+                                                                            $reactions = $wm['reactions'] ?? [];
                                                                         @endphp
 
                                                                         @if($isInbound)
@@ -790,6 +791,7 @@
                                                                                     @if($body)
                                                                                         <div class="text-sm text-[var(--ui-secondary)] whitespace-pre-wrap">{{ $body }}</div>
                                                                                     @endif
+                                                                                    @if(!empty($reactions))<div class="flex gap-0.5 mt-0.5">@foreach($reactions as $r)<span class="text-sm">{{ $r['emoji'] }}</span>@endforeach</div>@endif
                                                                                     <div class="mt-1 text-[10px] text-[var(--ui-muted)] text-right" title="{{ $fullAt }}">{{ $at }}</div>
                                                                                 </div>
                                                                             </div>
@@ -860,6 +862,7 @@
                                                                                     @if($body)
                                                                                         <div class="text-sm text-[var(--ui-secondary)] whitespace-pre-wrap">{{ $body }}</div>
                                                                                     @endif
+                                                                                    @if(!empty($reactions))<div class="flex gap-0.5 mt-0.5">@foreach($reactions as $r)<span class="text-sm">{{ $r['emoji'] }}</span>@endforeach</div>@endif
                                                                                     <div class="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--ui-muted)]">
                                                                                         <span title="{{ $fullAt }}">{{ $at }}</span>
                                                                                         @if($status === 'read')

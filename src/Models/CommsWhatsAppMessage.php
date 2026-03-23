@@ -31,11 +31,13 @@ class CommsWhatsAppMessage extends Model
         'delivered_at',
         'read_at',
         'meta_payload',
+        'reactions',
     ];
 
     protected $casts = [
         'template_params' => 'array',
         'meta_payload' => 'array',
+        'reactions' => 'array',
         'status_updated_at' => 'datetime',
         'sent_at' => 'datetime',
         'delivered_at' => 'datetime',

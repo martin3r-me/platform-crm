@@ -135,6 +135,11 @@ class WhatsAppWebhookController extends Controller
         try {
             $message = $this->whatsAppService->processIncomingMessage($messageData, $channel);
 
+            if (!$message) {
+                Log::debug("WhatsApp reaction processed for message from {$from}");
+                return;
+            }
+
             Log::info("WhatsApp message processed: #{$message->id}");
 
             // Dispatch event for module listeners (e.g., Helpdesk, HCM)

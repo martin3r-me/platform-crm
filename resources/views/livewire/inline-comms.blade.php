@@ -277,6 +277,7 @@
                                             $mediaDisplayType = (string) ($wm['media_display_type'] ?? $messageType);
                                             $hasMedia = (bool) ($wm['has_media'] ?? false);
                                             $attachments = $wm['attachments'] ?? [];
+                                            $reactions = $wm['reactions'] ?? [];
                                         @endphp
                                         @if($isInbound)
                                             <div class="flex justify-start">
@@ -308,6 +309,7 @@
                                                         </div>
                                                     @endif
                                                     @if($body)<div class="text-sm text-[var(--ui-secondary)] whitespace-pre-wrap">{{ $body }}</div>@endif
+                                                    @if(!empty($reactions))<div class="flex gap-0.5 mt-0.5">@foreach($reactions as $r)<span class="text-sm">{{ $r['emoji'] }}</span>@endforeach</div>@endif
                                                     <div class="mt-0.5 text-[9px] text-[var(--ui-muted)] text-right" title="{{ $fullAt }}">{{ $at }}</div>
                                                 </div>
                                             </div>
@@ -337,6 +339,7 @@
                                                         @endforeach
                                                     @endif
                                                     @if($body)<div class="text-sm text-[var(--ui-secondary)] whitespace-pre-wrap">{{ $body }}</div>@endif
+                                                    @if(!empty($reactions))<div class="flex gap-0.5 mt-0.5">@foreach($reactions as $r)<span class="text-sm">{{ $r['emoji'] }}</span>@endforeach</div>@endif
                                                     <div class="mt-0.5 flex items-center justify-end gap-0.5 text-[9px] text-emerald-700/60">
                                                         <span title="{{ $fullAt }}">{{ $at }}</span>
                                                         @if($status === 'read') <span class="text-blue-500">✓✓</span>
@@ -953,6 +956,7 @@
                                                 $mediaDisplayType = (string) ($wm['media_display_type'] ?? $messageType);
                                                 $hasMedia = (bool) ($wm['has_media'] ?? false);
                                                 $attachments = $wm['attachments'] ?? [];
+                                                $reactions = $wm['reactions'] ?? [];
                                             @endphp
 
                                             @if($isInbound)
@@ -985,6 +989,7 @@
                                                             </div>
                                                         @endif
                                                         @if($body)<div class="text-sm text-[var(--ui-secondary)] whitespace-pre-wrap">{{ $body }}</div>@endif
+                                                        @if(!empty($reactions))<div class="flex gap-0.5 mt-0.5">@foreach($reactions as $r)<span class="text-sm">{{ $r['emoji'] }}</span>@endforeach</div>@endif
                                                         <div class="mt-0.5 text-[9px] text-[var(--ui-muted)] text-right" title="{{ $fullAt }}">{{ $at }}</div>
                                                     </div>
                                                 </div>
@@ -1014,6 +1019,7 @@
                                                             @endforeach
                                                         @endif
                                                         @if($body)<div class="text-sm text-[var(--ui-secondary)] whitespace-pre-wrap">{{ $body }}</div>@endif
+                                                        @if(!empty($reactions))<div class="flex gap-0.5 mt-0.5">@foreach($reactions as $r)<span class="text-sm">{{ $r['emoji'] }}</span>@endforeach</div>@endif
                                                         <div class="mt-0.5 flex items-center justify-end gap-0.5 text-[9px] text-emerald-700/60">
                                                             <span title="{{ $fullAt }}">{{ $at }}</span>
                                                             @if($status === 'read') <span class="text-blue-500">✓✓</span>

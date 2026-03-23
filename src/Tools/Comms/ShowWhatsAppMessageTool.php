@@ -99,6 +99,7 @@ class ShowWhatsAppMessageTool implements ToolContract, ToolMetadataContract
                 'has_media' => $message->hasMedia(),
                 'meta_message_id' => $message->meta_message_id,
                 'status' => $message->status,
+                'reactions' => $message->reactions ?? [],
                 'status_updated_at' => $message->status_updated_at?->toIso8601String(),
                 'sent_at' => $message->sent_at?->toIso8601String(),
                 'delivered_at' => $message->delivered_at?->toIso8601String(),

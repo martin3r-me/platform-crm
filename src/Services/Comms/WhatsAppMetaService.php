@@ -155,13 +155,19 @@ class WhatsAppMetaService
     /**
      * Process an incoming WhatsApp message from the webhook.
      */
-    public function processIncomingMessage(array $messageData, CommsChannel $channel): CommsWhatsAppMessage
+    public function processIncomingMessage(array $messageData, CommsChannel $channel): ?CommsWhatsAppMessage
     {
+        $messageType = $messageData['type'] ?? 'text';
+
+        // Reactions are stored on the original message, not as separate rows
+        if ($messageType === 'reaction') {
+            return $this->processIncomingReaction($messageData, $channel);
+        }
+
         $messageId = $messageData['id'] ?? null;
         $rawFrom = '+' . ($messageData['from'] ?? '');
         $phone = $this->normalizePhoneNumber($rawFrom);
         $timestamp = $messageData['timestamp'] ?? null;
-        $messageType = $messageData['type'] ?? 'text';
         $text = $messageData['text']['body'] ?? '';
 
         // Normalize voice to audio for message_type storage
@@ -245,6 +251,51 @@ class WhatsAppMetaService
         }
 
         return $message;
+    }
+
+    /**
+     * Process an incoming reaction and store it on the original message.
+     */
+    protected function processIncomingReaction(array $messageData, CommsChannel $channel): ?CommsWhatsAppMessage
+    {
+        $reactionData = $messageData['reaction'] ?? [];
+        $targetMessageId = $reactionData['message_id'] ?? null;
+        $emoji = $reactionData['emoji'] ?? '';
+        $from = $messageData['from'] ?? '';
+
+        if (!$targetMessageId) {
+            return null;
+        }
+
+        $originalMessage = CommsWhatsAppMessage::query()
+            ->where('meta_message_id', $targetMessageId)
+            ->first();
+
+        if (!$originalMessage) {
+            Log::debug('WhatsApp reaction for unknown message', [
+                'target_message_id' => $targetMessageId,
+                'from' => $from,
+            ]);
+            return null;
+        }
+
+        $reactions = $originalMessage->reactions ?? [];
+
+        // Remove existing reaction from this sender
+        $reactions = array_values(array_filter($reactions, fn ($r) => ($r['from'] ?? '') !== $from));
+
+        // Add new reaction if emoji is set (empty emoji = reaction removed)
+        if ($emoji !== '') {
+            $reactions[] = [
+                'emoji' => $emoji,
+                'from' => $from,
+                'at' => now()->toIso8601String(),
+            ];
+        }
+
+        $originalMessage->update(['reactions' => $reactions]);
+
+        return null;
     }
 
     /**
