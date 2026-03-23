@@ -125,10 +125,12 @@
                                     $from = (string) ($m['from'] ?? '');
                                     $to = (string) ($m['to'] ?? '');
                                     $subject = (string) ($m['subject'] ?? '');
-                                    $body = trim((string) ($m['text'] ?? ''));
-                                    if ($body === '' && !empty($m['html'])) {
-                                        $body = trim(strip_tags((string) $m['html']));
+                                    $hasHtml = !empty($m['html']);
+                                    $textBody = trim((string) ($m['text'] ?? ''));
+                                    if ($textBody === '' && $hasHtml) {
+                                        $textBody = trim(strip_tags((string) $m['html']));
                                     }
+                                    $attachments = $m['attachments'] ?? [];
                                 @endphp
                                 <div class="flex {{ $isInbound ? 'justify-start' : 'justify-end' }}">
                                     <div class="w-full max-w-3xl rounded-xl border {{ $isInbound ? 'border-[var(--ui-border)]/60' : 'border-[var(--ui-primary)]/20' }} bg-white overflow-hidden shadow-sm">
@@ -150,7 +152,31 @@
                                                 <div class="text-[10px] text-[var(--ui-muted)] whitespace-nowrap">{{ $m['at'] ?? '' }}</div>
                                             </div>
                                         </div>
-                                        <div class="px-3 py-3 text-sm text-[var(--ui-secondary)] whitespace-pre-wrap leading-relaxed">{{ $body }}</div>
+                                        {{-- Email body: HTML in sandboxed iframe, fallback to text --}}
+                                        @if($hasHtml)
+                                            <div class="px-3 py-3" x-data="{ iframeHeight: '100px' }">
+                                                <iframe
+                                                    srcdoc="{{ e($m['html']) }}"
+                                                    sandbox="allow-same-origin"
+                                                    class="w-full border-0"
+                                                    :style="'height:' + iframeHeight"
+                                                    @load="$nextTick(() => { const h = $el.contentDocument?.body?.scrollHeight; if (h) iframeHeight = (h + 16) + 'px'; })"
+                                                ></iframe>
+                                            </div>
+                                        @else
+                                            <div class="px-3 py-3 text-sm text-[var(--ui-secondary)] whitespace-pre-wrap leading-relaxed">{{ $textBody }}</div>
+                                        @endif
+                                        {{-- Non-inline attachments --}}
+                                        @if(count($attachments) > 0)
+                                            <div class="px-3 pb-3 flex flex-wrap gap-2">
+                                                @foreach($attachments as $att)
+                                                    <a href="{{ $att['url'] }}" target="_blank" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] rounded-lg border border-[var(--ui-border)]/40 hover:bg-[var(--ui-muted-5)]/80 transition-colors">
+                                                        @svg('heroicon-o-paper-clip', 'w-3.5 h-3.5 text-[var(--ui-muted)]')
+                                                        {{ $att['filename'] }}
+                                                    </a>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             @empty
@@ -706,10 +732,12 @@
                                         $from = (string) ($m['from'] ?? '');
                                         $to = (string) ($m['to'] ?? '');
                                         $subject = (string) ($m['subject'] ?? '');
-                                        $body = trim((string) ($m['text'] ?? ''));
-                                        if ($body === '' && !empty($m['html'])) {
-                                            $body = trim(strip_tags((string) $m['html']));
+                                        $hasHtml = !empty($m['html']);
+                                        $textBody = trim((string) ($m['text'] ?? ''));
+                                        if ($textBody === '' && $hasHtml) {
+                                            $textBody = trim(strip_tags((string) $m['html']));
                                         }
+                                        $attachments = $m['attachments'] ?? [];
                                     @endphp
                                     <div class="flex {{ $isInbound ? 'justify-start' : 'justify-end' }}">
                                         <div class="w-full max-w-3xl rounded-xl border {{ $isInbound ? 'border-[var(--ui-border)]/60' : 'border-[var(--ui-primary)]/20' }} bg-white overflow-hidden shadow-sm">
@@ -733,7 +761,29 @@
                                                     <div class="text-[10px] text-[var(--ui-muted)] whitespace-nowrap">{{ $m['at'] ?? '' }}</div>
                                                 </div>
                                             </div>
-                                            <div class="px-3 py-3 text-sm text-[var(--ui-secondary)] whitespace-pre-wrap leading-relaxed">{{ $body }}</div>
+                                            @if($hasHtml)
+                                                <div class="px-3 py-3" x-data="{ iframeHeight: '100px' }">
+                                                    <iframe
+                                                        srcdoc="{{ e($m['html']) }}"
+                                                        sandbox="allow-same-origin"
+                                                        class="w-full border-0"
+                                                        :style="'height:' + iframeHeight"
+                                                        @load="$nextTick(() => { const h = $el.contentDocument?.body?.scrollHeight; if (h) iframeHeight = (h + 16) + 'px'; })"
+                                                    ></iframe>
+                                                </div>
+                                            @else
+                                                <div class="px-3 py-3 text-sm text-[var(--ui-secondary)] whitespace-pre-wrap leading-relaxed">{{ $textBody }}</div>
+                                            @endif
+                                            @if(count($attachments) > 0)
+                                                <div class="px-3 pb-3 flex flex-wrap gap-2">
+                                                    @foreach($attachments as $att)
+                                                        <a href="{{ $att['url'] }}" target="_blank" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] rounded-lg border border-[var(--ui-border)]/40 hover:bg-[var(--ui-muted-5)]/80 transition-colors">
+                                                            @svg('heroicon-o-paper-clip', 'w-3.5 h-3.5 text-[var(--ui-muted)]')
+                                                            {{ $att['filename'] }}
+                                                        </a>
+                                                    @endforeach
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 @empty

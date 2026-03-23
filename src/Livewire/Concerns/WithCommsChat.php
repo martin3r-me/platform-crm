@@ -13,6 +13,7 @@ use Platform\Crm\Models\CommsEmailOutboundMail;
 use Platform\Crm\Models\CommsWhatsAppThread;
 use Platform\Crm\Models\CommsWhatsAppMessage;
 use Platform\Crm\Models\CommsWhatsAppConversationThread;
+use Platform\Crm\Models\CommsEmailMailAttachment;
 use Platform\Crm\Services\Comms\PostmarkEmailService;
 use Platform\Crm\Services\Comms\WhatsAppMetaService;
 use Platform\Crm\Services\Comms\WhatsAppChannelSyncService;
@@ -546,6 +547,53 @@ trait WithCommsChat
             return;
         }
 
+        // Load all attachments for this thread (for CID resolution + file list)
+        $threadAttachments = CommsEmailMailAttachment::query()
+            ->where(function ($q) {
+                $q->whereIn('inbound_mail_id', CommsEmailInboundMail::where('thread_id', $this->activeEmailThreadId)->select('id'))
+                  ->orWhereIn('outbound_mail_id', CommsEmailOutboundMail::where('thread_id', $this->activeEmailThreadId)->select('id'));
+            })
+            ->get()
+            ->groupBy(fn ($a) => $a->inbound_mail_id ? 'in_' . $a->inbound_mail_id : 'out_' . $a->outbound_mail_id);
+
+        $resolveHtml = function (?string $html, string $mailKey) use ($threadAttachments): ?string {
+            if (!$html) return null;
+            $attachments = $threadAttachments->get($mailKey, collect());
+            // Replace cid: references with signed URLs
+            foreach ($attachments->where('cid', '!=', null) as $att) {
+                $cid = trim($att->cid, '<>');
+                $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                    'crm.comms.email-attachment.show',
+                    now()->addHour(),
+                    ['attachment' => $att->id]
+                );
+                $html = str_replace(
+                    ['cid:' . $cid, 'cid:' . '<' . $cid . '>'],
+                    $url,
+                    $html
+                );
+            }
+            return $html;
+        };
+
+        $buildAttachmentList = function (string $mailKey) use ($threadAttachments): array {
+            return $threadAttachments->get($mailKey, collect())
+                ->where('inline', false)
+                ->map(fn ($a) => [
+                    'id' => $a->id,
+                    'filename' => $a->filename,
+                    'mime' => $a->mime,
+                    'size' => $a->size,
+                    'url' => \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                        'crm.comms.email-attachment.show',
+                        now()->addHour(),
+                        ['attachment' => $a->id]
+                    ),
+                ])
+                ->values()
+                ->all();
+        };
+
         $inbound = CommsEmailInboundMail::query()
             ->where('thread_id', $this->activeEmailThreadId)
             ->get()
@@ -555,8 +603,9 @@ trait WithCommsChat
                 'from' => $m->from,
                 'to' => $m->to,
                 'subject' => $m->subject,
-                'html' => $m->html_body,
+                'html' => $resolveHtml($m->html_body, 'in_' . $m->id),
                 'text' => $m->text_body,
+                'attachments' => $buildAttachmentList('in_' . $m->id),
             ]);
 
         $outbound = CommsEmailOutboundMail::query()
@@ -568,8 +617,9 @@ trait WithCommsChat
                 'from' => $m->from,
                 'to' => $m->to,
                 'subject' => $m->subject,
-                'html' => $m->html_body,
+                'html' => $resolveHtml($m->html_body, 'out_' . $m->id),
                 'text' => $m->text_body,
+                'attachments' => $buildAttachmentList('out_' . $m->id),
             ]);
 
         $this->emailTimeline = $inbound
