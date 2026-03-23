@@ -95,7 +95,7 @@ class ListWhatsAppConversationThreadsTool implements ToolContract, ToolMetadataC
             $query = CommsWhatsAppConversationThread::query()
                 ->where('comms_whatsapp_thread_id', $threadId)
                 ->withCount('messages')
-                ->with('createdBy:id,first_name,last_name,email');
+                ->with('createdBy:id,name,email');
 
             if ($isActive === true) {
                 $query->whereNull('ended_at');
@@ -117,7 +117,7 @@ class ListWhatsAppConversationThreadsTool implements ToolContract, ToolMetadataC
             $items = $convThreads->map(function (CommsWhatsAppConversationThread $ct) {
                 $createdByName = null;
                 if ($ct->createdBy) {
-                    $createdByName = trim($ct->createdBy->first_name . ' ' . $ct->createdBy->last_name) ?: $ct->createdBy->email;
+                    $createdByName = $ct->createdBy->name ?: $ct->createdBy->email;
                 }
 
                 return [

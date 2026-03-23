@@ -113,7 +113,7 @@ class SearchWhatsAppMessagesTool implements ToolContract, ToolMetadataContract
                             });
                     });
                 })
-                ->with(['thread:id,remote_phone_number,comms_channel_id', 'sentByUser:id,first_name,last_name,email']);
+                ->with(['thread:id,remote_phone_number,comms_channel_id', 'sentByUser:id,name,email']);
 
             // Fulltext search on body
             $query->where('body', 'LIKE', '%' . str_replace(['%', '_'], ['\\%', '\\_'], $searchQuery) . '%');
@@ -160,7 +160,7 @@ class SearchWhatsAppMessagesTool implements ToolContract, ToolMetadataContract
                 ];
 
                 if ($m->direction === 'outbound' && $m->sentByUser) {
-                    $item['sent_by'] = trim($m->sentByUser->first_name . ' ' . $m->sentByUser->last_name) ?: $m->sentByUser->email;
+                    $item['sent_by'] = $m->sentByUser->name ?: $m->sentByUser->email;
                 }
 
                 return $item;

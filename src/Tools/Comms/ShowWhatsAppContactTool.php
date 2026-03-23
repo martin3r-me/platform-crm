@@ -162,7 +162,7 @@ class ShowWhatsAppContactTool implements ToolContract, ToolMetadataContract
             if ($includeMessages && $activeConvThread) {
                 $messages = $thread->messages()
                     ->where('conversation_thread_id', $activeConvThread->id)
-                    ->with('sentByUser:id,first_name,last_name,email')
+                    ->with('sentByUser:id,name,email')
                     ->orderByDesc('created_at')
                     ->limit(20)
                     ->get()
@@ -179,7 +179,7 @@ class ShowWhatsAppContactTool implements ToolContract, ToolMetadataContract
                         'created_at' => $m->created_at?->toIso8601String(),
                     ];
                     if ($m->direction === 'outbound' && $m->sentByUser) {
-                        $item['sent_by'] = trim($m->sentByUser->first_name . ' ' . $m->sentByUser->last_name) ?: $m->sentByUser->email;
+                        $item['sent_by'] = $m->sentByUser->name ?: $m->sentByUser->email;
                     }
                     return $item;
                 })->values()->toArray();

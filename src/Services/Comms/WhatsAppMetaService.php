@@ -58,7 +58,7 @@ class WhatsAppMetaService
         string $to,
         string $templateName,
         array $components = [],
-        string $languageCode = 'en',
+        string $languageCode = 'de',
         ?User $sender = null,
     ): CommsWhatsAppMessage {
         $this->validateChannel($channel);

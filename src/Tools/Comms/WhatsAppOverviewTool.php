@@ -150,7 +150,7 @@ class WhatsAppOverviewTool implements ToolContract, ToolMetadataContract
                     $q->where('team_id', $rootTeam->id)
                         ->whereIn('comms_channel_id', $channelIds);
                 })
-                ->with(['thread:id,remote_phone_number', 'sentByUser:id,first_name,last_name'])
+                ->with(['thread:id,remote_phone_number', 'sentByUser:id,name'])
                 ->orderByDesc('created_at')
                 ->limit(10)
                 ->get();
@@ -168,7 +168,7 @@ class WhatsAppOverviewTool implements ToolContract, ToolMetadataContract
                 ];
 
                 if ($m->direction === 'outbound' && $m->sentByUser) {
-                    $item['sent_by'] = trim($m->sentByUser->first_name . ' ' . $m->sentByUser->last_name);
+                    $item['sent_by'] = $m->sentByUser->name;
                 }
 
                 return $item;

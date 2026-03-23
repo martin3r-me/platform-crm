@@ -59,7 +59,7 @@ class ShowWhatsAppMessageTool implements ToolContract, ToolMetadataContract
 
             $message = CommsWhatsAppMessage::query()
                 ->whereKey($messageId)
-                ->with(['sentByUser:id,first_name,last_name,email', 'thread', 'conversationThread'])
+                ->with(['sentByUser:id,name,email', 'thread', 'conversationThread'])
                 ->first();
 
             if (!$message) {
@@ -111,7 +111,7 @@ class ShowWhatsAppMessageTool implements ToolContract, ToolMetadataContract
             if ($message->direction === 'outbound' && $message->sentByUser) {
                 $item['sent_by'] = [
                     'id' => (int) $message->sentByUser->id,
-                    'name' => trim($message->sentByUser->first_name . ' ' . $message->sentByUser->last_name) ?: $message->sentByUser->email,
+                    'name' => $message->sentByUser->name ?: $message->sentByUser->email,
                 ];
             }
 

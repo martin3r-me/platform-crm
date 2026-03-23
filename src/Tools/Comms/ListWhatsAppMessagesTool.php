@@ -101,7 +101,7 @@ class ListWhatsAppMessagesTool implements ToolContract, ToolMetadataContract
             // Build query
             $query = CommsWhatsAppMessage::query()
                 ->where('comms_whatsapp_thread_id', $threadId)
-                ->with('sentByUser:id,first_name,last_name,email');
+                ->with('sentByUser:id,name,email');
 
             // Filter by conversation thread (pseudo-thread)
             $conversationThreadId = isset($arguments['conversation_thread_id']) ? (int) $arguments['conversation_thread_id'] : null;
@@ -141,7 +141,7 @@ class ListWhatsAppMessagesTool implements ToolContract, ToolMetadataContract
                 if ($m->direction === 'outbound' && $m->sentByUser) {
                     $item['sent_by'] = [
                         'id' => (int) $m->sentByUser->id,
-                        'name' => trim($m->sentByUser->first_name . ' ' . $m->sentByUser->last_name) ?: $m->sentByUser->email,
+                        'name' => $m->sentByUser->name ?: $m->sentByUser->email,
                     ];
                 }
 
