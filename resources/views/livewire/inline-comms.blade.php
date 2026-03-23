@@ -156,7 +156,7 @@
                                         @if($hasHtml)
                                             <div class="px-3 py-3" x-data="{ iframeHeight: '100px' }">
                                                 <iframe
-                                                    srcdoc="{{ e($m['html']) }}"
+                                                    srcdoc="{{ $m['html'] }}"
                                                     sandbox="allow-same-origin"
                                                     class="w-full border-0"
                                                     :style="'height:' + iframeHeight"
@@ -767,7 +767,7 @@
                                             @if($hasHtml)
                                                 <div class="px-3 py-3" x-data="{ iframeHeight: '100px' }">
                                                     <iframe
-                                                        srcdoc="{{ e($m['html']) }}"
+                                                        srcdoc="{{ $m['html'] }}"
                                                         sandbox="allow-same-origin"
                                                         class="w-full border-0"
                                                         :style="'height:' + iframeHeight"
