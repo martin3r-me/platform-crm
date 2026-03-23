@@ -574,40 +574,69 @@ trait WithCommsChat
                 );
             }
 
-            // Collapse quoted content (Gmail, Outlook, blockquote)
+            // Collapse quoted content (Gmail, Outlook, Apple Mail, blockquote, text markers)
             $detailsOpen = '<details style="margin-top:8px;border-top:1px solid #e5e5e5;padding-top:4px"><summary style="cursor:pointer;color:#888;font-size:12px;list-style:none">&#x2026; Zitierter Verlauf</summary>';
             $detailsClose = '</details>';
+            $collapsed = false;
 
-            // Gmail quote
-            $html = preg_replace(
-                '/<div\s+class=["\']gmail_quote["\'][^>]*>/i',
-                $detailsOpen . '<div class="gmail_quote">',
-                $html, 1, $gmailCount
-            );
-            if ($gmailCount > 0) {
-                $html .= $detailsClose;
+            // Gmail quote: <div class="gmail_quote">
+            if (!$collapsed) {
+                $html = preg_replace(
+                    '/<div\s+class=["\']gmail_quote["\'][^>]*>/i',
+                    $detailsOpen . '<div class="gmail_quote">',
+                    $html, 1, $count
+                );
+                if ($count > 0) { $html .= $detailsClose; $collapsed = true; }
             }
 
-            // Outlook quote
-            $html = preg_replace(
-                '/<div\s+id=["\']divRplyFwdMsg["\'][^>]*>/i',
-                $detailsOpen . '<div id="divRplyFwdMsg">',
-                $html, 1, $outlookCount
-            );
-            if ($outlookCount > 0 && $gmailCount === 0) {
-                $html .= $detailsClose;
+            // Outlook: <div id="divRplyFwdMsg">
+            if (!$collapsed) {
+                $html = preg_replace(
+                    '/<div\s+id=["\']divRplyFwdMsg["\'][^>]*>/i',
+                    $detailsOpen . '<div id="divRplyFwdMsg">',
+                    $html, 1, $count
+                );
+                if ($count > 0) { $html .= $detailsClose; $collapsed = true; }
             }
 
-            // Generic blockquote (only if no Gmail/Outlook quote found)
-            if ($gmailCount === 0 && $outlookCount === 0) {
+            // Outlook separator line: <div style="border:none;border-top:solid #E1E1E1...">
+            if (!$collapsed) {
+                $html = preg_replace(
+                    '/<div\s+style=["\'][^"\']*border-top:\s*solid\s+#[A-Fa-f0-9]+[^"\']*["\'][^>]*>/i',
+                    $detailsOpen . '$0',
+                    $html, 1, $count
+                );
+                if ($count > 0) { $html .= $detailsClose; $collapsed = true; }
+            }
+
+            // Outlook/Thunderbird: <hr> followed by Von:/From:
+            if (!$collapsed) {
+                $html = preg_replace(
+                    '/<hr[^>]*>\s*(?:<[^>]+>\s*)*(Von:|From:|De:)/i',
+                    $detailsOpen . '$0',
+                    $html, 1, $count
+                );
+                if ($count > 0) { $html .= $detailsClose; $collapsed = true; }
+            }
+
+            // Apple Mail: <div dir="ltr"><br><blockquote> or standalone blockquote
+            if (!$collapsed) {
                 $html = preg_replace(
                     '/<blockquote[^>]*>/i',
                     $detailsOpen . '<blockquote>',
-                    $html, 1, $bqCount
+                    $html, 1, $count
                 );
-                if ($bqCount > 0) {
-                    $html .= $detailsClose;
-                }
+                if ($count > 0) { $html .= $detailsClose; $collapsed = true; }
+            }
+
+            // Text-based markers: "Am ... schrieb", "On ... wrote", "-----Ursprüngliche Nachricht-----"
+            if (!$collapsed) {
+                $html = preg_replace(
+                    '/(<br\s*\/?>|<p[^>]*>)\s*(-{3,}.*?-{3,}|Am\s+.{5,60}\s+schrieb\s|On\s+.{5,60}\s+wrote:)/i',
+                    $detailsOpen . '$0',
+                    $html, 1, $count
+                );
+                if ($count > 0) { $html .= $detailsClose; $collapsed = true; }
             }
 
             return $html;

@@ -154,7 +154,7 @@
                                         </div>
                                         {{-- Email body: HTML in sandboxed iframe, fallback to text --}}
                                         @if($hasHtml)
-                                            <div class="px-3 py-3" x-data="{ iframeHeight: '100px' }">
+                                            <div class="px-3 py-3" wire:ignore x-data="{ iframeHeight: '100px' }">
                                                 <iframe
                                                     srcdoc="{{ $m['html'] }}"
                                                     sandbox="allow-same-origin"
