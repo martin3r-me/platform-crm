@@ -52,7 +52,20 @@ class PostmarkEmailService
             ]
         );
 
-        // 2) Re: prefix for replies
+        // 2) Ticket number prefix (e.g. [#1042]) for helpdesk context
+        $contextModel = $opt['context_model'] ?? null;
+        $contextModelId = $opt['context_model_id'] ?? null;
+        if ($contextModel && $contextModelId && $this->isHelpdeskTicket($contextModel)) {
+            if (!preg_match('/\[#\d+\]/', $subject)) {
+                $subject = "[#{$contextModelId}] {$subject}";
+                // Update thread subject on first send
+                if (!$thread->subject || !preg_match('/\[#\d+\]/', $thread->subject)) {
+                    $thread->updateQuietly(['subject' => $subject]);
+                }
+            }
+        }
+
+        // 3) Re: prefix for replies
         if (($opt['is_reply'] ?? false) && !preg_match('/^Re:/i', $subject)) {
             $subject = 'Re: ' . $subject;
         }
@@ -200,6 +213,21 @@ class PostmarkEmailService
         }
 
         return $token;
+    }
+
+    private function isHelpdeskTicket(?string $contextModel): bool
+    {
+        if (!$contextModel) {
+            return false;
+        }
+
+        $variants = [
+            'Platform\\Helpdesk\\Models\\HelpdeskTicket',
+            'HelpdeskTicket',
+            'helpdesk_ticket',
+        ];
+
+        return in_array($contextModel, $variants, true);
     }
 
     private function extractEmailAddress(string $raw): ?string

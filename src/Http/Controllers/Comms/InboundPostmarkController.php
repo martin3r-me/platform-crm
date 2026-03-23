@@ -114,6 +114,11 @@ class InboundPostmarkController extends Controller
             if (!$thread->subject && !empty($payload['Subject'])) {
                 $thread->subject = (string) $payload['Subject'];
             }
+            // Sync ticket prefix from inbound subject to thread if missing
+            $inboundSubject = $payload['Subject'] ?? '';
+            if ($inboundSubject && preg_match('/\[#\d+\]/', $inboundSubject) && !preg_match('/\[#\d+\]/', $thread->subject ?? '')) {
+                $thread->subject = $inboundSubject;
+            }
             $thread->save();
 
             // 6) Persist attachments (UI/preview support later)

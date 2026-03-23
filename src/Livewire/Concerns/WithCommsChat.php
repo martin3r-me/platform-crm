@@ -489,6 +489,8 @@ trait WithCommsChat
                     'sender' => $user,
                     'token' => $token,
                     'is_reply' => $isReply,
+                    'context_model' => $this->contextModel,
+                    'context_model_id' => $this->contextModelId,
                 ]
             );
         } catch (\Throwable $e) {
