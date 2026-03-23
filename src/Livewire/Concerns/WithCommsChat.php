@@ -573,6 +573,43 @@ trait WithCommsChat
                     $html
                 );
             }
+
+            // Collapse quoted content (Gmail, Outlook, blockquote)
+            $detailsOpen = '<details style="margin-top:8px;border-top:1px solid #e5e5e5;padding-top:4px"><summary style="cursor:pointer;color:#888;font-size:12px;list-style:none">&#x2026; Zitierter Verlauf</summary>';
+            $detailsClose = '</details>';
+
+            // Gmail quote
+            $html = preg_replace(
+                '/<div\s+class=["\']gmail_quote["\'][^>]*>/i',
+                $detailsOpen . '<div class="gmail_quote">',
+                $html, 1, $gmailCount
+            );
+            if ($gmailCount > 0) {
+                $html .= $detailsClose;
+            }
+
+            // Outlook quote
+            $html = preg_replace(
+                '/<div\s+id=["\']divRplyFwdMsg["\'][^>]*>/i',
+                $detailsOpen . '<div id="divRplyFwdMsg">',
+                $html, 1, $outlookCount
+            );
+            if ($outlookCount > 0 && $gmailCount === 0) {
+                $html .= $detailsClose;
+            }
+
+            // Generic blockquote (only if no Gmail/Outlook quote found)
+            if ($gmailCount === 0 && $outlookCount === 0) {
+                $html = preg_replace(
+                    '/<blockquote[^>]*>/i',
+                    $detailsOpen . '<blockquote>',
+                    $html, 1, $bqCount
+                );
+                if ($bqCount > 0) {
+                    $html .= $detailsClose;
+                }
+            }
+
             return $html;
         };
 
@@ -862,6 +899,7 @@ trait WithCommsChat
             'sent_by' => $m->sentByUser?->name ?? null,
             'has_media' => $m->hasMedia(),
             'attachments' => $m->attachments ?? [],
+            'reactions' => $m->reactions ?? [],
         ])->all();
 
         $this->dispatch('comms:scroll-bottom');
