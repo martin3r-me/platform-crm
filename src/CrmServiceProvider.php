@@ -246,6 +246,9 @@ class CrmServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Crm\Tools\Comms\ShowWhatsAppMessageTool());
             $registry->register(new \Platform\Crm\Tools\Comms\SearchWhatsAppMessagesTool());
             $registry->register(new \Platform\Crm\Tools\Comms\WhatsAppOverviewTool());
+
+            // Comms Logs
+            $registry->register(new \Platform\Crm\Tools\Comms\ListCommsLogsTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('CRM: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);

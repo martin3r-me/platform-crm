@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Platform\Crm\Models\CommsChannel;
+use Platform\Crm\Models\CommsLog;
 use Platform\Crm\Models\CommsWhatsAppConversationThread;
 use Platform\Crm\Models\CommsWhatsAppMessage;
 use Platform\Crm\Models\CommsWhatsAppThread;
@@ -373,6 +374,31 @@ class WhatsAppMetaService
                 'response' => $responseData,
             ]);
         }
+
+        CommsLog::log(
+            event: $response->successful() ? 'template_sent' : 'template_failed',
+            status: $response->successful() ? 'success' : 'error',
+            summary: $response->successful()
+                ? "Template '{$templateName}' an {$phone} gesendet"
+                : "Template '{$templateName}' an {$phone} fehlgeschlagen",
+            details: [
+                'template_name' => $templateName,
+                'template_params' => $templateParams,
+                'message_type' => $messageType,
+                'meta_response' => $responseData,
+                'http_status' => $response->status(),
+            ],
+            extra: [
+                'team_id' => $channel->team_id,
+                'channel_type' => 'whatsapp',
+                'channel_id' => $channel->id,
+                'recipient' => $phone,
+                'thread_id' => $thread->id,
+                'message_id' => $message->id,
+                'triggered_by_user_id' => $sender?->id,
+                'source' => $templateName ? 'manual_template' : 'inline_comms',
+            ],
+        );
 
         return $message;
     }
