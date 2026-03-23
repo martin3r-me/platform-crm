@@ -124,6 +124,9 @@ class ShowWhatsAppMessageTool implements ToolContract, ToolMetadataContract
             // Attachments
             $item['attachments'] = $message->attachments;
 
+            // Raw meta payload (for debugging)
+            $item['meta_payload'] = $message->meta_payload;
+
             // Conversation thread info
             if ($message->conversationThread) {
                 $item['conversation_thread'] = [
