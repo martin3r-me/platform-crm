@@ -575,8 +575,8 @@ trait WithCommsChat
             }
 
             // Collapse quoted content (Gmail, Outlook, Apple Mail, blockquote, text markers)
-            $detailsOpen = '<details style="margin-top:8px;border-top:1px solid #e5e5e5;padding-top:4px"><summary style="cursor:pointer;color:#888;font-size:12px;list-style:none">&#x2026; Zitierter Verlauf</summary>';
-            $detailsClose = '</details>';
+            $detailsOpen = '<details style="margin-top:12px;border-top:1px solid #e0e0e0;padding-top:8px"><summary style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:4px 12px;font-size:12px;color:#666;background:#f5f5f5;border:1px solid #e0e0e0;border-radius:12px;list-style:none;user-select:none;transition:background 0.15s">&#9662; Zitierter Verlauf anzeigen</summary><div style="margin-top:8px">';
+            $detailsClose = '</div></details>';
             $collapsed = false;
 
             // Gmail quote: <div class="gmail_quote">
