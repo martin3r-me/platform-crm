@@ -61,29 +61,6 @@ class WhatsAppMetaService
         string $languageCode = 'en',
         ?User $sender = null,
     ): CommsWhatsAppMessage {
-        // DEBUG: Log what components were passed in
-        CommsLog::log(
-            event: 'debug_send_template',
-            status: 'info',
-            summary: "DEBUG sendTemplate() called for '{$templateName}'",
-            details: [
-                'components_received' => $components,
-                'components_count' => count($components),
-                'components_empty' => empty($components),
-                'caller_trace' => collect(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5))
-                    ->map(fn ($f) => ($f['class'] ?? '') . '::' . ($f['function'] ?? '') . ' (' . basename($f['file'] ?? '') . ':' . ($f['line'] ?? '') . ')')
-                    ->toArray(),
-            ],
-            extra: [
-                'team_id' => $channel->team_id,
-                'channel_type' => 'whatsapp',
-                'channel_id' => $channel->id,
-                'recipient' => $to,
-                'triggered_by_user_id' => $sender?->id,
-                'source' => 'debug',
-            ],
-        );
-
         $this->validateChannel($channel);
         $creds = $this->getCredentials($channel);
         $phone = $this->normalizePhoneNumber($to);

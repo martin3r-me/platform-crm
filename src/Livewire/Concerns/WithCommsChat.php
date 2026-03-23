@@ -1257,6 +1257,26 @@ trait WithCommsChat
             ];
         }
 
+        // URL button — auto-fill with context URL if template has a URL button
+        foreach ($preview['components'] ?? [] as $comp) {
+            if (($comp['type'] ?? '') === 'BUTTONS') {
+                foreach ($comp['buttons'] ?? [] as $btn) {
+                    if (($btn['type'] ?? '') === 'URL') {
+                        $contextUrl = $this->resolveUrlButtonParameter();
+                        if ($contextUrl) {
+                            $components[] = [
+                                'type' => 'button',
+                                'sub_type' => 'url',
+                                'index' => 0,
+                                'parameters' => [['type' => 'text', 'text' => $contextUrl]],
+                            ];
+                        }
+                        break 2;
+                    }
+                }
+            }
+        }
+
         try {
             /** @var WhatsAppMetaService $svc */
             $svc = app(WhatsAppMetaService::class);
@@ -1493,5 +1513,27 @@ trait WithCommsChat
             ->where('user_id', $user->id)
             ->wherePivotIn('role', [TeamRole::OWNER->value, TeamRole::ADMIN->value])
             ->exists();
+    }
+
+    /**
+     * Resolve the URL button parameter from context model (e.g. public form token).
+     */
+    private function resolveUrlButtonParameter(): ?string
+    {
+        if (!$this->hasContext()) {
+            return null;
+        }
+
+        try {
+            $model = $this->contextModel::find($this->contextModelId);
+            if ($model && method_exists($model, 'getPublicUrl')) {
+                $publicUrl = $model->getPublicUrl();
+                return basename(parse_url($publicUrl, PHP_URL_PATH));
+            }
+        } catch (\Throwable $e) {
+            // Silent fail
+        }
+
+        return null;
     }
 }
