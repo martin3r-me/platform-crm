@@ -141,6 +141,26 @@ trait WithCommsChat
         return !empty($this->contextModel) && !empty($this->contextModelId);
     }
 
+    /**
+     * Find the first context recipient matching a type (email or phone).
+     */
+    protected function findContextRecipientByType(string $type): ?string
+    {
+        foreach ($this->contextRecipients as $recipient) {
+            $cleaned = preg_replace('/[\s\-()]/', '', (string) $recipient);
+            $isPhone = preg_match('/^\+?\d{7,}$/', $cleaned);
+
+            if ($type === 'phone' && $isPhone) {
+                return (string) $recipient;
+            }
+            if ($type === 'email' && !$isPhone && str_contains((string) $recipient, '@')) {
+                return (string) $recipient;
+            }
+        }
+
+        return null;
+    }
+
     // -------------------------------------------------------------------------
     // Email Runtime
     // -------------------------------------------------------------------------
@@ -395,7 +415,8 @@ trait WithCommsChat
 
         if ($this->hasContext()) {
             $this->emailCompose['subject'] = (string) ($this->contextSubject ?? '');
-            $this->emailCompose['to'] = (string) (($this->contextRecipients[0] ?? '') ?: $this->emailCompose['to']);
+            $email = $this->findContextRecipientByType('email');
+            $this->emailCompose['to'] = (string) ($email ?: $this->emailCompose['to']);
         } else {
             $this->emailCompose['subject'] = '';
         }
@@ -1040,8 +1061,8 @@ trait WithCommsChat
         $this->resetTemplateSelection();
 
         if ($this->hasContext()) {
-            $phone = (string) (($this->contextRecipients[0] ?? '') ?: $this->whatsappCompose['to']);
-            if (preg_match('/^\+?\d{7,}$/', preg_replace('/[\s\-()]/', '', $phone))) {
+            $phone = $this->findContextRecipientByType('phone') ?: $this->whatsappCompose['to'];
+            if ($phone && preg_match('/^\+?\d{7,}$/', preg_replace('/[\s\-()]/', '', $phone))) {
                 $this->whatsappCompose['to'] = $phone;
             }
         } else {
