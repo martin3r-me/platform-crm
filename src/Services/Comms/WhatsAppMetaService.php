@@ -177,6 +177,24 @@ class WhatsAppMetaService
             $storedMessageType = 'audio';
         }
 
+        // Interactive messages (quick reply buttons, list replies)
+        if ($messageType === 'interactive') {
+            $interactive = $messageData['interactive'] ?? [];
+            $interactiveType = $interactive['type'] ?? '';
+            if ($interactiveType === 'button_reply') {
+                $text = $interactive['button_reply']['title'] ?? '';
+            } elseif ($interactiveType === 'list_reply') {
+                $text = $interactive['list_reply']['title'] ?? '';
+            }
+            $storedMessageType = 'text';
+        }
+
+        // Button messages (template quick reply callbacks)
+        if ($messageType === 'button') {
+            $text = $messageData['button']['text'] ?? '';
+            $storedMessageType = 'text';
+        }
+
         // For media messages without text body, try to get caption
         if ($text === '' && in_array($messageType, ['image', 'video', 'audio', 'document', 'sticker', 'voice'])) {
             $text = $messageData[$messageType]['caption'] ?? '';
