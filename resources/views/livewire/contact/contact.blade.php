@@ -43,6 +43,9 @@
         </x-ui-page-actionbar>
     </x-slot>
 
+    <x-slot name="sidebar"></x-slot>
+    <x-slot name="activity"></x-slot>
+
     <x-ui-page-container>
         <div class="space-y-6">
 

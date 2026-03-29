@@ -67,6 +67,9 @@
         </x-ui-page-actionbar>
     </x-slot>
 
+    <x-slot name="sidebar"></x-slot>
+    <x-slot name="activity"></x-slot>
+
     <x-ui-page-container>
         {{-- Filter Chips --}}
         <div class="flex items-center gap-2 mb-4">
