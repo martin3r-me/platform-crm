@@ -9,16 +9,6 @@ use Illuminate\Support\Facades\Auth;
 
 class Sidebar extends Component
 {
-    public function createContact()
-    {
-        return redirect()->route('crm.contacts.index');
-    }
-
-    public function createCompany()
-    {
-        return redirect()->route('crm.companies.index');
-    }
-
     public function render()
     {
         $user = Auth::user();
@@ -26,7 +16,7 @@ class Sidebar extends Component
         $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : null;
 
         // Neueste Kontakte für Schnellzugriff
-        $recentContacts = $teamId 
+        $recentContacts = $teamId
             ? CrmContact::active()
                 ->where('team_id', $teamId)
                 ->orderBy('created_at', 'desc')

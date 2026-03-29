@@ -10,7 +10,7 @@ return [
     'guard' => 'web',
 
     'navigation' => [
-        'route' => 'crm.dashboard',
+        'route' => 'crm.index',
         'icon'  => 'heroicon-o-ticket',
         'order' => 30,
     ],

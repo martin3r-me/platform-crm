@@ -5,7 +5,7 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'CRM', 'href' => route('crm.dashboard'), 'icon' => 'users'],
+            ['label' => 'CRM', 'href' => route('crm.index'), 'icon' => 'users'],
             ['label' => 'Unternehmen', 'href' => route('crm.companies.index')],
             ['label' => $company->display_name],
         ]">
