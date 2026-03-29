@@ -8,15 +8,12 @@
         <h4 x-show="!collapsed" class="px-4 py-3 text-xs tracking-wide font-semibold text-[color:var(--ui-muted)] uppercase">Allgemein</h4>
 
         {{-- Kontakte --}}
-        <a href="{{ route('crm.index', ['tab' => 'contacts']) }}"
+        <a href="{{ route('crm.contacts.index') }}"
            class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition"
            :class="[
-               (window.location.pathname === '/' || window.location.pathname.endsWith('/crm') || window.location.pathname.endsWith('/crm/')) &&
-               (!window.location.search || window.location.search.includes('tab=contacts') || !window.location.search.includes('tab='))
+               window.location.pathname.includes('/contacts')
                    ? 'bg-[color:var(--ui-primary)] text-[color:var(--ui-on-primary)] shadow'
-                   : window.location.pathname.includes('/contacts')
-                       ? 'bg-[color:var(--ui-primary)] text-[color:var(--ui-on-primary)] shadow'
-                       : 'text-[color:var(--ui-secondary)] hover:bg-[color:var(--ui-primary-5)] hover:text-[color:var(--ui-primary)]',
+                   : 'text-[color:var(--ui-secondary)] hover:bg-[color:var(--ui-primary-5)] hover:text-[color:var(--ui-primary)]',
                collapsed ? 'justify-center' : 'gap-3'
            ]"
            wire:navigate>
@@ -25,15 +22,12 @@
         </a>
 
         {{-- Unternehmen --}}
-        <a href="{{ route('crm.index', ['tab' => 'companies']) }}"
+        <a href="{{ route('crm.companies.index') }}"
            class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition"
            :class="[
-               (window.location.pathname === '/' || window.location.pathname.endsWith('/crm') || window.location.pathname.endsWith('/crm/')) &&
-               window.location.search.includes('tab=companies')
+               window.location.pathname.includes('/companies')
                    ? 'bg-[color:var(--ui-primary)] text-[color:var(--ui-on-primary)] shadow'
-                   : window.location.pathname.includes('/companies')
-                       ? 'bg-[color:var(--ui-primary)] text-[color:var(--ui-on-primary)] shadow'
-                       : 'text-[color:var(--ui-secondary)] hover:bg-[color:var(--ui-primary-5)] hover:text-[color:var(--ui-primary)]',
+                   : 'text-[color:var(--ui-secondary)] hover:bg-[color:var(--ui-primary-5)] hover:text-[color:var(--ui-primary)]',
                collapsed ? 'justify-center' : 'gap-3'
            ]"
            wire:navigate>
@@ -52,8 +46,7 @@
                class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition gap-3"
                :class="[
                    window.location.pathname.includes('/contacts/{{ $contact->id }}/') ||
-                   window.location.pathname.endsWith('/contacts/{{ $contact->id }}') ||
-                   (window.location.pathname.split('/').length === 2 && window.location.pathname.endsWith('/{{ $contact->id }}'))
+                   window.location.pathname.endsWith('/contacts/{{ $contact->id }}')
                        ? 'bg-[color:var(--ui-primary)] text-[color:var(--ui-on-primary)] shadow'
                        : 'text-[color:var(--ui-secondary)] hover:bg-[color:var(--ui-primary-5)] hover:text-[color:var(--ui-primary)]'
                ]"
@@ -69,8 +62,7 @@
                class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition gap-3"
                :class="[
                    window.location.pathname.includes('/companies/{{ $company->id }}/') ||
-                   window.location.pathname.endsWith('/companies/{{ $company->id }}') ||
-                   (window.location.pathname.split('/').length === 2 && window.location.pathname.endsWith('/{{ $company->id }}'))
+                   window.location.pathname.endsWith('/companies/{{ $company->id }}')
                        ? 'bg-[color:var(--ui-primary)] text-[color:var(--ui-on-primary)] shadow'
                        : 'text-[color:var(--ui-secondary)] hover:bg-[color:var(--ui-primary-5)] hover:text-[color:var(--ui-primary)]'
                ]"
