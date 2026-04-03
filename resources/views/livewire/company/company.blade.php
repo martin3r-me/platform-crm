@@ -196,29 +196,9 @@
 
     <x-slot name="activity">
         <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-4 space-y-4">
-                {{-- Notiz-Eingabe --}}
-                <div class="space-y-2">
-                    <textarea
-                        wire:model="newNote"
-                        rows="3"
-                        class="w-full text-sm rounded-lg border border-[color:var(--ui-border)] bg-[color:var(--ui-bg)] p-2 focus:border-[color:var(--ui-primary)] focus:ring-1 focus:ring-[color:var(--ui-primary)] outline-none resize-none"
-                        placeholder="Notiz hinzufügen..."
-                    ></textarea>
-                    @error('newNote')
-                        <p class="text-xs text-red-500">{{ $message }}</p>
-                    @enderror
-                    <div class="flex justify-end">
-                        <x-ui-button size="xs" variant="primary" wire:click="addNote" :disabled="!$newNote">
-                            Speichern
-                        </x-ui-button>
-                    </div>
-                </div>
-
-                <hr class="border-[color:var(--ui-border)]">
-
-                {{-- Timeline --}}
-                <div class="space-y-3">
+            <div class="h-full flex flex-col">
+                {{-- Timeline (scrollbar) --}}
+                <div class="flex-1 overflow-y-auto p-4 space-y-3">
                     @forelse($company->activities as $activity)
                         <div class="flex gap-3">
                             <div class="flex-shrink-0 mt-0.5">
@@ -263,6 +243,24 @@
                     @empty
                         <p class="text-sm text-[color:var(--ui-muted)]">Keine Aktivitäten vorhanden.</p>
                     @endforelse
+                </div>
+
+                {{-- Notiz-Eingabe (fixed bottom) --}}
+                <div class="flex-shrink-0 border-t border-[color:var(--ui-border)] p-3">
+                    @error('newNote')
+                        <p class="text-xs text-red-500 mb-2">{{ $message }}</p>
+                    @enderror
+                    <form wire:submit="addNote" class="flex items-end gap-2">
+                        <textarea
+                            wire:model="newNote"
+                            rows="2"
+                            class="flex-1 text-sm rounded-lg border border-[color:var(--ui-border)] bg-[color:var(--ui-bg)] p-2 focus:border-[color:var(--ui-primary)] focus:ring-1 focus:ring-[color:var(--ui-primary)] outline-none resize-none"
+                            placeholder="Notiz hinzufügen..."
+                        ></textarea>
+                        <button type="submit" class="flex-shrink-0 w-8 h-8 rounded-lg bg-[color:var(--ui-primary)] text-white flex items-center justify-center hover:opacity-90 transition">
+                            @svg('heroicon-s-arrow-up', 'w-4 h-4')
+                        </button>
+                    </form>
                 </div>
             </div>
         </x-ui-page-sidebar>

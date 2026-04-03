@@ -46,23 +46,26 @@
         </x-ui-page-actionbar>
     </x-slot>
 
-    <x-slot name="sidebar"></x-slot>
+    <x-slot name="sidebar">
+        <x-ui-page-sidebar title="Filter" width="w-72" :defaultOpen="true" side="left">
+            <div class="p-4 space-y-4">
+                <x-ui-input-select
+                    name="statusFilter"
+                    label="Status"
+                    :options="$contactStatuses"
+                    optionValue="id"
+                    optionLabel="name"
+                    :nullable="true"
+                    nullLabel="– Alle –"
+                    size="sm"
+                    wire:model.live="statusFilter"
+                />
+            </div>
+        </x-ui-page-sidebar>
+    </x-slot>
     <x-slot name="activity"></x-slot>
 
     <x-ui-page-container>
-        {{-- Filter Chips --}}
-        <div class="flex items-center gap-2 mb-4">
-            <x-ui-input-select
-                name="statusFilter"
-                :options="$contactStatuses"
-                optionValue="id"
-                optionLabel="name"
-                :nullable="true"
-                nullLabel="Alle Status"
-                size="sm"
-                wire:model.live="statusFilter"
-            />
-        </div>
 
         @if($this->companies->count() === 0)
             <div class="rounded-lg border border-[color:var(--ui-border)] bg-[color:var(--ui-surface)] p-6 text-sm text-[color:var(--ui-muted)]">

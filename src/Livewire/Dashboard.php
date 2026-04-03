@@ -10,6 +10,7 @@ use Platform\Crm\Models\CrmEmailAddress;
 use Platform\Crm\Models\CrmPhoneNumber;
 use Platform\Crm\Models\CrmPostalAddress;
 use Platform\Crm\Models\CrmContactRelation;
+use Platform\ActivityLog\Models\ActivityLogActivity;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -195,6 +196,45 @@ class Dashboard extends Component
             ->orderBy('count', 'desc')
             ->take(3)
             ->get();
+    }
+
+    #[Computed]
+    public function recentActivities()
+    {
+        $teamId = $this->getTeamId();
+        if (!$teamId) {
+            return collect();
+        }
+
+        $morphTypes = [
+            (new CrmContact)->getMorphClass(),
+            (new CrmCompany)->getMorphClass(),
+        ];
+
+        $activities = ActivityLogActivity::query()
+            ->whereIn('activityable_type', $morphTypes)
+            ->where(function ($q) use ($teamId, $morphTypes) {
+                foreach ($morphTypes as $type) {
+                    $model = app($type);
+                    $q->orWhere(function ($sub) use ($type, $teamId, $model) {
+                        $sub->where('activityable_type', $type)
+                            ->whereIn('activityable_id', $model::query()->where('team_id', $teamId)->select('id'));
+                    });
+                }
+            })
+            ->with('user')
+            ->latest()
+            ->take(20)
+            ->get();
+
+        // Eager-load activityable models (grouped by type to avoid N+1)
+        $activities->groupBy('activityable_type')->each(function ($group, $type) {
+            $ids = $group->pluck('activityable_id')->unique();
+            $models = $type::whereIn('id', $ids)->get()->keyBy('id');
+            $group->each(fn ($a) => $a->setRelation('activityable', $models->get($a->activityable_id)));
+        });
+
+        return $activities;
     }
 
     public function render()
