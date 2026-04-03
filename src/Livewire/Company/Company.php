@@ -33,6 +33,7 @@ class Company extends Component
     public $relationTypes = [];
     public $contacts = [];
     public $legalForms = [];
+    public string $newNote = '';
     
     // E-Mail Modals
     public $emailCreateModalShow = false;
@@ -110,7 +111,7 @@ class Company extends Component
     public function mount(CrmCompany $company = null, $mode = 'show')
     {
         if ($company) {
-            $this->company = $company->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.contact', 'activities']);
+            $this->company = $company->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.contact', 'activities.user']);
         }
         $this->mode = $mode;
         
@@ -678,6 +679,24 @@ class Company extends Component
     {
         // Prüfe ob das Company-Model geändert wurde
         return $this->company->isDirty();
+    }
+
+    public function addNote(): void
+    {
+        $this->validate(['newNote' => 'required|string|max:1000']);
+        $this->company->logActivity($this->newNote);
+        $this->newNote = '';
+        $this->company->load('activities.user');
+    }
+
+    public function deleteNote(int $activityId): void
+    {
+        $this->company->activities()
+            ->where('id', $activityId)
+            ->where('activity_type', 'manual')
+            ->where('user_id', auth()->id())
+            ->delete();
+        $this->company->load('activities.user');
     }
 
     public function render()

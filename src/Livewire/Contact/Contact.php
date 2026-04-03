@@ -108,6 +108,8 @@ class Contact extends Component
         'notes' => '',
     ];
     
+    public string $newNote = '';
+
     public $modalShow = false;
 
     // Telefon Modal
@@ -118,7 +120,7 @@ class Contact extends Component
 
     public function mount(CrmContact $contact)
     {
-        $this->contact = $contact->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.company', 'activities']);
+        $this->contact = $contact->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.company', 'activities.user']);
 
         // birth_date in String-Property für Date-Input normalisieren
         $this->birthDate = $this->contact->birth_date?->toDateString();
@@ -798,6 +800,24 @@ class Contact extends Component
         $originalString = $original ? Carbon::parse($original)->toDateString() : null;
 
         return $this->birthDate !== $originalString;
+    }
+
+    public function addNote(): void
+    {
+        $this->validate(['newNote' => 'required|string|max:1000']);
+        $this->contact->logActivity($this->newNote);
+        $this->newNote = '';
+        $this->contact->load('activities.user');
+    }
+
+    public function deleteNote(int $activityId): void
+    {
+        $this->contact->activities()
+            ->where('id', $activityId)
+            ->where('activity_type', 'manual')
+            ->where('user_id', auth()->id())
+            ->delete();
+        $this->contact->load('activities.user');
     }
 
     public function render()

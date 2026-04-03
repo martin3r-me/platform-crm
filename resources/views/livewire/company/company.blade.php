@@ -196,7 +196,75 @@
 
     <x-slot name="activity">
         <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-6 text-sm text-[var(--ui-muted)]">Keine Aktivitäten verfügbar</div>
+            <div class="p-4 space-y-4">
+                {{-- Notiz-Eingabe --}}
+                <div class="space-y-2">
+                    <textarea
+                        wire:model="newNote"
+                        rows="3"
+                        class="w-full text-sm rounded-lg border border-[color:var(--ui-border)] bg-[color:var(--ui-bg)] p-2 focus:border-[color:var(--ui-primary)] focus:ring-1 focus:ring-[color:var(--ui-primary)] outline-none resize-none"
+                        placeholder="Notiz hinzufügen..."
+                    ></textarea>
+                    @error('newNote')
+                        <p class="text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+                    <div class="flex justify-end">
+                        <x-ui-button size="xs" variant="primary" wire:click="addNote" :disabled="!$newNote">
+                            Speichern
+                        </x-ui-button>
+                    </div>
+                </div>
+
+                <hr class="border-[color:var(--ui-border)]">
+
+                {{-- Timeline --}}
+                <div class="space-y-3">
+                    @forelse($company->activities as $activity)
+                        <div class="flex gap-3">
+                            <div class="flex-shrink-0 mt-0.5">
+                                @if($activity->activity_type === 'manual')
+                                    <div class="w-6 h-6 rounded-full bg-[color:var(--ui-primary-10)] flex items-center justify-center">
+                                        @svg('heroicon-s-pencil', 'w-3 h-3 text-[color:var(--ui-primary)]')
+                                    </div>
+                                @elseif($activity->name === 'created')
+                                    <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                                        @svg('heroicon-s-plus', 'w-3 h-3 text-green-600')
+                                    </div>
+                                @else
+                                    <div class="w-6 h-6 rounded-full bg-[color:var(--ui-muted-10)] flex items-center justify-center">
+                                        @svg('heroicon-s-cog-6-tooth', 'w-3 h-3 text-[color:var(--ui-muted)]')
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="flex-grow min-w-0">
+                                @if($activity->activity_type === 'manual')
+                                    <p class="text-sm">{{ $activity->message }}</p>
+                                @elseif($activity->name === 'created')
+                                    <p class="text-sm text-[color:var(--ui-muted)]">Unternehmen erstellt</p>
+                                @elseif($activity->name === 'updated' && is_array($activity->properties))
+                                    <p class="text-sm text-[color:var(--ui-muted)]">
+                                        {{ collect($activity->properties)->keys()->map(fn($k) => str_replace('_', ' ', ucfirst($k)))->implode(', ') }} geändert
+                                    </p>
+                                @else
+                                    <p class="text-sm text-[color:var(--ui-muted)]">{{ $activity->name }}</p>
+                                @endif
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="text-xs text-[color:var(--ui-muted)]">
+                                        {{ $activity->user?->name ?? 'System' }} · {{ $activity->created_at->diffForHumans() }}
+                                    </span>
+                                    @if($activity->activity_type === 'manual' && $activity->user_id === auth()->id())
+                                        <button wire:click="deleteNote({{ $activity->id }})" wire:confirm="Notiz wirklich löschen?" class="text-xs text-red-400 hover:text-red-600">
+                                            @svg('heroicon-o-trash', 'w-3 h-3')
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-sm text-[color:var(--ui-muted)]">Keine Aktivitäten vorhanden.</p>
+                    @endforelse
+                </div>
+            </div>
         </x-ui-page-sidebar>
     </x-slot>
 
