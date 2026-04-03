@@ -76,7 +76,7 @@ trait HasCompanyLinksTrait
         });
 
         $companyIds = $activeCompanies->pluck('id');
-        $existingIds = $this->companyLinks()->pluck('company_id');
+        $existingIds = $this->morphMany(CrmCompanyLink::class, 'linkable')->pluck('company_id');
         $newIds = $companyIds->diff($existingIds);
         
         $user = auth()->user();
@@ -129,10 +129,11 @@ trait HasCompanyLinksTrait
 
     /**
      * Prüfen, ob eine bestimmte Company verlinkt ist.
+     * Ohne Team-Scope, da der DB Unique-Constraint team-unabhängig ist.
      */
     public function hasCompany(CrmCompany $company): bool
     {
-        return $this->companyLinks()
+        return $this->morphMany(CrmCompanyLink::class, 'linkable')
             ->where('company_id', $company->id)
             ->exists();
     }
