@@ -10,12 +10,18 @@ use Platform\Crm\Models\CrmContactStatus;
 use Platform\Crm\Models\CrmGender;
 use Platform\Crm\Models\CrmLanguage;
 use Platform\Crm\Models\CrmSalutation;
+use Platform\Crm\Models\CrmCompany;
 
 class ContactIndex extends Component
 {
     public string $search = '';
     public $statusFilter = null;
     public string $blacklistFilter = 'not_blacklisted';
+    public $companyFilter = null;
+    public $languageFilter = null;
+    public $genderFilter = null;
+    public ?string $createdFrom = null;
+    public ?string $createdTo = null;
     public string $sortField = 'last_name';
     public string $sortDirection = 'asc';
     public int $perPage = 50;
@@ -37,6 +43,10 @@ class ContactIndex extends Component
     public $language_id = '';
     public $contact_status_id = '';
 
+    // Quick-create: optional primary email + phone
+    public string $primary_email = '';
+    public string $primary_phone = '';
+
     public function updatedSearch(): void
     {
         $this->page = 1;
@@ -44,14 +54,32 @@ class ContactIndex extends Component
         $this->selectAll = false;
     }
 
-    public function updatedStatusFilter(): void
+    public function updatedStatusFilter(): void { $this->page = 1; }
+    public function updatedBlacklistFilter(): void { $this->page = 1; }
+    public function updatedCompanyFilter(): void { $this->page = 1; }
+    public function updatedLanguageFilter(): void { $this->page = 1; }
+    public function updatedGenderFilter(): void { $this->page = 1; }
+    public function updatedCreatedFrom(): void { $this->page = 1; }
+    public function updatedCreatedTo(): void { $this->page = 1; }
+
+    public function resetFilters(): void
     {
+        $this->reset(['statusFilter', 'blacklistFilter', 'companyFilter', 'languageFilter', 'genderFilter', 'createdFrom', 'createdTo', 'search']);
+        $this->blacklistFilter = 'not_blacklisted';
         $this->page = 1;
     }
 
-    public function updatedBlacklistFilter(): void
+    #[Computed]
+    public function hasActiveFilters(): bool
     {
-        $this->page = 1;
+        return !empty($this->statusFilter)
+            || $this->blacklistFilter !== 'not_blacklisted'
+            || !empty($this->companyFilter)
+            || !empty($this->languageFilter)
+            || !empty($this->genderFilter)
+            || !empty($this->createdFrom)
+            || !empty($this->createdTo)
+            || trim($this->search) !== '';
     }
 
     public function loadMore(): void
@@ -64,7 +92,7 @@ class ContactIndex extends Component
     {
         $search = trim($this->search);
 
-        return CrmContact::with(['contactStatus', 'emailAddresses', 'phoneNumbers', 'postalAddresses', 'contactRelations.company'])
+        return CrmContact::with(['contactStatus', 'emailAddresses', 'phoneNumbers', 'postalAddresses', 'contactRelations.company', 'gender', 'language'])
             ->where('team_id', $this->getTeamId())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(fn ($sub) => $sub
@@ -81,12 +109,22 @@ class ContactIndex extends Component
             ->when(! empty($this->statusFilter), fn ($q) => $q->where('contact_status_id', $this->statusFilter))
             ->when($this->blacklistFilter === 'not_blacklisted', fn ($q) => $q->where('is_blacklisted', false))
             ->when($this->blacklistFilter === 'blacklisted', fn ($q) => $q->where('is_blacklisted', true))
+            ->when(! empty($this->companyFilter), fn ($q) => $q->whereHas('contactRelations', fn ($r) => $r->where('company_id', $this->companyFilter)))
+            ->when(! empty($this->languageFilter), fn ($q) => $q->where('language_id', $this->languageFilter))
+            ->when(! empty($this->genderFilter), fn ($q) => $q->where('gender_id', $this->genderFilter))
+            ->when(! empty($this->createdFrom), fn ($q) => $q->whereDate('crm_contacts.created_at', '>=', $this->createdFrom))
+            ->when(! empty($this->createdTo), fn ($q) => $q->whereDate('crm_contacts.created_at', '<=', $this->createdTo))
             ->when($this->sortField === 'last_name', fn ($q) => $q->orderBy('last_name', $this->sortDirection)->orderBy('first_name', $this->sortDirection))
             ->when($this->sortField === 'contact_status_id', fn ($q) => $q
                 ->join('crm_contact_statuses', 'crm_contacts.contact_status_id', '=', 'crm_contact_statuses.id')
                 ->select('crm_contacts.*')
                 ->orderBy('crm_contact_statuses.name', $this->sortDirection))
-            ->when(! in_array($this->sortField, ['last_name', 'contact_status_id']), fn ($q) => $q->orderBy($this->sortField, $this->sortDirection))
+            ->when($this->sortField === 'company', fn ($q) => $q
+                ->leftJoin('crm_contact_relations', fn ($j) => $j->on('crm_contacts.id', '=', 'crm_contact_relations.contact_id')->where('crm_contact_relations.is_primary', true))
+                ->leftJoin('crm_companies', 'crm_contact_relations.company_id', '=', 'crm_companies.id')
+                ->select('crm_contacts.*')
+                ->orderBy('crm_companies.name', $this->sortDirection))
+            ->when(! in_array($this->sortField, ['last_name', 'contact_status_id', 'company']), fn ($q) => $q->orderBy($this->sortField, $this->sortDirection))
             ->take($this->perPage * $this->page)
             ->get();
     }
@@ -149,9 +187,11 @@ class ContactIndex extends Component
             'gender_id' => 'nullable|exists:crm_genders,id',
             'language_id' => 'nullable|exists:crm_languages,id',
             'contact_status_id' => 'required|exists:crm_contact_statuses,id',
+            'primary_email' => 'nullable|email|max:255',
+            'primary_phone' => 'nullable|string|max:255',
         ]);
 
-        CrmContact::create([
+        $contact = CrmContact::create([
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
             'middle_name' => $this->middle_name,
@@ -166,6 +206,40 @@ class ContactIndex extends Component
             'team_id' => $this->getTeamId(),
             'created_by_user_id' => auth()->id(),
         ]);
+
+        if (trim($this->primary_email) !== '') {
+            $contact->emailAddresses()->create([
+                'email_address' => $this->primary_email,
+                'email_type_id' => 1,
+                'is_primary' => true,
+                'is_active' => true,
+            ]);
+        }
+
+        if (trim($this->primary_phone) !== '') {
+            try {
+                $phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
+                $phoneNumber = $phoneUtil->parse($this->primary_phone, 'DE');
+                $contact->phoneNumbers()->create([
+                    'raw_input' => $this->primary_phone,
+                    'international' => $phoneUtil->format($phoneNumber, \libphonenumber\PhoneNumberFormat::E164),
+                    'national' => $phoneUtil->format($phoneNumber, \libphonenumber\PhoneNumberFormat::NATIONAL),
+                    'country_code' => $phoneUtil->getRegionCodeForNumber($phoneNumber) ?: 'DE',
+                    'phone_type_id' => 1,
+                    'is_primary' => true,
+                ]);
+            } catch (\Throwable $e) {
+                // Store raw if parsing fails
+                $contact->phoneNumbers()->create([
+                    'raw_input' => $this->primary_phone,
+                    'international' => $this->primary_phone,
+                    'national' => $this->primary_phone,
+                    'country_code' => 'DE',
+                    'phone_type_id' => 1,
+                    'is_primary' => true,
+                ]);
+            }
+        }
 
         $this->resetForm();
         $this->modalShow = false;
@@ -184,13 +258,29 @@ class ContactIndex extends Component
 
     public function render()
     {
+        // Store contact IDs for prev/next navigation on detail pages
+        $this->storeNavigationContext();
+
+        $teamId = $this->getTeamId();
+
         return view('crm::livewire.contact-index', [
             'contactStatuses' => CrmContactStatus::active()->get(),
             'salutations' => CrmSalutation::active()->get(),
             'academicTitles' => CrmAcademicTitle::active()->get(),
             'genders' => CrmGender::active()->get(),
             'languages' => CrmLanguage::active()->get(),
+            'companiesForFilter' => CrmCompany::active()->where('team_id', $teamId)->orderBy('name')->get(),
         ])->layout('platform::layouts.app');
+    }
+
+    private function storeNavigationContext(): void
+    {
+        $ids = $this->contacts->pluck('id')->toArray();
+        session()->put('crm.contact_nav', [
+            'ids' => $ids,
+            'sort' => $this->sortField,
+            'dir' => $this->sortDirection,
+        ]);
     }
 
     private function getTeamId(): int
@@ -207,6 +297,7 @@ class ContactIndex extends Component
             'first_name', 'last_name', 'middle_name', 'nickname',
             'birth_date', 'notes', 'salutation_id', 'academic_title_id',
             'gender_id', 'language_id', 'contact_status_id',
+            'primary_email', 'primary_phone',
         ]);
     }
 }

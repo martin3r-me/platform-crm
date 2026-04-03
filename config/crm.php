@@ -10,8 +10,8 @@ return [
     'guard' => 'web',
 
     'navigation' => [
-        'route' => 'crm.contacts.index',
-        'icon'  => 'heroicon-o-ticket',
+        'route' => 'crm.index',
+        'icon'  => 'heroicon-o-user-group',
         'order' => 30,
     ],
 ];

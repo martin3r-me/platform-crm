@@ -5,7 +5,7 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'CRM', 'icon' => 'users'],
+            ['label' => 'CRM', 'href' => route('crm.index'), 'icon' => 'users'],
             ['label' => 'Unternehmen'],
         ]">
             <div class="flex items-center gap-2">
@@ -60,12 +60,133 @@
                     size="sm"
                     wire:model.live="statusFilter"
                 />
+                <x-ui-input-select
+                    name="industryFilter"
+                    label="Branche"
+                    :options="$industries"
+                    optionValue="id"
+                    optionLabel="name"
+                    :nullable="true"
+                    nullLabel="– Alle –"
+                    size="sm"
+                    wire:model.live="industryFilter"
+                />
+                <x-ui-input-select
+                    name="legalFormFilter"
+                    label="Rechtsform"
+                    :options="$legalForms"
+                    optionValue="id"
+                    optionLabel="name"
+                    :nullable="true"
+                    nullLabel="– Alle –"
+                    size="sm"
+                    wire:model.live="legalFormFilter"
+                />
+                <x-ui-input-select
+                    name="countryFilter"
+                    label="Land"
+                    :options="$countries"
+                    optionValue="id"
+                    optionLabel="name"
+                    :nullable="true"
+                    nullLabel="– Alle –"
+                    size="sm"
+                    wire:model.live="countryFilter"
+                />
+                <div>
+                    <label class="block text-xs font-medium text-[color:var(--ui-muted)] mb-1">Erstellt von – bis</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <x-ui-input-date name="createdFrom" wire:model.live="createdFrom" size="sm" placeholder="Von" :nullable="true" />
+                        <x-ui-input-date name="createdTo" wire:model.live="createdTo" size="sm" placeholder="Bis" :nullable="true" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-[color:var(--ui-muted)] mb-1">Sortierung</label>
+                    <div class="flex gap-2">
+                        <x-ui-input-select
+                            name="sortField"
+                            :options="collect([
+                                ['value' => 'display_name', 'label' => 'Name'],
+                                ['value' => 'contact_status_id', 'label' => 'Status'],
+                                ['value' => 'created_at', 'label' => 'Erstellt'],
+                                ['value' => 'updated_at', 'label' => 'Aktualisiert'],
+                            ])"
+                            optionValue="value"
+                            optionLabel="label"
+                            :nullable="false"
+                            size="sm"
+                            wire:model.live="sortField"
+                            class="flex-1"
+                        />
+                        <x-ui-button size="sm" variant="secondary-outline" wire:click="$set('sortDirection', '{{ $sortDirection === 'asc' ? 'desc' : 'asc' }}')">
+                            @if($sortDirection === 'asc')
+                                @svg('heroicon-o-arrow-up', 'w-4 h-4')
+                            @else
+                                @svg('heroicon-o-arrow-down', 'w-4 h-4')
+                            @endif
+                        </x-ui-button>
+                    </div>
+                </div>
+
+                @if($this->hasActiveFilters)
+                    <x-ui-button variant="secondary-outline" size="sm" wire:click="resetFilters" class="w-full">
+                        @svg('heroicon-o-x-mark', 'w-4 h-4')
+                        Filter zurücksetzen
+                    </x-ui-button>
+                @endif
             </div>
         </x-ui-page-sidebar>
     </x-slot>
     <x-slot name="activity"></x-slot>
 
     <x-ui-page-container>
+
+        {{-- Active filter chips --}}
+        @if($this->hasActiveFilters)
+            <div class="flex flex-wrap items-center gap-2 mb-4">
+                @if(trim($search) !== '')
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        Suche: "{{ $search }}"
+                        <button wire:click="$set('search', '')" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+                @if(!empty($statusFilter))
+                    @php $statusName = $contactStatuses->firstWhere('id', $statusFilter)?->name ?? $statusFilter; @endphp
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        Status: {{ $statusName }}
+                        <button wire:click="$set('statusFilter', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+                @if(!empty($industryFilter))
+                    @php $indName = $industries->firstWhere('id', $industryFilter)?->name ?? $industryFilter; @endphp
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        Branche: {{ $indName }}
+                        <button wire:click="$set('industryFilter', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+                @if(!empty($legalFormFilter))
+                    @php $lfName = $legalForms->firstWhere('id', $legalFormFilter)?->name ?? $legalFormFilter; @endphp
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        Rechtsform: {{ $lfName }}
+                        <button wire:click="$set('legalFormFilter', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+                @if(!empty($countryFilter))
+                    @php $cName = $countries->firstWhere('id', $countryFilter)?->name ?? $countryFilter; @endphp
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        Land: {{ $cName }}
+                        <button wire:click="$set('countryFilter', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+                @if(!empty($createdFrom) || !empty($createdTo))
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        Erstellt: {{ $createdFrom ?? '...' }} – {{ $createdTo ?? '...' }}
+                        <button wire:click="$set('createdFrom', null); $wire.set('createdTo', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+            </div>
+        @endif
 
         @if($this->companies->count() === 0)
             <div class="rounded-lg border border-[color:var(--ui-border)] bg-[color:var(--ui-surface)] p-6 text-sm text-[color:var(--ui-muted)]">
@@ -150,9 +271,13 @@
                                     @endif
                                 </x-ui-table-cell>
                                 <x-ui-table-cell compact="true">
-                                    <x-ui-badge variant="secondary" size="sm">
-                                        {{ $company->contactStatus->name }}
-                                    </x-ui-badge>
+                                    @if($company->contactStatus)
+                                        <x-ui-badge variant="secondary" size="sm">
+                                            {{ $company->contactStatus->name }}
+                                        </x-ui-badge>
+                                    @else
+                                        <span class="text-xs text-[color:var(--ui-muted)]">–</span>
+                                    @endif
                                 </x-ui-table-cell>
                             </x-ui-table-row>
                         @endforeach
@@ -178,14 +303,6 @@
         <x-slot name="header">Neues Unternehmen anlegen</x-slot>
 
         <div class="space-y-4">
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div class="d-flex items-center gap-2 mb-2">
-                    @svg('heroicon-o-information-circle', 'w-5 h-5 text-blue-600')
-                    <h4 class="font-medium text-blue-900">Hinweis</h4>
-                </div>
-                <p class="text-blue-700 text-sm">Kontaktdaten, Adressen und weitere Details können nach dem Anlegen des Unternehmens in der Unternehmens-Detailansicht gepflegt werden.</p>
-            </div>
-
             <form wire:submit.prevent="createCompany" class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <x-ui-input-text name="name" label="Firmenname" wire:model.live="name" required placeholder="Firmenname eingeben" />
@@ -208,6 +325,14 @@
                     <x-ui-input-select name="industry_id" label="Branche" :options="$industries" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Branche auswählen –" wire:model.live="industry_id" />
                     <x-ui-input-select name="legal_form_id" label="Rechtsform" :options="$legalForms" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Rechtsform auswählen –" wire:model.live="legal_form_id" />
                 </div>
+
+                {{-- Quick-create: Primary Email + Phone --}}
+                <hr class="border-[color:var(--ui-border)]">
+                <div class="grid grid-cols-2 gap-4">
+                    <x-ui-input-text name="primary_email" label="Primäre E-Mail" wire:model.live="primary_email" type="email" placeholder="info@firma.de (optional)" />
+                    <x-ui-input-text name="primary_phone" label="Primäre Telefonnummer" wire:model.live="primary_phone" placeholder="+49 123 456789 (optional)" />
+                </div>
+
                 <x-ui-input-textarea name="description" label="Beschreibung" wire:model.live="description" placeholder="Kurze Beschreibung des Unternehmens (optional)" rows="3" />
                 <x-ui-input-textarea name="notes" label="Notizen" wire:model.live="notes" placeholder="Interne Notizen (optional)" rows="3" />
             </form>

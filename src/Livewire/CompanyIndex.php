@@ -14,6 +14,11 @@ class CompanyIndex extends Component
 {
     public string $search = '';
     public $statusFilter = null;
+    public $industryFilter = null;
+    public $legalFormFilter = null;
+    public $countryFilter = null;
+    public ?string $createdFrom = null;
+    public ?string $createdTo = null;
     public string $sortField = 'display_name';
     public string $sortDirection = 'asc';
     public int $perPage = 50;
@@ -37,6 +42,10 @@ class CompanyIndex extends Component
     public $contact_status_id = '';
     public $country_id = '';
 
+    // Quick-create: optional primary email + phone
+    public string $primary_email = '';
+    public string $primary_phone = '';
+
     public function updatedSearch(): void
     {
         $this->page = 1;
@@ -44,9 +53,29 @@ class CompanyIndex extends Component
         $this->selectAll = false;
     }
 
-    public function updatedStatusFilter(): void
+    public function updatedStatusFilter(): void { $this->page = 1; }
+    public function updatedIndustryFilter(): void { $this->page = 1; }
+    public function updatedLegalFormFilter(): void { $this->page = 1; }
+    public function updatedCountryFilter(): void { $this->page = 1; }
+    public function updatedCreatedFrom(): void { $this->page = 1; }
+    public function updatedCreatedTo(): void { $this->page = 1; }
+
+    public function resetFilters(): void
     {
+        $this->reset(['statusFilter', 'industryFilter', 'legalFormFilter', 'countryFilter', 'createdFrom', 'createdTo', 'search']);
         $this->page = 1;
+    }
+
+    #[Computed]
+    public function hasActiveFilters(): bool
+    {
+        return !empty($this->statusFilter)
+            || !empty($this->industryFilter)
+            || !empty($this->legalFormFilter)
+            || !empty($this->countryFilter)
+            || !empty($this->createdFrom)
+            || !empty($this->createdTo)
+            || trim($this->search) !== '';
     }
 
     public function loadMore(): void
@@ -74,6 +103,11 @@ class CompanyIndex extends Component
                 );
             })
             ->when(! empty($this->statusFilter), fn ($q) => $q->where('contact_status_id', $this->statusFilter))
+            ->when(! empty($this->industryFilter), fn ($q) => $q->where('industry_id', $this->industryFilter))
+            ->when(! empty($this->legalFormFilter), fn ($q) => $q->where('legal_form_id', $this->legalFormFilter))
+            ->when(! empty($this->countryFilter), fn ($q) => $q->where('country_id', $this->countryFilter))
+            ->when(! empty($this->createdFrom), fn ($q) => $q->whereDate('crm_companies.created_at', '>=', $this->createdFrom))
+            ->when(! empty($this->createdTo), fn ($q) => $q->whereDate('crm_companies.created_at', '<=', $this->createdTo))
             ->when($this->sortField === 'display_name', fn ($q) => $q->orderBy('name', $this->sortDirection))
             ->when($this->sortField === 'contact_status_id', fn ($q) => $q
                 ->join('crm_contact_statuses', 'crm_companies.contact_status_id', '=', 'crm_contact_statuses.id')
@@ -144,9 +178,11 @@ class CompanyIndex extends Component
             'legal_form_id' => 'nullable|exists:crm_legal_forms,id',
             'contact_status_id' => 'required|exists:crm_contact_statuses,id',
             'country_id' => 'nullable|exists:crm_countries,id',
+            'primary_email' => 'nullable|email|max:255',
+            'primary_phone' => 'nullable|string|max:255',
         ]);
 
-        CrmCompany::create([
+        $company = CrmCompany::create([
             'name' => $this->name,
             'legal_name' => $this->legal_name ?: null,
             'trading_name' => $this->trading_name ?: null,
@@ -163,6 +199,39 @@ class CompanyIndex extends Component
             'team_id' => $this->getTeamId(),
             'created_by_user_id' => auth()->id(),
         ]);
+
+        if (trim($this->primary_email) !== '') {
+            $company->emailAddresses()->create([
+                'email_address' => $this->primary_email,
+                'email_type_id' => 1,
+                'is_primary' => true,
+                'is_active' => true,
+            ]);
+        }
+
+        if (trim($this->primary_phone) !== '') {
+            try {
+                $phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
+                $phoneNumber = $phoneUtil->parse($this->primary_phone, 'DE');
+                $company->phoneNumbers()->create([
+                    'raw_input' => $this->primary_phone,
+                    'international' => $phoneUtil->format($phoneNumber, \libphonenumber\PhoneNumberFormat::E164),
+                    'national' => $phoneUtil->format($phoneNumber, \libphonenumber\PhoneNumberFormat::NATIONAL),
+                    'country_code' => $phoneUtil->getRegionCodeForNumber($phoneNumber) ?: 'DE',
+                    'phone_type_id' => 1,
+                    'is_primary' => true,
+                ]);
+            } catch (\Throwable $e) {
+                $company->phoneNumbers()->create([
+                    'raw_input' => $this->primary_phone,
+                    'international' => $this->primary_phone,
+                    'national' => $this->primary_phone,
+                    'country_code' => 'DE',
+                    'phone_type_id' => 1,
+                    'is_primary' => true,
+                ]);
+            }
+        }
 
         $this->resetForm();
         $this->modalShow = false;
@@ -181,12 +250,24 @@ class CompanyIndex extends Component
 
     public function render()
     {
+        $this->storeNavigationContext();
+
         return view('crm::livewire.company-index', [
             'contactStatuses' => CrmContactStatus::active()->get(),
             'industries' => CrmIndustry::active()->get(),
             'legalForms' => CrmLegalForm::active()->get(),
             'countries' => CrmCountry::active()->get(),
         ])->layout('platform::layouts.app');
+    }
+
+    private function storeNavigationContext(): void
+    {
+        $ids = $this->companies->pluck('id')->toArray();
+        session()->put('crm.company_nav', [
+            'ids' => $ids,
+            'sort' => $this->sortField,
+            'dir' => $this->sortDirection,
+        ]);
     }
 
     private function getTeamId(): int
@@ -203,6 +284,7 @@ class CompanyIndex extends Component
             'name', 'legal_name', 'trading_name', 'registration_number',
             'tax_number', 'vat_number', 'website', 'description', 'notes',
             'industry_id', 'legal_form_id', 'contact_status_id', 'country_id',
+            'primary_email', 'primary_phone',
         ]);
     }
 }

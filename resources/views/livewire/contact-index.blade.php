@@ -5,7 +5,7 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'CRM', 'icon' => 'users'],
+            ['label' => 'CRM', 'href' => route('crm.index'), 'icon' => 'users'],
             ['label' => 'Kontakte'],
         ]">
             <div class="flex items-center gap-2">
@@ -74,12 +74,140 @@
                     size="sm"
                     wire:model.live="blacklistFilter"
                 />
+                <x-ui-input-select
+                    name="companyFilter"
+                    label="Unternehmen"
+                    :options="$companiesForFilter"
+                    optionValue="id"
+                    optionLabel="name"
+                    :nullable="true"
+                    nullLabel="– Alle –"
+                    size="sm"
+                    wire:model.live="companyFilter"
+                />
+                <x-ui-input-select
+                    name="genderFilter"
+                    label="Geschlecht"
+                    :options="$genders"
+                    optionValue="id"
+                    optionLabel="name"
+                    :nullable="true"
+                    nullLabel="– Alle –"
+                    size="sm"
+                    wire:model.live="genderFilter"
+                />
+                <x-ui-input-select
+                    name="languageFilter"
+                    label="Sprache"
+                    :options="$languages"
+                    optionValue="id"
+                    optionLabel="name"
+                    :nullable="true"
+                    nullLabel="– Alle –"
+                    size="sm"
+                    wire:model.live="languageFilter"
+                />
+                <div>
+                    <label class="block text-xs font-medium text-[color:var(--ui-muted)] mb-1">Erstellt von – bis</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <x-ui-input-date name="createdFrom" wire:model.live="createdFrom" size="sm" placeholder="Von" :nullable="true" />
+                        <x-ui-input-date name="createdTo" wire:model.live="createdTo" size="sm" placeholder="Bis" :nullable="true" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-[color:var(--ui-muted)] mb-1">Sortierung</label>
+                    <div class="flex gap-2">
+                        <x-ui-input-select
+                            name="sortField"
+                            :options="collect([
+                                ['value' => 'last_name', 'label' => 'Name'],
+                                ['value' => 'contact_status_id', 'label' => 'Status'],
+                                ['value' => 'company', 'label' => 'Unternehmen'],
+                                ['value' => 'created_at', 'label' => 'Erstellt'],
+                                ['value' => 'updated_at', 'label' => 'Aktualisiert'],
+                            ])"
+                            optionValue="value"
+                            optionLabel="label"
+                            :nullable="false"
+                            size="sm"
+                            wire:model.live="sortField"
+                            class="flex-1"
+                        />
+                        <x-ui-button size="sm" variant="secondary-outline" wire:click="$set('sortDirection', '{{ $sortDirection === 'asc' ? 'desc' : 'asc' }}')">
+                            @if($sortDirection === 'asc')
+                                @svg('heroicon-o-arrow-up', 'w-4 h-4')
+                            @else
+                                @svg('heroicon-o-arrow-down', 'w-4 h-4')
+                            @endif
+                        </x-ui-button>
+                    </div>
+                </div>
+
+                @if($this->hasActiveFilters)
+                    <x-ui-button variant="secondary-outline" size="sm" wire:click="resetFilters" class="w-full">
+                        @svg('heroicon-o-x-mark', 'w-4 h-4')
+                        Filter zurücksetzen
+                    </x-ui-button>
+                @endif
             </div>
         </x-ui-page-sidebar>
     </x-slot>
     <x-slot name="activity"></x-slot>
 
     <x-ui-page-container>
+
+        {{-- Active filter chips --}}
+        @if($this->hasActiveFilters)
+            <div class="flex flex-wrap items-center gap-2 mb-4">
+                @if(trim($search) !== '')
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        Suche: "{{ $search }}"
+                        <button wire:click="$set('search', '')" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+                @if(!empty($statusFilter))
+                    @php $statusName = $contactStatuses->firstWhere('id', $statusFilter)?->name ?? $statusFilter; @endphp
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        Status: {{ $statusName }}
+                        <button wire:click="$set('statusFilter', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+                @if($blacklistFilter !== 'not_blacklisted')
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        {{ $blacklistFilter === 'blacklisted' ? 'Nur Blacklisted' : 'Alle (inkl. Blacklisted)' }}
+                        <button wire:click="$set('blacklistFilter', 'not_blacklisted')" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+                @if(!empty($companyFilter))
+                    @php $companyName = $companiesForFilter->firstWhere('id', $companyFilter)?->name ?? $companyFilter; @endphp
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        Firma: {{ $companyName }}
+                        <button wire:click="$set('companyFilter', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+                @if(!empty($genderFilter))
+                    @php $genderName = $genders->firstWhere('id', $genderFilter)?->name ?? $genderFilter; @endphp
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        Geschlecht: {{ $genderName }}
+                        <button wire:click="$set('genderFilter', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+                @if(!empty($languageFilter))
+                    @php $langName = $languages->firstWhere('id', $languageFilter)?->name ?? $languageFilter; @endphp
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        Sprache: {{ $langName }}
+                        <button wire:click="$set('languageFilter', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+                @if(!empty($createdFrom) || !empty($createdTo))
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                        Erstellt: {{ $createdFrom ?? '...' }} – {{ $createdTo ?? '...' }}
+                        <button wire:click="$set('createdFrom', null); $wire.set('createdTo', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
+                    </span>
+                @endif
+            </div>
+        @endif
 
         @if($this->contacts->count() === 0)
             <div class="rounded-lg border border-[color:var(--ui-border)] bg-[color:var(--ui-surface)] p-6 text-sm text-[color:var(--ui-muted)]">
@@ -98,7 +226,7 @@
                         </x-ui-table-header-cell>
                         <x-ui-table-header-cell compact="true" sortable="true" sortField="last_name" :currentSort="$sortField" :sortDirection="$sortDirection">Name</x-ui-table-header-cell>
                         <x-ui-table-header-cell compact="true">Primäre Kontaktdaten</x-ui-table-header-cell>
-                        <x-ui-table-header-cell compact="true">Unternehmen</x-ui-table-header-cell>
+                        <x-ui-table-header-cell compact="true" sortable="true" sortField="company" :currentSort="$sortField" :sortDirection="$sortDirection">Unternehmen</x-ui-table-header-cell>
                         <x-ui-table-header-cell compact="true" sortable="true" sortField="contact_status_id" :currentSort="$sortField" :sortDirection="$sortDirection">Status</x-ui-table-header-cell>
                     </x-ui-table-header>
 
@@ -204,14 +332,6 @@
         <x-slot name="header">Kontakt anlegen</x-slot>
 
         <div class="space-y-4">
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div class="d-flex items-center gap-2 mb-2">
-                    @svg('heroicon-o-information-circle', 'w-5 h-5 text-blue-600')
-                    <h4 class="font-medium text-blue-900">Hinweis</h4>
-                </div>
-                <p class="text-blue-700 text-sm">Rufnummern, Adressen und E-Mail-Adressen können nach dem Anlegen des Kontakts in der Kontakt-Detailansicht gepflegt werden.</p>
-            </div>
-
             <form wire:submit.prevent="createContact" class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <x-ui-input-text name="first_name" label="Vorname" wire:model.live="first_name" required placeholder="Vorname eingeben" />
@@ -233,6 +353,14 @@
                     <x-ui-input-select name="gender_id" label="Geschlecht" :options="$genders" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Geschlecht auswählen –" wire:model.live="gender_id" />
                     <x-ui-input-select name="language_id" label="Sprache" :options="$languages" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Sprache auswählen –" wire:model.live="language_id" />
                 </div>
+
+                {{-- Quick-create: Primary Email + Phone --}}
+                <hr class="border-[color:var(--ui-border)]">
+                <div class="grid grid-cols-2 gap-4">
+                    <x-ui-input-text name="primary_email" label="Primäre E-Mail" wire:model.live="primary_email" type="email" placeholder="email@example.com (optional)" />
+                    <x-ui-input-text name="primary_phone" label="Primäre Telefonnummer" wire:model.live="primary_phone" placeholder="+49 123 456789 (optional)" />
+                </div>
+
                 <x-ui-input-textarea name="notes" label="Notizen" wire:model.live="notes" placeholder="Zusätzliche Notizen (optional)" rows="3" />
             </form>
         </div>

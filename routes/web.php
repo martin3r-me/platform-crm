@@ -4,13 +4,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Platform\Crm\Models\CommsEmailMailAttachment;
+use Platform\Crm\Livewire\Dashboard;
 use Platform\Crm\Livewire\ContactIndex;
 use Platform\Crm\Livewire\CompanyIndex;
 use Platform\Crm\Livewire\Contact\Contact as ContactShow;
 use Platform\Crm\Livewire\Company\Company as CompanyShow;
 
-Route::redirect('/', '/contacts')->name('crm.index');
-Route::redirect('/dashboard', '/contacts')->name('crm.dashboard');
+Route::get('/', Dashboard::class)->name('crm.index');
+Route::get('/dashboard', Dashboard::class)->name('crm.dashboard');
 
 // Email attachment serving (signed URL)
 Route::get('/comms/email-attachments/{attachment}', function (Request $request, CommsEmailMailAttachment $attachment) {
