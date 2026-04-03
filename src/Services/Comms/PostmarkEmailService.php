@@ -6,6 +6,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Platform\Crm\Models\CommsChannel;
+use Platform\Crm\Models\CommsEmailInboundMail;
 use Platform\Crm\Models\CommsEmailOutboundMail;
 use Platform\Crm\Models\CommsEmailThread;
 use Platform\Crm\Models\CommsProviderConnection;
@@ -83,13 +84,73 @@ class PostmarkEmailService
             }
         }
 
-        $marker = "[conv:$token]";
         $htmlBody .= $signatureHtml;
-        $htmlBody .= "\n<!-- conversation-token:$token --><span style=\"display:block;\">$marker</span>";
 
         $textBody ??= strip_tags($htmlBody);
         $textBody .= $signatureText;
-        $textBody .= "\n\n$marker";
+
+        // 3b) Ticket context banner + reply hint
+        if ($thread && $contextModel && $contextModelId && $this->isHelpdeskTicket($contextModel)) {
+            $ticketModel = \Platform\Helpdesk\Models\HelpdeskTicket::find($contextModelId);
+            $inboundCount = CommsEmailInboundMail::where('thread_id', $thread->id)->count();
+            $outboundCount = CommsEmailOutboundMail::where('thread_id', $thread->id)->count();
+            $messageCount = $inboundCount + $outboundCount;
+            $createdAt = $ticketModel?->created_at?->format('d.m.Y H:i');
+
+            // Build context lines
+            $contextParts = [];
+            $contextParts[] = "Ticket [#{$contextModelId}]";
+            if ($createdAt) {
+                $contextParts[] = "Erstellt: {$createdAt}";
+            }
+            if ($messageCount > 0) {
+                $contextParts[] = "{$messageCount} " . ($messageCount === 1 ? 'Nachricht' : 'Nachrichten');
+            }
+            if ($ticketModel?->title) {
+                $contextParts[] = "Betreff: {$ticketModel->title}";
+            }
+
+            $replyHint = 'Bitte antworten Sie direkt auf diese E-Mail, um auf das Ticket zu reagieren.';
+
+            // HTML context footer
+            $htmlBody .= '<br>'
+                . '<div style="margin-top:16px;padding:10px 14px;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;font-size:12px;color:#666;line-height:1.6;">'
+                . '<div>' . e(implode(' · ', $contextParts)) . '</div>'
+                . '<div style="margin-top:4px;font-style:italic;">' . e($replyHint) . '</div>'
+                . '</div>';
+
+            // Plain text context footer
+            $contextLine = implode(' | ', $contextParts);
+            $textBody .= "\n\n---\n{$contextLine}\n{$replyHint}\n---";
+        }
+
+        // 3c) Quoted reply: append previous message for context
+        if (($opt['is_reply'] ?? false) && $thread) {
+            $lastInbound = CommsEmailInboundMail::query()
+                ->where('thread_id', $thread->id)
+                ->orderByDesc('received_at')
+                ->first();
+
+            if ($lastInbound) {
+                $quoteFrom = $lastInbound->from ?: 'Unbekannt';
+                $quoteDate = $lastInbound->received_at?->format('d.m.Y H:i') ?: $lastInbound->created_at?->format('d.m.Y H:i') ?: '';
+                $quoteHeader = "Am {$quoteDate} schrieb {$quoteFrom}:";
+
+                // HTML quoted reply
+                $quotedBody = $lastInbound->html_body ?: nl2br(e($lastInbound->text_body ?? ''));
+                $htmlBody .= '<br><br>'
+                    . '<div style="margin-top:16px;padding-top:12px;border-top:1px solid #e0e0e0;">'
+                    . '<p style="font-size:12px;color:#666;margin:0 0 8px 0;">' . e($quoteHeader) . '</p>'
+                    . '<blockquote style="margin:0;padding-left:12px;border-left:3px solid #ccc;color:#666;">'
+                    . $quotedBody
+                    . '</blockquote></div>';
+
+                // Plain text quoted reply
+                $quoteText = $lastInbound->text_body ?: strip_tags($lastInbound->html_body ?? '');
+                $quotedLines = collect(explode("\n", $quoteText))->map(fn ($line) => '> ' . $line)->implode("\n");
+                $textBody .= "\n\n{$quoteHeader}\n{$quotedLines}";
+            }
+        }
 
         // 4) Attachments
         $pmAttachments = [];

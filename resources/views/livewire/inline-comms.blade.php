@@ -147,6 +147,10 @@
                                                         <span class="font-semibold">Von:</span> {{ $from ?: '—' }}
                                                         <span class="mx-0.5">·</span>
                                                         <span class="font-semibold">An:</span> {{ $to ?: '—' }}
+                                                        @if(!empty($m['cc']))
+                                                            <span class="mx-0.5">·</span>
+                                                            <span class="font-semibold">CC:</span> {{ $m['cc'] }}
+                                                        @endif
                                                     </div>
                                                 </div>
                                                 <div class="text-[10px] text-[var(--ui-muted)] whitespace-nowrap">{{ $m['at'] ?? '' }}</div>
@@ -154,13 +158,25 @@
                                         </div>
                                         {{-- Email body: HTML in sandboxed iframe, fallback to text --}}
                                         @if($hasHtml)
-                                            <div class="px-3 py-3" wire:ignore x-data="{ iframeHeight: '100px' }">
+                                            <div class="px-3 py-3" wire:ignore x-data="{
+                                                iframeHeight: '100px',
+                                                recalc(iframe) {
+                                                    const h = iframe.contentDocument?.body?.scrollHeight;
+                                                    if (h) this.iframeHeight = (h + 16) + 'px';
+                                                }
+                                            }">
                                                 <iframe
                                                     srcdoc="{{ $m['html'] }}"
                                                     sandbox="allow-same-origin"
                                                     class="w-full border-0"
                                                     :style="'height:' + iframeHeight"
-                                                    @load="$nextTick(() => { const h = $el.contentDocument?.body?.scrollHeight; if (h) iframeHeight = (h + 16) + 'px'; })"
+                                                    @load="$nextTick(() => {
+                                                        recalc($el);
+                                                        const doc = $el.contentDocument;
+                                                        if (doc) {
+                                                            doc.querySelectorAll('details').forEach(d => d.addEventListener('toggle', () => $nextTick(() => recalc($el))));
+                                                        }
+                                                    })"
                                                 ></iframe>
                                             </div>
                                         @else
@@ -759,19 +775,35 @@
                                                             <span class="font-semibold">Von:</span> {{ $from ?: '—' }}
                                                             <span class="mx-0.5">·</span>
                                                             <span class="font-semibold">An:</span> {{ $to ?: '—' }}
+                                                            @if(!empty($m['cc']))
+                                                                <span class="mx-0.5">·</span>
+                                                                <span class="font-semibold">CC:</span> {{ $m['cc'] }}
+                                                            @endif
                                                         </div>
                                                     </div>
                                                     <div class="text-[10px] text-[var(--ui-muted)] whitespace-nowrap">{{ $m['at'] ?? '' }}</div>
                                                 </div>
                                             </div>
                                             @if($hasHtml)
-                                                <div class="px-3 py-3" x-data="{ iframeHeight: '100px' }">
+                                                <div class="px-3 py-3" x-data="{
+                                                    iframeHeight: '100px',
+                                                    recalc(iframe) {
+                                                        const h = iframe.contentDocument?.body?.scrollHeight;
+                                                        if (h) this.iframeHeight = (h + 16) + 'px';
+                                                    }
+                                                }">
                                                     <iframe
                                                         srcdoc="{{ $m['html'] }}"
                                                         sandbox="allow-same-origin"
                                                         class="w-full border-0"
                                                         :style="'height:' + iframeHeight"
-                                                        @load="$nextTick(() => { const h = $el.contentDocument?.body?.scrollHeight; if (h) iframeHeight = (h + 16) + 'px'; })"
+                                                        @load="$nextTick(() => {
+                                                            recalc($el);
+                                                            const doc = $el.contentDocument;
+                                                            if (doc) {
+                                                                doc.querySelectorAll('details').forEach(d => d.addEventListener('toggle', () => $nextTick(() => recalc($el))));
+                                                            }
+                                                        })"
                                                     ></iframe>
                                                 </div>
                                             @else
