@@ -381,7 +381,17 @@
             <div class="border-t border-[var(--ui-border)]/60 p-2.5 flex-shrink-0 bg-gradient-to-t from-[var(--ui-surface)] to-white">
                 <form method="post" action="javascript:void(0)" onsubmit="return false;">
                     @if($activeCtxType === 'email')
-                        <div class="w-full space-y-1.5">
+                        <div class="w-full space-y-1.5" x-data="{ showCcBcc: false }">
+                            <div class="flex items-center gap-2">
+                                <button type="button" @click="showCcBcc = !showCcBcc" class="text-[10px] text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors">
+                                    <span x-show="!showCcBcc">CC/BCC</span>
+                                    <span x-show="showCcBcc" x-cloak>CC/BCC ausblenden</span>
+                                </button>
+                            </div>
+                            <div x-show="showCcBcc" x-cloak class="grid grid-cols-2 gap-1.5">
+                                <input type="text" wire:model="emailCompose.cc" placeholder="CC (optional)" class="px-2.5 py-1.5 border border-[var(--ui-border)] rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/50 bg-white" />
+                                <input type="text" wire:model="emailCompose.bcc" placeholder="BCC (optional)" class="px-2.5 py-1.5 border border-[var(--ui-border)] rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/50 bg-white" />
+                            </div>
                             <div class="flex gap-1.5 items-end w-full">
                                 <textarea
                                     x-ref="emailBody"
@@ -1090,9 +1100,19 @@
                         <template x-if="activeChannel==='email'">
                             <div class="w-full space-y-1.5">
                                 @if(!$activeEmailThreadId)
-                                    <div class="grid grid-cols-2 gap-1.5">
-                                        <x-ui-input-text name="emailCompose.to" label="An" placeholder="empfaenger@firma.de" wire:model.live="emailCompose.to" />
-                                        <x-ui-input-text name="emailCompose.subject" label="Betreff" placeholder="Betreff…" wire:model.live="emailCompose.subject" />
+                                    <div class="space-y-1.5" x-data="{ showCcBcc: false }">
+                                        <div class="grid grid-cols-2 gap-1.5">
+                                            <x-ui-input-text name="emailCompose.to" label="An" placeholder="empfaenger@firma.de" wire:model.live="emailCompose.to" />
+                                            <x-ui-input-text name="emailCompose.subject" label="Betreff" placeholder="Betreff…" wire:model.live="emailCompose.subject" />
+                                        </div>
+                                        <button type="button" @click="showCcBcc = !showCcBcc" class="text-[10px] text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors">
+                                            <span x-show="!showCcBcc">+ CC/BCC hinzufügen</span>
+                                            <span x-show="showCcBcc" x-cloak>CC/BCC ausblenden</span>
+                                        </button>
+                                        <div x-show="showCcBcc" x-cloak class="grid grid-cols-2 gap-1.5">
+                                            <x-ui-input-text name="emailCompose.cc" label="CC" placeholder="cc@firma.de (optional)" wire:model.live="emailCompose.cc" />
+                                            <x-ui-input-text name="emailCompose.bcc" label="BCC" placeholder="bcc@firma.de (optional)" wire:model.live="emailCompose.bcc" />
+                                        </div>
                                     </div>
                                 @endif
                                 <div class="flex gap-1.5 items-end w-full">

@@ -106,9 +106,11 @@ class InboundPostmarkController extends Controller
             $thread->touch();
 
             // Rollups for fast reply UI (no need to query last mail each time)
+            // Use original sender for forwarded emails so replies go to the right person
+            $originalSender = $this->extractOriginalSenderFromForward($payload);
             $fromRaw = (string) ($payload['From'] ?? '');
-            $fromAddr = $this->extractEmailAddress($fromRaw) ?: ($fromRaw ?: null);
-            $thread->last_inbound_from = $fromRaw ?: null;
+            $fromAddr = $originalSender ?: ($this->extractEmailAddress($fromRaw) ?: ($fromRaw ?: null));
+            $thread->last_inbound_from = $originalSender ? $originalSender : ($fromRaw ?: null);
             $thread->last_inbound_from_address = $fromAddr ? (string) $fromAddr : null;
             $thread->last_inbound_at = $mail->received_at ?? now();
             if (!$thread->subject && !empty($payload['Subject'])) {
@@ -280,6 +282,62 @@ class InboundPostmarkController extends Controller
     }
 
     /**
+     * Detect forwarded email and extract original sender address.
+     * Checks subject prefix (Fwd:/WG:), Postmark headers, and body patterns.
+     */
+    private function extractOriginalSenderFromForward(array $payload): ?string
+    {
+        $subject = (string) ($payload['Subject'] ?? '');
+        $isForward = (bool) preg_match('/^(Fwd?|WG|Wg):\s/i', $subject);
+
+        if (!$isForward) {
+            return null;
+        }
+
+        // 1) Check headers for forwarding info
+        $headers = $payload['Headers'] ?? [];
+        if (is_array($headers)) {
+            foreach ($headers as $header) {
+                $name = strtolower((string) ($header['Name'] ?? ''));
+                $value = (string) ($header['Value'] ?? '');
+                if (in_array($name, ['x-forwarded-for', 'x-original-sender', 'resent-from', 'x-forwarded-by'])) {
+                    $email = $this->extractEmailAddress($value) ?: (filter_var($value, FILTER_VALIDATE_EMAIL) ? $value : null);
+                    if ($email) {
+                        return $email;
+                    }
+                }
+            }
+        }
+
+        // 2) Parse body for forwarded message patterns
+        $body = (string) ($payload['TextBody'] ?? '');
+        if ($body === '') {
+            $body = strip_tags((string) ($payload['HtmlBody'] ?? ''));
+        }
+
+        // Patterns: "Von: Name <email>" / "From: Name <email>" / "Von: email"
+        $patterns = [
+            '/(?:Von|From|De)\s*:\s*[^<\n]*<([^>]+)>/i',          // Von: Name <email>
+            '/(?:Von|From|De)\s*:\s*([^\s\n<]+@[^\s\n>]+)/i',     // Von: email@domain.com
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $body, $m)) {
+                $email = trim($m[1]);
+                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    // Verify it's not the forwarder's own address
+                    $forwarderEmail = $this->extractEmailAddress((string) ($payload['From'] ?? ''));
+                    if ($email !== $forwarderEmail) {
+                        return $email;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Resolve contact from sender email and link to thread.
      */
     private function resolveAndLinkContact(CommsEmailThread $thread, array $payload): void
@@ -287,9 +345,20 @@ class InboundPostmarkController extends Controller
         try {
             $registry = app(ContactResolverRegistry::class);
 
+            // Check for forwarded email - use original sender if detected
+            $originalSender = $this->extractOriginalSenderFromForward($payload);
+
             // Extract sender email address
             $fromRaw = (string) ($payload['From'] ?? '');
-            $senderEmail = $this->extractEmailAddress($fromRaw) ?: $fromRaw;
+            $senderEmail = $originalSender ?: ($this->extractEmailAddress($fromRaw) ?: $fromRaw);
+
+            if ($originalSender) {
+                Log::info('Forwarded email detected: using original sender', [
+                    'thread_id' => $thread->id,
+                    'forwarder' => $this->extractEmailAddress($fromRaw),
+                    'original_sender' => $originalSender,
+                ]);
+            }
 
             if (!$senderEmail || !filter_var($senderEmail, FILTER_VALIDATE_EMAIL)) {
                 return;

@@ -59,6 +59,8 @@ trait WithCommsChat
     /** @var array<string, mixed> */
     public array $emailCompose = [
         'to' => '',
+        'cc' => '',
+        'bcc' => '',
         'subject' => '',
         'body' => '',
     ];
@@ -445,6 +447,8 @@ trait WithCommsChat
             $isReply = (bool) $this->activeEmailThreadId;
             $this->validate([
                 'emailCompose.to' => [$isReply ? 'nullable' : 'required', 'email', 'max:255'],
+                'emailCompose.cc' => ['nullable', 'string', 'max:500'],
+                'emailCompose.bcc' => ['nullable', 'string', 'max:500'],
                 'emailCompose.body' => ['required', 'string', 'min:1'],
                 'emailCompose.subject' => [$isReply ? 'nullable' : 'required', 'string', 'max:255'],
             ]);
@@ -511,6 +515,8 @@ trait WithCommsChat
                     'sender' => $user,
                     'token' => $token,
                     'is_reply' => $isReply,
+                    'cc' => trim($this->emailCompose['cc'] ?? '') ?: null,
+                    'bcc' => trim($this->emailCompose['bcc'] ?? '') ?: null,
                     'context_model' => $this->contextModel,
                     'context_model_id' => $this->contextModelId,
                 ]
@@ -521,6 +527,8 @@ trait WithCommsChat
         }
 
         $this->emailCompose['body'] = '';
+        $this->emailCompose['cc'] = '';
+        $this->emailCompose['bcc'] = '';
         if ($wasNewThread) {
             $this->emailCompose['subject'] = '';
             $this->emailCompose['to'] = '';
