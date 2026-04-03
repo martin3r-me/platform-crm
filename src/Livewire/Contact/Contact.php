@@ -29,6 +29,7 @@ use libphonenumber\PhoneNumberFormat;
 class Contact extends Component
 {
     public CrmContact $contact;
+    public string $activeTab = 'stammdaten';
 
     /**
      * Date-Inputs erwarten typischerweise einen String im Format YYYY-MM-DD.
@@ -110,6 +111,10 @@ class Contact extends Component
     
     public string $newNote = '';
 
+    // Prev/Next navigation
+    public ?int $prevContactId = null;
+    public ?int $nextContactId = null;
+
     public $modalShow = false;
 
     // Telefon Modal
@@ -152,6 +157,17 @@ class Contact extends Component
         
         // Setze aktuelles Datum als Standard-Startdatum
         $this->companyRelationForm['start_date'] = now()->toDateString();
+
+        // Prev/Next navigation from index list
+        $nav = session('crm.contact_nav');
+        if ($nav && !empty($nav['ids'])) {
+            $ids = $nav['ids'];
+            $pos = array_search($this->contact->id, $ids);
+            if ($pos !== false) {
+                $this->prevContactId = $pos > 0 ? $ids[$pos - 1] : null;
+                $this->nextContactId = $pos < count($ids) - 1 ? $ids[$pos + 1] : null;
+            }
+        }
     }
 
     protected function prepareForValidation($attributes)

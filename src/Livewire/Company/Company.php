@@ -21,6 +21,7 @@ use libphonenumber\PhoneNumberFormat;
 class Company extends Component
 {
     public CrmCompany $company;
+    public string $activeTab = 'stammdaten';
     public $mode = 'show'; // 'show' oder 'edit'
     
     // Properties für die rechte Spalte
@@ -34,6 +35,10 @@ class Company extends Component
     public $contacts = [];
     public $legalForms = [];
     public string $newNote = '';
+
+    // Prev/Next navigation
+    public ?int $prevCompanyId = null;
+    public ?int $nextCompanyId = null;
     
     // E-Mail Modals
     public $emailCreateModalShow = false;
@@ -139,6 +144,17 @@ class Company extends Component
         
         // Setze aktuelles Datum als Standard-Startdatum
         $this->contactRelationForm['start_date'] = now()->toDateString();
+
+        // Prev/Next navigation from index list
+        $nav = session('crm.company_nav');
+        if ($nav && !empty($nav['ids'])) {
+            $ids = $nav['ids'];
+            $pos = array_search($this->company->id, $ids);
+            if ($pos !== false) {
+                $this->prevCompanyId = $pos > 0 ? $ids[$pos - 1] : null;
+                $this->nextCompanyId = $pos < count($ids) - 1 ? $ids[$pos + 1] : null;
+            }
+        }
     }
 
     protected function prepareForValidation($attributes)
