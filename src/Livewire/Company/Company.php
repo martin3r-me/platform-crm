@@ -181,6 +181,13 @@ class Company extends Component
         return $attributes;
     }
 
+    public function delete(): void
+    {
+        $this->company->delete();
+        session()->flash('message', 'Unternehmen erfolgreich gelöscht.');
+        $this->redirect(route('crm.companies.index'), navigate: true);
+    }
+
     public function save(): void
     {
         $this->validate();

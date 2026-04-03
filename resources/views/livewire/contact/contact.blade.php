@@ -35,6 +35,8 @@
 
             {{-- Right side actions --}}
             <div class="flex items-center gap-2">
+                <x-ui-confirm-button action="delete" text="" confirmText="Wirklich löschen?" variant="danger-outline" size="sm" :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()" />
+
                 {{-- Prev/Next Navigation --}}
                 @if($prevContactId || $nextContactId)
                     <div class="flex items-center gap-1">

@@ -238,6 +238,13 @@ class Contact extends Component
         $this->contact->refresh();
     }
 
+    public function delete(): void
+    {
+        $this->contact->delete();
+        session()->flash('message', 'Kontakt erfolgreich gelöscht.');
+        $this->redirect(route('crm.contacts.index'), navigate: true);
+    }
+
     public function save(): void
     {
         // birth_date robust normalisieren, falls UI z.B. "dd.mm.yyyy" liefert
