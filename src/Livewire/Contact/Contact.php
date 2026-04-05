@@ -207,7 +207,7 @@ class Contact extends Component
         $this->dispatch('comms', [
             'model' => get_class($this->contact),
             'modelId' => $this->contact->id,
-            'subject' => $this->contact->name,
+            'subject' => $this->contact->display_name,
             'description' => '',
             'url' => route('crm.contacts.show', $this->contact),
             'source' => 'crm.contacts.view'
