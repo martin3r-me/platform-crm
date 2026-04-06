@@ -121,6 +121,8 @@ class Contact extends Component
     // Prev/Next navigation
     public ?int $prevContactId = null;
     public ?int $nextContactId = null;
+    public ?string $prevContactName = null;
+    public ?string $nextContactName = null;
 
     public $modalShow = false;
 
@@ -173,6 +175,20 @@ class Contact extends Component
             if ($pos !== false) {
                 $this->prevContactId = $pos > 0 ? $ids[$pos - 1] : null;
                 $this->nextContactId = $pos < count($ids) - 1 ? $ids[$pos + 1] : null;
+
+                // Load names for prev/next contacts
+                $neighborIds = array_filter([$this->prevContactId, $this->nextContactId]);
+                if ($neighborIds) {
+                    $neighbors = CrmContact::whereIn('id', $neighborIds)->get(['id', 'first_name', 'last_name'])->keyBy('id');
+                    if ($this->prevContactId && $neighbors->has($this->prevContactId)) {
+                        $c = $neighbors->get($this->prevContactId);
+                        $this->prevContactName = $c->first_name . ' ' . $c->last_name;
+                    }
+                    if ($this->nextContactId && $neighbors->has($this->nextContactId)) {
+                        $c = $neighbors->get($this->nextContactId);
+                        $this->nextContactName = $c->first_name . ' ' . $c->last_name;
+                    }
+                }
             }
         }
     }

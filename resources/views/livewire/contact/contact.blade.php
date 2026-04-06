@@ -21,41 +21,42 @@
                     size="sm"
                     wire:model.live="contact.contact_status_id"
                 />
-
-                {{-- Blacklist --}}
-                <x-ui-button
-                    size="xs"
-                    variant="{{ $contact->is_blacklisted ? 'danger' : 'secondary-outline' }}"
-                    wire:click="toggleBlacklist"
-                >
-                    @svg('heroicon-s-no-symbol', 'w-3.5 h-3.5')
-                    {{ $contact->is_blacklisted ? 'Blacklisted' : 'Blacklisten' }}
-                </x-ui-button>
             </x-slot>
 
             {{-- Right side actions --}}
             <div class="flex items-center gap-2">
                 <x-ui-confirm-button action="delete" text="" confirmText="Wirklich löschen?" variant="danger-outline" size="sm" :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()" />
 
+                {{-- Blacklist --}}
+                <button
+                    wire:click="toggleBlacklist"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition border {{ $contact->is_blacklisted ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100' : 'border-[color:var(--ui-border)] text-[color:var(--ui-muted)] hover:border-red-300 hover:text-red-600 hover:bg-red-50' }}"
+                >
+                    @svg('heroicon-s-no-symbol', 'w-3 h-3')
+                    {{ $contact->is_blacklisted ? 'Blacklisted' : 'Blacklist' }}
+                </button>
+
                 {{-- Prev/Next Navigation --}}
                 @if($prevContactId || $nextContactId)
                     <div class="flex items-center gap-1">
                         @if($prevContactId)
-                            <a href="{{ route('crm.contacts.show', $prevContactId) }}" wire:navigate class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-[color:var(--ui-border)] hover:bg-[color:var(--ui-muted-5)] transition">
-                                @svg('heroicon-o-chevron-left', 'w-4 h-4')
+                            <a href="{{ route('crm.contacts.show', $prevContactId) }}" wire:navigate class="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-[color:var(--ui-border)] hover:bg-[color:var(--ui-muted-5)] transition text-xs text-[color:var(--ui-muted)]" title="{{ $prevContactName }}">
+                                @svg('heroicon-o-chevron-left', 'w-3.5 h-3.5')
+                                <span class="max-w-[6rem] truncate hidden sm:inline">{{ $prevContactName }}</span>
                             </a>
                         @else
                             <span class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-[color:var(--ui-border)] opacity-30">
-                                @svg('heroicon-o-chevron-left', 'w-4 h-4')
+                                @svg('heroicon-o-chevron-left', 'w-3.5 h-3.5')
                             </span>
                         @endif
                         @if($nextContactId)
-                            <a href="{{ route('crm.contacts.show', $nextContactId) }}" wire:navigate class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-[color:var(--ui-border)] hover:bg-[color:var(--ui-muted-5)] transition">
-                                @svg('heroicon-o-chevron-right', 'w-4 h-4')
+                            <a href="{{ route('crm.contacts.show', $nextContactId) }}" wire:navigate class="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-[color:var(--ui-border)] hover:bg-[color:var(--ui-muted-5)] transition text-xs text-[color:var(--ui-muted)]" title="{{ $nextContactName }}">
+                                <span class="max-w-[6rem] truncate hidden sm:inline">{{ $nextContactName }}</span>
+                                @svg('heroicon-o-chevron-right', 'w-3.5 h-3.5')
                             </a>
                         @else
                             <span class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-[color:var(--ui-border)] opacity-30">
-                                @svg('heroicon-o-chevron-right', 'w-4 h-4')
+                                @svg('heroicon-o-chevron-right', 'w-3.5 h-3.5')
                             </span>
                         @endif
                     </div>
@@ -135,8 +136,10 @@
                     @endif
                     <form wire:submit="addFollowUp" class="space-y-1.5">
                         <x-ui-input-text name="followUpForm.title" wire:model="followUpForm.title" placeholder="Wiedervorlage..." size="sm" :errorKey="'followUpForm.title'" />
-                        <div class="flex gap-1.5">
-                            <x-ui-input-date name="followUpForm.due_date" wire:model="followUpForm.due_date" size="sm" :nullable="true" class="flex-1" :errorKey="'followUpForm.due_date'" />
+                        <div class="flex items-end gap-1.5">
+                            <div class="flex-1">
+                                <x-ui-form.input-date-select name="followUpForm.due_date" size="sm" :errorKey="'followUpForm.due_date'" />
+                            </div>
                             <x-ui-button type="submit" size="sm" variant="primary" class="flex-shrink-0">
                                 @svg('heroicon-o-plus', 'w-3.5 h-3.5')
                             </x-ui-button>
