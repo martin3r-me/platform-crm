@@ -223,10 +223,17 @@
                                            class="rounded border-[var(--ui-border)] text-[var(--ui-primary)]" />
                                 </x-ui-table-cell>
                                 <x-ui-table-cell compact="true">
-                                    <div class="font-medium">{{ $company->display_name }}</div>
-                                    @if($company->legalForm)
-                                        <div class="text-xs text-[color:var(--ui-muted)]">{{ $company->legalForm->name }}</div>
-                                    @endif
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-md bg-[color:var(--ui-muted-10)] flex items-center justify-center text-[color:var(--ui-muted)] flex-shrink-0">
+                                            @svg('heroicon-o-building-office', 'w-4 h-4')
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="font-medium truncate">{{ $company->display_name }}</div>
+                                            @if($company->legalForm)
+                                                <div class="text-xs text-[color:var(--ui-muted)]">{{ $company->legalForm->name }}</div>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </x-ui-table-cell>
                                 <x-ui-table-cell compact="true">
                                     <div class="space-y-1">
@@ -272,7 +279,7 @@
                                 </x-ui-table-cell>
                                 <x-ui-table-cell compact="true">
                                     @if($company->contactStatus)
-                                        <x-ui-badge variant="secondary" size="sm">
+                                        <x-ui-badge variant="{{ \Platform\Crm\Models\CrmContactStatus::getVariantForCode($company->contactStatus->code ?? '') }}" size="sm">
                                             {{ $company->contactStatus->name }}
                                         </x-ui-badge>
                                     @else

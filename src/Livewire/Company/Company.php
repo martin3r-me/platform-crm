@@ -14,6 +14,7 @@ use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmContactRelation;
 use Platform\Crm\Models\CrmContactRelationType;
 use Platform\Crm\Models\CrmLegalForm;
+use Platform\Crm\Models\CrmFollowUp;
 use libphonenumber\PhoneNumberUtil;
 use libphonenumber\NumberParseException;
 use libphonenumber\PhoneNumberFormat;
@@ -35,6 +36,12 @@ class Company extends Component
     public $contacts = [];
     public $legalForms = [];
     public string $newNote = '';
+
+    // Follow-up Form
+    public $followUpForm = [
+        'title' => '',
+        'due_date' => null,
+    ];
 
     // Prev/Next navigation
     public ?int $prevCompanyId = null;
@@ -116,7 +123,7 @@ class Company extends Component
     public function mount(CrmCompany $company = null, $mode = 'show')
     {
         if ($company) {
-            $this->company = $company->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.contact', 'activities.user']);
+            $this->company = $company->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.contact', 'activities.user', 'followUps']);
         }
         $this->mode = $mode;
         
@@ -702,6 +709,44 @@ class Company extends Component
     {
         // Prüfe ob das Company-Model geändert wurde
         return $this->company->isDirty();
+    }
+
+    // Follow-up Methods
+    public function addFollowUp(): void
+    {
+        $this->validate([
+            'followUpForm.title' => 'required|string|max:255',
+            'followUpForm.due_date' => 'required|date',
+        ]);
+
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : null;
+
+        $this->company->followUps()->create([
+            'title' => $this->followUpForm['title'],
+            'due_date' => $this->followUpForm['due_date'],
+            'created_by_user_id' => $user->id,
+            'team_id' => $teamId,
+        ]);
+
+        $this->followUpForm = ['title' => '', 'due_date' => null];
+        $this->company->load('followUps');
+    }
+
+    public function toggleFollowUp(int $id): void
+    {
+        $followUp = $this->company->followUps()->findOrFail($id);
+        $followUp->update([
+            'completed_at' => $followUp->completed_at ? null : now(),
+        ]);
+        $this->company->load('followUps');
+    }
+
+    public function deleteFollowUp(int $id): void
+    {
+        $this->company->followUps()->where('id', $id)->delete();
+        $this->company->load('followUps');
     }
 
     public function addNote(): void

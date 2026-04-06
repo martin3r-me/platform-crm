@@ -50,6 +50,29 @@ class CrmContactStatus extends Model
     }
     
     /**
+     * Badge-Variant basierend auf dem Status-Code
+     */
+    public static function getVariantForCode(?string $code): string
+    {
+        return match ($code) {
+            'CUSTOMER' => 'success',
+            'ACTIVE' => 'success',
+            'INTERESTED' => 'warning',
+            'PARTNER' => 'info',
+            'SUPPLIER' => 'info',
+            'INACTIVE', 'FORMER_CUSTOMER', 'NOT_INTERESTED' => 'secondary',
+            'BLOCKED', 'DELETED' => 'danger',
+            'COMPETITOR' => 'warning',
+            default => 'secondary',
+        };
+    }
+
+    public function getVariant(): string
+    {
+        return static::getVariantForCode($this->code);
+    }
+
+    /**
      * Standard-Kontaktstatus für Seeding
      */
     public static function getDefaultContactStatuses(): array

@@ -6,23 +6,15 @@ use Livewire\Component;
 use Livewire\Attributes\Computed;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmCompany;
-use Platform\Crm\Models\CrmEmailAddress;
-use Platform\Crm\Models\CrmPhoneNumber;
-use Platform\Crm\Models\CrmPostalAddress;
-use Platform\Crm\Models\CrmContactRelation;
+use Platform\Crm\Models\CrmFollowUp;
+use Platform\Crm\Models\CrmContactStatus;
 use Platform\ActivityLog\Models\ActivityLogActivity;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class Dashboard extends Component
 {
-    public $perspective = 'personal'; // 'personal' oder 'team'
-
-    public function togglePerspective()
-    {
-        $this->perspective = $this->perspective === 'personal' ? 'team' : 'personal';
-    }
-
     private function getTeamId(): ?int
     {
         $user = Auth::user();
@@ -37,9 +29,7 @@ class Dashboard extends Component
     public function totalContacts()
     {
         $teamId = $this->getTeamId();
-        if (!$teamId) {
-            return 0;
-        }
+        if (!$teamId) return 0;
         return CrmContact::active()->where('team_id', $teamId)->count();
     }
 
@@ -47,122 +37,95 @@ class Dashboard extends Component
     public function totalCompanies()
     {
         $teamId = $this->getTeamId();
-        if (!$teamId) {
-            return 0;
-        }
+        if (!$teamId) return 0;
         return CrmCompany::active()->where('team_id', $teamId)->count();
     }
 
     #[Computed]
-    public function totalEmailAddresses()
-    {
-        return CrmEmailAddress::where('is_active', true)->count();
-    }
-
-    #[Computed]
-    public function totalPhoneNumbers()
-    {
-        return CrmPhoneNumber::where('is_active', true)->count();
-    }
-
-    #[Computed]
-    public function totalPostalAddresses()
-    {
-        return CrmPostalAddress::where('is_active', true)->count();
-    }
-
-    #[Computed]
-    public function totalRelations()
-    {
-        return CrmContactRelation::where('is_active', true)->count();
-    }
-
-    #[Computed]
-    public function primaryEmailAddresses()
-    {
-        return CrmEmailAddress::where('is_active', true)
-            ->where('is_primary', true)
-            ->count();
-    }
-
-    #[Computed]
-    public function primaryPhoneNumbers()
-    {
-        return CrmPhoneNumber::where('is_active', true)
-            ->where('is_primary', true)
-            ->count();
-    }
-
-    #[Computed]
-    public function primaryPostalAddresses()
-    {
-        return CrmPostalAddress::where('is_active', true)
-            ->where('is_primary', true)
-            ->count();
-    }
-
-    #[Computed]
-    public function contactsWithoutEmail()
+    public function newContactsThisWeek()
     {
         $teamId = $this->getTeamId();
-        if (!$teamId) {
-            return 0;
-        }
-        return CrmContact::active()
-            ->where('team_id', $teamId)
-            ->whereDoesntHave('emailAddresses')
+        if (!$teamId) return 0;
+        return CrmContact::active()->where('team_id', $teamId)
+            ->where('created_at', '>=', now()->startOfWeek())
             ->count();
     }
 
     #[Computed]
-    public function contactsWithoutPhone()
+    public function newContactsLastWeek()
     {
         $teamId = $this->getTeamId();
-        if (!$teamId) {
-            return 0;
-        }
-        return CrmContact::active()
-            ->where('team_id', $teamId)
-            ->whereDoesntHave('phoneNumbers')
+        if (!$teamId) return 0;
+        return CrmContact::active()->where('team_id', $teamId)
+            ->whereBetween('created_at', [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()])
             ->count();
     }
 
     #[Computed]
-    public function companiesWithoutEmail()
+    public function newCompaniesThisWeek()
     {
         $teamId = $this->getTeamId();
-        if (!$teamId) {
-            return 0;
-        }
-        return CrmCompany::active()
-            ->where('team_id', $teamId)
-            ->whereDoesntHave('emailAddresses')
+        if (!$teamId) return 0;
+        return CrmCompany::active()->where('team_id', $teamId)
+            ->where('created_at', '>=', now()->startOfWeek())
             ->count();
     }
 
     #[Computed]
-    public function companiesWithoutPhone()
+    public function overdueFollowUpsCount()
     {
         $teamId = $this->getTeamId();
-        if (!$teamId) {
-            return 0;
-        }
-        return CrmCompany::active()
-            ->where('team_id', $teamId)
-            ->whereDoesntHave('phoneNumbers')
-            ->count();
+        if (!$teamId) return 0;
+        return CrmFollowUp::forTeam($teamId)->overdue()->count();
+    }
+
+    #[Computed]
+    public function overdueFollowUps()
+    {
+        $teamId = $this->getTeamId();
+        if (!$teamId) return collect();
+        return CrmFollowUp::forTeam($teamId)->overdue()
+            ->with('followupable')
+            ->orderBy('due_date')
+            ->take(10)
+            ->get();
+    }
+
+    #[Computed]
+    public function upcomingFollowUps()
+    {
+        $teamId = $this->getTeamId();
+        if (!$teamId) return collect();
+        return CrmFollowUp::forTeam($teamId)->upcoming(7)
+            ->with('followupable')
+            ->orderBy('due_date')
+            ->take(10)
+            ->get();
+    }
+
+    #[Computed]
+    public function contactsByStatus()
+    {
+        $teamId = $this->getTeamId();
+        if (!$teamId) return collect();
+        return CrmContact::where('crm_contacts.is_active', true)
+            ->where('crm_contacts.team_id', $teamId)
+            ->join('crm_contact_statuses', 'crm_contacts.contact_status_id', '=', 'crm_contact_statuses.id')
+            ->select('crm_contact_statuses.name', 'crm_contact_statuses.code', DB::raw('count(*) as count'))
+            ->groupBy('crm_contact_statuses.id', 'crm_contact_statuses.name', 'crm_contact_statuses.code')
+            ->orderBy('count', 'desc')
+            ->get();
     }
 
     #[Computed]
     public function recentContacts()
     {
         $teamId = $this->getTeamId();
-        if (!$teamId) {
-            return collect();
-        }
+        if (!$teamId) return collect();
         return CrmContact::active()
             ->where('team_id', $teamId)
-            ->orderBy('created_at', 'desc')
+            ->with('contactStatus')
+            ->orderBy('updated_at', 'desc')
             ->take(5)
             ->get();
     }
@@ -171,30 +134,12 @@ class Dashboard extends Component
     public function recentCompanies()
     {
         $teamId = $this->getTeamId();
-        if (!$teamId) {
-            return collect();
-        }
+        if (!$teamId) return collect();
         return CrmCompany::active()
             ->where('team_id', $teamId)
-            ->orderBy('created_at', 'desc')
+            ->with('contactStatus')
+            ->orderBy('updated_at', 'desc')
             ->take(5)
-            ->get();
-    }
-
-    #[Computed]
-    public function topContactStatuses()
-    {
-        $teamId = $this->getTeamId();
-        if (!$teamId) {
-            return collect();
-        }
-        return CrmContact::where('crm_contacts.is_active', true)
-            ->where('crm_contacts.team_id', $teamId)
-            ->join('crm_contact_statuses', 'crm_contacts.contact_status_id', '=', 'crm_contact_statuses.id')
-            ->select('crm_contact_statuses.name', DB::raw('count(*) as count'))
-            ->groupBy('crm_contact_statuses.id', 'crm_contact_statuses.name')
-            ->orderBy('count', 'desc')
-            ->take(3)
             ->get();
     }
 
@@ -202,9 +147,7 @@ class Dashboard extends Component
     public function recentActivities()
     {
         $teamId = $this->getTeamId();
-        if (!$teamId) {
-            return collect();
-        }
+        if (!$teamId) return collect();
 
         $morphTypes = [
             (new CrmContact)->getMorphClass(),
@@ -227,7 +170,6 @@ class Dashboard extends Component
             ->take(20)
             ->get();
 
-        // Eager-load activityable models (grouped by type to avoid N+1)
         $activities->groupBy('activityable_type')->each(function ($group, $type) {
             $ids = $group->pluck('activityable_id')->unique();
             $models = $type::whereIn('id', $ids)->get()->keyBy('id');
@@ -235,6 +177,15 @@ class Dashboard extends Component
         });
 
         return $activities;
+    }
+
+    public function toggleFollowUp(int $id): void
+    {
+        $teamId = $this->getTeamId();
+        $followUp = CrmFollowUp::forTeam($teamId)->findOrFail($id);
+        $followUp->update([
+            'completed_at' => $followUp->completed_at ? null : now(),
+        ]);
     }
 
     public function render()

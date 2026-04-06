@@ -121,6 +121,14 @@ class CrmContact extends Model implements ContactInterface
     }
     
     /**
+     * Wiedervorlagen
+     */
+    public function followUps(): MorphMany
+    {
+        return $this->morphMany(CrmFollowUp::class, 'followupable');
+    }
+
+    /**
      * Kontakt-Beziehungen zu Unternehmen
      */
     public function contactRelations(): HasMany

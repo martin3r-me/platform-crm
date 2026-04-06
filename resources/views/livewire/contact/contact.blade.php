@@ -87,6 +87,63 @@
                     </div>
                 </div>
 
+                {{-- Follow-ups --}}
+                <div>
+                    <h4 class="text-xs font-bold text-[color:var(--ui-secondary)] uppercase tracking-wider mb-2">Wiedervorlagen</h4>
+                    @php
+                        $openFollowUps = $contact->followUps->whereNull('completed_at')->sortBy('due_date');
+                        $completedFollowUps = $contact->followUps->whereNotNull('completed_at')->sortByDesc('completed_at')->take(3);
+                    @endphp
+                    @if($openFollowUps->count() > 0)
+                        <div class="space-y-1.5 mb-2">
+                            @foreach($openFollowUps as $followUp)
+                                <div class="flex items-start gap-2 p-2 rounded-lg border {{ $followUp->due_date->lt(now()->startOfDay()) ? 'border-red-300 bg-red-50/50' : ($followUp->due_date->isToday() ? 'border-amber-300 bg-amber-50/50' : 'border-[color:var(--ui-border)]') }}">
+                                    <button wire:click="toggleFollowUp({{ $followUp->id }})" class="mt-0.5 flex-shrink-0">
+                                        <div class="w-4 h-4 rounded border-2 {{ $followUp->due_date->lt(now()->startOfDay()) ? 'border-red-400' : ($followUp->due_date->isToday() ? 'border-amber-400' : 'border-[color:var(--ui-border)]') }} hover:border-[color:var(--ui-primary)] transition"></div>
+                                    </button>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs font-medium truncate">{{ $followUp->title }}</div>
+                                        <div class="text-[10px] {{ $followUp->due_date->lt(now()->startOfDay()) ? 'text-red-600 font-medium' : ($followUp->due_date->isToday() ? 'text-amber-600' : 'text-[color:var(--ui-muted)]') }}">
+                                            {{ $followUp->due_date->format('d.m.Y') }}
+                                            @if($followUp->due_date->lt(now()->startOfDay()))
+                                                (überfällig)
+                                            @elseif($followUp->due_date->isToday())
+                                                (heute)
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <button wire:click="deleteFollowUp({{ $followUp->id }})" wire:confirm="Wiedervorlage löschen?" class="flex-shrink-0 text-[color:var(--ui-muted)] hover:text-red-500 transition">
+                                        @svg('heroicon-o-x-mark', 'w-3 h-3')
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                    @if($completedFollowUps->count() > 0)
+                        <div class="space-y-1 mb-2">
+                            @foreach($completedFollowUps as $followUp)
+                                <div class="flex items-center gap-2 p-1.5 rounded text-[color:var(--ui-muted)]">
+                                    <button wire:click="toggleFollowUp({{ $followUp->id }})" class="flex-shrink-0">
+                                        <div class="w-4 h-4 rounded border-2 border-green-400 bg-green-400 flex items-center justify-center">
+                                            @svg('heroicon-s-check', 'w-2.5 h-2.5 text-white')
+                                        </div>
+                                    </button>
+                                    <span class="text-xs line-through truncate">{{ $followUp->title }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                    <form wire:submit="addFollowUp" class="space-y-1.5">
+                        <x-ui-input-text name="followUpForm.title" wire:model="followUpForm.title" placeholder="Wiedervorlage..." size="sm" :errorKey="'followUpForm.title'" />
+                        <div class="flex gap-1.5">
+                            <x-ui-input-date name="followUpForm.due_date" wire:model="followUpForm.due_date" size="sm" :nullable="true" class="flex-1" :errorKey="'followUpForm.due_date'" />
+                            <x-ui-button type="submit" size="sm" variant="primary" class="flex-shrink-0">
+                                @svg('heroicon-o-plus', 'w-3.5 h-3.5')
+                            </x-ui-button>
+                        </div>
+                    </form>
+                </div>
+
                 {{-- Quick-Links --}}
                 <div class="space-y-1">
                     <button wire:click="$set('activeTab', 'kontaktdaten')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm hover:bg-[color:var(--ui-muted-5)] transition {{ $activeTab === 'kontaktdaten' ? 'bg-[color:var(--ui-muted-5)] font-medium' : '' }}">
@@ -195,16 +252,65 @@
     </x-slot>
 
     <x-ui-page-container>
+        {{-- Hero Header --}}
+        <div class="flex items-start gap-4 mb-6 p-4 rounded-xl border border-[color:var(--ui-border)] bg-[color:var(--ui-surface)]">
+            <div class="w-12 h-12 rounded-full bg-[color:var(--ui-primary-10)] flex items-center justify-center text-lg font-bold text-[color:var(--ui-primary)] flex-shrink-0">
+                {{ strtoupper(mb_substr($contact->first_name, 0, 1) . mb_substr($contact->last_name, 0, 1)) }}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <h1 class="text-lg font-bold text-[color:var(--ui-secondary)]">{{ $contact->first_name }} {{ $contact->last_name }}</h1>
+                    @if($contact->contactStatus)
+                        <x-ui-badge variant="{{ \Platform\Crm\Models\CrmContactStatus::getVariantForCode($contact->contactStatus->code ?? '') }}" size="sm">
+                            {{ $contact->contactStatus->name }}
+                        </x-ui-badge>
+                    @endif
+                    @if($contact->is_blacklisted)
+                        <x-ui-badge variant="danger" size="xs">@svg('heroicon-s-no-symbol', 'w-3 h-3') Blacklisted</x-ui-badge>
+                    @endif
+                </div>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[color:var(--ui-muted)]">
+                    @php
+                        $primaryRelation = $contact->contactRelations->where('is_primary', true)->first() ?? $contact->contactRelations->first();
+                    @endphp
+                    @if($primaryRelation)
+                        <span class="flex items-center gap-1">
+                            @svg('heroicon-o-building-office', 'w-3.5 h-3.5')
+                            @if($primaryRelation->position) {{ $primaryRelation->position }} @ @endif
+                            {{ $primaryRelation->company?->display_name }}
+                        </span>
+                    @endif
+                    @php $primaryEmail = $contact->emailAddresses->where('is_primary', true)->first(); @endphp
+                    @if($primaryEmail)
+                        <span class="flex items-center gap-1">
+                            @svg('heroicon-o-envelope', 'w-3.5 h-3.5')
+                            {{ $primaryEmail->email_address }}
+                        </span>
+                    @endif
+                    @php $primaryPhone = $contact->phoneNumbers->where('is_primary', true)->first(); @endphp
+                    @if($primaryPhone)
+                        <a href="tel:{{ $primaryPhone->international }}" class="flex items-center gap-1 hover:text-[color:var(--ui-primary)] transition">
+                            @svg('heroicon-o-phone', 'w-3.5 h-3.5')
+                            {{ $primaryPhone->national ?: $primaryPhone->raw_input }}
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </div>
+
         {{-- Tab Navigation --}}
         <div class="border-b border-[color:var(--ui-border)] mb-6">
             <nav class="flex space-x-6">
-                <button wire:click="$set('activeTab', 'stammdaten')" class="py-3 px-1 border-b-2 text-sm font-medium transition {{ $activeTab === 'stammdaten' ? 'border-[color:var(--ui-primary)] text-[color:var(--ui-primary)]' : 'border-transparent text-[color:var(--ui-muted)] hover:text-[color:var(--ui-secondary)] hover:border-[color:var(--ui-border)]' }}">
+                <button wire:click="$set('activeTab', 'stammdaten')" class="py-3 px-1 border-b-2 text-sm font-medium transition flex items-center gap-1.5 {{ $activeTab === 'stammdaten' ? 'border-[color:var(--ui-primary)] text-[color:var(--ui-primary)]' : 'border-transparent text-[color:var(--ui-muted)] hover:text-[color:var(--ui-secondary)] hover:border-[color:var(--ui-border)]' }}">
+                    @svg('heroicon-o-user', 'w-4 h-4')
                     Stammdaten
                 </button>
-                <button wire:click="$set('activeTab', 'kontaktdaten')" class="py-3 px-1 border-b-2 text-sm font-medium transition {{ $activeTab === 'kontaktdaten' ? 'border-[color:var(--ui-primary)] text-[color:var(--ui-primary)]' : 'border-transparent text-[color:var(--ui-muted)] hover:text-[color:var(--ui-secondary)] hover:border-[color:var(--ui-border)]' }}">
+                <button wire:click="$set('activeTab', 'kontaktdaten')" class="py-3 px-1 border-b-2 text-sm font-medium transition flex items-center gap-1.5 {{ $activeTab === 'kontaktdaten' ? 'border-[color:var(--ui-primary)] text-[color:var(--ui-primary)]' : 'border-transparent text-[color:var(--ui-muted)] hover:text-[color:var(--ui-secondary)] hover:border-[color:var(--ui-border)]' }}">
+                    @svg('heroicon-o-phone', 'w-4 h-4')
                     Kontaktdaten
                 </button>
-                <button wire:click="$set('activeTab', 'unternehmen')" class="py-3 px-1 border-b-2 text-sm font-medium transition {{ $activeTab === 'unternehmen' ? 'border-[color:var(--ui-primary)] text-[color:var(--ui-primary)]' : 'border-transparent text-[color:var(--ui-muted)] hover:text-[color:var(--ui-secondary)] hover:border-[color:var(--ui-border)]' }}">
+                <button wire:click="$set('activeTab', 'unternehmen')" class="py-3 px-1 border-b-2 text-sm font-medium transition flex items-center gap-1.5 {{ $activeTab === 'unternehmen' ? 'border-[color:var(--ui-primary)] text-[color:var(--ui-primary)]' : 'border-transparent text-[color:var(--ui-muted)] hover:text-[color:var(--ui-secondary)] hover:border-[color:var(--ui-border)]' }}">
+                    @svg('heroicon-o-building-office', 'w-4 h-4')
                     Unternehmen
                 </button>
             </nav>

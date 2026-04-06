@@ -244,18 +244,24 @@
                                            class="rounded border-[var(--ui-border)] text-[var(--ui-primary)]" />
                                 </x-ui-table-cell>
                                 <x-ui-table-cell compact="true">
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-medium">{{ $contact->last_name }}, {{ $contact->first_name }}</span>
-                                        @if($contact->is_blacklisted)
-                                            <x-ui-badge variant="danger" size="xs">
-                                                @svg('heroicon-s-no-symbol', 'w-3 h-3')
-                                                Blacklisted
-                                            </x-ui-badge>
-                                        @endif
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-full bg-[color:var(--ui-primary-10)] flex items-center justify-center text-[10px] font-bold text-[color:var(--ui-primary)] flex-shrink-0">
+                                            {{ strtoupper(mb_substr($contact->first_name, 0, 1) . mb_substr($contact->last_name, 0, 1)) }}
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="font-medium">{{ $contact->last_name }}, {{ $contact->first_name }}</span>
+                                                @if($contact->is_blacklisted)
+                                                    <x-ui-badge variant="danger" size="xs">
+                                                        @svg('heroicon-s-no-symbol', 'w-3 h-3')
+                                                    </x-ui-badge>
+                                                @endif
+                                            </div>
+                                            @if($contact->nickname)
+                                                <div class="text-xs text-[color:var(--ui-muted)]">"{{ $contact->nickname }}"</div>
+                                            @endif
+                                        </div>
                                     </div>
-                                    @if($contact->nickname)
-                                        <div class="text-xs text-[color:var(--ui-muted)]">"{{ $contact->nickname }}"</div>
-                                    @endif
                                 </x-ui-table-cell>
                                 <x-ui-table-cell compact="true">
                                     <div class="space-y-1">
@@ -301,7 +307,7 @@
                                 </x-ui-table-cell>
                                 <x-ui-table-cell compact="true">
                                     @if($contact->contactStatus)
-                                        <x-ui-badge variant="secondary" size="sm">
+                                        <x-ui-badge variant="{{ \Platform\Crm\Models\CrmContactStatus::getVariantForCode($contact->contactStatus->code ?? '') }}" size="sm">
                                             {{ $contact->contactStatus->name }}
                                         </x-ui-badge>
                                     @else
