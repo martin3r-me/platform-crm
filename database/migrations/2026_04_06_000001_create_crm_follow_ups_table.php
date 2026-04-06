@@ -8,10 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::dropIfExists('crm_follow_ups');
+
         Schema::create('crm_follow_ups', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
-            $table->morphs('followupable');
+            $table->string('followupable_type');
+            $table->unsignedBigInteger('followupable_id');
             $table->string('title', 255);
             $table->date('due_date');
             $table->timestamp('completed_at')->nullable();
@@ -19,8 +22,9 @@ return new class extends Migration
             $table->foreignId('team_id')->constrained('teams')->cascadeOnDelete();
             $table->timestamps();
 
-            $table->index(['followupable_type', 'followupable_id', 'completed_at']);
-            $table->index(['team_id', 'due_date']);
+            $table->index(['followupable_type', 'followupable_id'], 'crm_fu_morphs_index');
+            $table->index(['followupable_type', 'followupable_id', 'completed_at'], 'crm_fu_morphs_completed_index');
+            $table->index(['team_id', 'due_date'], 'crm_fu_team_due_index');
         });
     }
 
