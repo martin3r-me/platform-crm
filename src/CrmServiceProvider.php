@@ -54,7 +54,21 @@ class CrmServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Debug-Logs entfernt
-        
+
+        // Morph-Map für Entity-Links
+        \Illuminate\Database\Eloquent\Relations\Relation::morphMap([
+            'crm_contact' => \Platform\Crm\Models\CrmContact::class,
+            'crm_company' => \Platform\Crm\Models\CrmCompany::class,
+        ]);
+
+        // EntityLinkProvider registrieren (loose Kopplung mit Organization-Modul)
+        try {
+            resolve(\Platform\Organization\Services\EntityLinkRegistry::class)
+                ->register(new \Platform\Crm\Organization\CrmEntityLinkProvider());
+        } catch (\Throwable $e) {
+            // Organization-Modul nicht geladen
+        }
+
         // Schritt 1: Config laden
         $this->mergeConfigFrom(__DIR__.'/../config/crm.php', 'crm');
         
