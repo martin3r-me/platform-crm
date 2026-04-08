@@ -82,7 +82,7 @@ class CrmServiceProvider extends ServiceProvider
         ) {
             PlatformCore::registerModule([
                 'key'        => 'crm',
-                'title'      => 'Crm',
+                'title'      => 'CRM',
                 'group'      => 'sales',
                 'routing'    => config('crm.routing'),
                 'guard'      => config('crm.guard'),
