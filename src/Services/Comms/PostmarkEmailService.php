@@ -152,6 +152,20 @@ class PostmarkEmailService
             }
         }
 
+        // 3d) Conversation token marker in the body itself.
+        //
+        // Custom email headers like X-Conversation-Token are NOT preserved by mail
+        // clients when the recipient hits "reply" — they only quote the body.
+        // We therefore embed the token as an invisible (HTML) and visible (text)
+        // marker INSIDE the body, so the inbound webhook can recover the thread
+        // via the [conv:TOKEN] regex even when the header is missing.
+        //
+        // Placement matters: it must come AFTER the quoted reply block, so that
+        // mail clients which auto-quote the previous body include it in the
+        // recipient's reply text.
+        $htmlBody .= '<div style="display:none;color:transparent;font-size:1px;line-height:1px;mso-hide:all;" aria-hidden="true">[conv:' . $token . ']</div>';
+        $textBody .= "\n\n[conv:{$token}]";
+
         // 4) Attachments
         // Supports three input formats per entry:
         //  a) UploadedFile  -> stored on the 'emails' disk under threads/{thread}/{name}

@@ -48,24 +48,90 @@ class InboundPostmarkController extends Controller
             $this->verifyBasicAuthIfConfigured($request, $creds);
             $this->verifyPostmarkSignatureIfConfigured($request, $raw, $creds);
 
-            // 3) Conversation token
+            // 3) Conversation token resolution.
+            //
+            // Multiple fallbacks because mail clients are notoriously bad at
+            // preserving custom headers and even body markers across replies.
+            // Order matters: header > body marker > ticket-id subject marker > new ulid.
+            $tokenSource = null;
+
+            // 3a) Custom Postmark header (best case, rarely survives a customer reply).
             $token = $request->header('X-Conversation-Token');
-            if (!$token && isset($payload['TextBody'])) {
-                preg_match('/\[conv:([A-Z0-9]{26})]/', (string) $payload['TextBody'], $m);
-                $token = $m[1] ?? null;
+            if ($token) {
+                $tokenSource = 'header';
+            }
+
+            // 3b) [conv:TOKEN] marker in the body (text + html). Outbound mails embed
+            // this so that the recipient's quoted reply still contains it.
+            if (!$token) {
+                $bodySources = [
+                    (string) ($payload['TextBody'] ?? ''),
+                    (string) ($payload['HtmlBody'] ?? ''),
+                ];
+                foreach ($bodySources as $body) {
+                    if ($body !== '' && preg_match('/\[conv:([A-Z0-9]{26})]/', $body, $m)) {
+                        $token = $m[1];
+                        $tokenSource = 'body';
+                        break;
+                    }
+                }
+            }
+
+            // 3c) [#TicketID] marker in the subject as last resort: look up the
+            // existing thread of that helpdesk ticket on this channel and reuse
+            // its token. This catches mail clients that strip both header and
+            // body markers but leave the visible subject prefix intact.
+            $matchedThreadByMarker = null;
+            if (!$token) {
+                $subjectStr = (string) ($payload['Subject'] ?? '');
+                if ($subjectStr !== '' && preg_match('/\[#(\d+)\]/', $subjectStr, $m)) {
+                    $ticketId = (int) $m[1];
+                    $matchedThreadByMarker = CommsEmailThread::query()
+                        ->where('comms_channel_id', $channel->id)
+                        ->where('context_model_id', $ticketId)
+                        ->whereIn('context_model', [
+                            'Platform\\Helpdesk\\Models\\HelpdeskTicket',
+                            'helpdesk_ticket',
+                            'HelpdeskTicket',
+                        ])
+                        ->orderBy('id')
+                        ->first();
+                    if ($matchedThreadByMarker) {
+                        $token = (string) $matchedThreadByMarker->token;
+                        $tokenSource = 'subject_marker';
+                    }
+                }
+            }
+
+            $generatedNewToken = false;
+            if (!$token) {
+                $token = str()->ulid()->toBase32();
+                $tokenSource = 'new';
+                $generatedNewToken = true;
             }
 
             // 4) Thread (token per channel)
             $thread = CommsEmailThread::query()->firstOrCreate(
                 [
                     'comms_channel_id' => $channel->id,
-                    'token' => $token ?: str()->ulid()->toBase32(),
+                    'token' => $token,
                 ],
                 [
                     'team_id' => $channel->team_id,
                     'subject' => $payload['Subject'] ?? null,
                 ]
             );
+
+            Log::info('[Inbound] Token resolution', [
+                'channel_id' => $channel->id,
+                'source' => $tokenSource,
+                'token' => $token,
+                'thread_id' => $thread->id,
+                'thread_was_created' => $thread->wasRecentlyCreated,
+                'subject' => $payload['Subject'] ?? null,
+                'from' => $payload['From'] ?? null,
+                'postmark_message_id' => $postmarkId,
+            ]);
 
             // 4b) Resolve contact if not already linked
             if (!$thread->contact_id) {
