@@ -68,6 +68,25 @@ trait WithCommsChat
     public bool $showAllThreads = false;
     public ?string $emailMessage = null;
 
+    // --- Email Forward State ---
+    /** True while composing a forwarded email (compose body is pre-filled with original message). */
+    public bool $isForwarding = false;
+    /** Original sender of the forwarded message (for UI banner). */
+    public ?string $forwardingFrom = null;
+    /** Original subject (without Fwd: prefix) for UI banner. */
+    public ?string $forwardingSubject = null;
+    /**
+     * IDs of CommsEmailMailAttachment records that should be re-attached on send.
+     * Format: [attId, attId, ...] – user can remove individual entries before sending.
+     * @var array<int, int>
+     */
+    public array $forwardingAttachmentIds = [];
+    /**
+     * Lightweight info about the attachments (name, size) for the UI list.
+     * @var array<int, array{id:int, filename:string, size:?int, mime:?string}>
+     */
+    public array $forwardingAttachments = [];
+
     // --- WhatsApp Runtime ---
     /** @var array<int, array<string, mixed>> */
     public array $whatsappChannels = [];
@@ -325,6 +344,7 @@ trait WithCommsChat
     public function setActiveEmailThread(int $threadId): void
     {
         $this->activeEmailThreadId = $threadId;
+        $this->resetForwardState();
         $this->loadEmailTimeline();
 
         $thread = CommsEmailThread::query()->whereKey($threadId)->first();
@@ -414,6 +434,7 @@ trait WithCommsChat
         $this->activeEmailThreadId = null;
         $this->emailTimeline = [];
         $this->emailCompose['body'] = '';
+        $this->resetForwardState();
 
         if ($this->hasContext()) {
             $this->emailCompose['subject'] = (string) ($this->contextSubject ?? '');
@@ -426,10 +447,156 @@ trait WithCommsChat
         $this->dispatch('comms:scroll-bottom');
     }
 
+    /**
+     * Forward an existing message (inbound or outbound) of the active thread.
+     *
+     * Pre-fills the compose area with the quoted original body, sets a Fwd: subject,
+     * collects all non-inline attachments of the original message and switches to
+     * "new thread" mode (forwarding starts a fresh conversation).
+     *
+     * @param string $mailKey  Either "in_<id>" or "out_<id>" as emitted by loadEmailTimeline().
+     */
+    public function forwardEmail(string $mailKey): void
+    {
+        $this->emailMessage = null;
+
+        if (!preg_match('/^(in|out)_(\d+)$/', $mailKey, $m)) {
+            $this->emailMessage = '⛔️ Ungültige Nachricht.';
+            return;
+        }
+
+        $direction = $m[1];
+        $mailId = (int) $m[2];
+
+        $mail = $direction === 'in'
+            ? CommsEmailInboundMail::query()->whereKey($mailId)->first()
+            : CommsEmailOutboundMail::query()->whereKey($mailId)->first();
+
+        if (!$mail) {
+            $this->emailMessage = '⛔️ Nachricht nicht gefunden.';
+            return;
+        }
+
+        // Build the quote header
+        $origFrom = (string) ($mail->from ?? 'Unbekannt');
+        $origTo = (string) ($mail->to ?? '');
+        $origCc = (string) ($mail->cc ?? '');
+        $origSubject = (string) ($mail->subject ?? '');
+        $origDate = $direction === 'in'
+            ? ($mail->received_at ?? $mail->created_at)
+            : ($mail->sent_at ?? $mail->created_at);
+        $origDateStr = $origDate?->format('d.m.Y H:i') ?? '';
+
+        // Strip ticket marker and Re:/Fwd: prefixes for the new subject
+        $cleanSubject = preg_replace('/^\s*(\[#\d+\]\s*)?((Re|Fwd|AW|WG):\s*)*/i', '', $origSubject) ?? $origSubject;
+        $newSubject = 'Fwd: ' . trim($cleanSubject);
+
+        // Plain-text body for the editable textarea
+        $textBody = (string) ($mail->text_body ?? '');
+        if ($textBody === '' && !empty($mail->html_body)) {
+            $textBody = trim(strip_tags((string) $mail->html_body));
+        }
+
+        $headerLines = [
+            '',
+            '',
+            '---------- Weitergeleitete Nachricht ----------',
+            'Von: ' . $origFrom,
+        ];
+        if ($origDateStr !== '') {
+            $headerLines[] = 'Datum: ' . $origDateStr;
+        }
+        $headerLines[] = 'Betreff: ' . $origSubject;
+        if ($origTo !== '') {
+            $headerLines[] = 'An: ' . $origTo;
+        }
+        if ($origCc !== '') {
+            $headerLines[] = 'Cc: ' . $origCc;
+        }
+        $headerLines[] = '';
+        $headerLines[] = $textBody;
+
+        // Note: we deliberately KEEP the active thread visible (timeline stays open).
+        // The forwarding flag tells sendEmail() to create a new thread instead of replying.
+
+        $this->emailCompose['to'] = '';
+        $this->emailCompose['cc'] = '';
+        $this->emailCompose['bcc'] = '';
+        $this->emailCompose['subject'] = $newSubject;
+        $this->emailCompose['body'] = implode("\n", $headerLines);
+
+        // Collect non-inline attachments of the original message
+        $this->forwardingAttachmentIds = [];
+        $this->forwardingAttachments = [];
+        $attQuery = CommsEmailMailAttachment::query();
+        if ($direction === 'in') {
+            $attQuery->where('inbound_mail_id', $mailId);
+        } else {
+            $attQuery->where('outbound_mail_id', $mailId);
+        }
+        foreach ($attQuery->where('inline', false)->get() as $att) {
+            $this->forwardingAttachmentIds[] = (int) $att->id;
+            $this->forwardingAttachments[] = [
+                'id' => (int) $att->id,
+                'filename' => (string) $att->filename,
+                'size' => $att->size !== null ? (int) $att->size : null,
+                'mime' => $att->mime,
+            ];
+        }
+
+        $this->isForwarding = true;
+        $this->forwardingFrom = $origFrom;
+        $this->forwardingSubject = $origSubject;
+        $this->emailMessage = '✏️ Weiterleitung vorbereitet – Empfänger eingeben und Text bei Bedarf anpassen.';
+
+        $this->dispatch('comms:scroll-bottom');
+    }
+
+    /**
+     * Remove a single attachment from the pending forward.
+     */
+    public function removeForwardingAttachment(int $attId): void
+    {
+        $this->forwardingAttachmentIds = array_values(array_filter(
+            $this->forwardingAttachmentIds,
+            fn ($id) => (int) $id !== $attId
+        ));
+        $this->forwardingAttachments = array_values(array_filter(
+            $this->forwardingAttachments,
+            fn ($a) => (int) ($a['id'] ?? 0) !== $attId
+        ));
+    }
+
+    /**
+     * Cancel a pending forward and clear the compose area.
+     */
+    public function cancelForward(): void
+    {
+        $this->resetForwardState();
+        $this->emailCompose['to'] = '';
+        $this->emailCompose['cc'] = '';
+        $this->emailCompose['bcc'] = '';
+        $this->emailCompose['subject'] = '';
+        $this->emailCompose['body'] = '';
+        $this->emailMessage = null;
+    }
+
+    private function resetForwardState(): void
+    {
+        $this->isForwarding = false;
+        $this->forwardingFrom = null;
+        $this->forwardingSubject = null;
+        $this->forwardingAttachmentIds = [];
+        $this->forwardingAttachments = [];
+    }
+
     public function sendEmail(): void
     {
         $this->emailMessage = null;
-        $wasNewThread = !$this->activeEmailThreadId;
+        // Forwarded mails always start a new thread, even when the timeline of an
+        // existing thread is currently visible.
+        $treatAsNewThread = $this->isForwarding || !$this->activeEmailThreadId;
+        $wasNewThread = $treatAsNewThread;
 
         $user = Auth::user();
         $team = $user?->currentTeam;
@@ -444,7 +611,8 @@ trait WithCommsChat
         }
 
         try {
-            $isReply = (bool) $this->activeEmailThreadId;
+            // Forwarded mails require recipient + subject (they're not a reply).
+            $isReply = !$treatAsNewThread;
             $this->validate([
                 'emailCompose.to' => [$isReply ? 'nullable' : 'required', 'email', 'max:255'],
                 'emailCompose.cc' => ['nullable', 'string', 'max:500'],
@@ -473,7 +641,8 @@ trait WithCommsChat
         $token = null;
         $to = (string) ($this->emailCompose['to'] ?? '');
 
-        if ($this->activeEmailThreadId) {
+        // Reply path only when a thread is open AND we are not forwarding.
+        if ($this->activeEmailThreadId && !$this->isForwarding) {
             $thread = CommsEmailThread::query()->whereKey($this->activeEmailThreadId)->first();
             if ($thread) {
                 $subject = (string) ($thread->subject ?: $subject);
@@ -501,6 +670,22 @@ trait WithCommsChat
             }
         }
 
+        // Build attachment list for forwarded mails: re-attach the originals via stored disk paths.
+        $sendFiles = [];
+        if ($this->isForwarding && !empty($this->forwardingAttachmentIds)) {
+            $forwardAtts = CommsEmailMailAttachment::query()
+                ->whereIn('id', $this->forwardingAttachmentIds)
+                ->get();
+            foreach ($forwardAtts as $att) {
+                $sendFiles[] = [
+                    'disk' => $att->disk ?: 'emails',
+                    'path' => (string) $att->path,
+                    'name' => (string) $att->filename,
+                    'mime' => $att->mime,
+                ];
+            }
+        }
+
         try {
             /** @var PostmarkEmailService $svc */
             $svc = app(PostmarkEmailService::class);
@@ -510,7 +695,7 @@ trait WithCommsChat
                 $subject ?: '(Ohne Betreff)',
                 nl2br(e((string) $this->emailCompose['body'])),
                 null,
-                [],
+                $sendFiles,
                 [
                     'sender' => $user,
                     'token' => $token,
@@ -533,6 +718,7 @@ trait WithCommsChat
             $this->emailCompose['subject'] = '';
             $this->emailCompose['to'] = '';
         }
+        $this->resetForwardState();
 
         if ($wasNewThread && $this->hasContext() && $token) {
             $newThread = CommsEmailThread::query()
@@ -693,6 +879,7 @@ trait WithCommsChat
             ->where('thread_id', $this->activeEmailThreadId)
             ->get()
             ->map(fn (CommsEmailInboundMail $m) => [
+                'mail_key' => 'in_' . $m->id,
                 'direction' => 'inbound',
                 'at' => $m->received_at?->toDateTimeString() ?: $m->created_at?->toDateTimeString(),
                 'from' => $m->from,
@@ -708,6 +895,7 @@ trait WithCommsChat
             ->where('thread_id', $this->activeEmailThreadId)
             ->get()
             ->map(fn (CommsEmailOutboundMail $m) => [
+                'mail_key' => 'out_' . $m->id,
                 'direction' => 'outbound',
                 'at' => $m->sent_at?->toDateTimeString() ?: $m->created_at?->toDateTimeString(),
                 'from' => $m->from,

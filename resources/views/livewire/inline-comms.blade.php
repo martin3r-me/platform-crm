@@ -153,7 +153,20 @@
                                                         @endif
                                                     </div>
                                                 </div>
-                                                <div class="text-[10px] text-[var(--ui-muted)] whitespace-nowrap">{{ $m['at'] ?? '' }}</div>
+                                                <div class="flex items-center gap-1 shrink-0">
+                                                    @if(!empty($m['mail_key']))
+                                                        <button
+                                                            type="button"
+                                                            wire:click="forwardEmail('{{ $m['mail_key'] }}')"
+                                                            class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-[var(--ui-muted)] hover:text-[var(--ui-primary)] hover:bg-[var(--ui-muted-5)] rounded transition-colors"
+                                                            title="Weiterleiten"
+                                                        >
+                                                            @svg('heroicon-o-arrow-right-on-rectangle', 'w-3 h-3')
+                                                            <span>Weiterleiten</span>
+                                                        </button>
+                                                    @endif
+                                                    <div class="text-[10px] text-[var(--ui-muted)] whitespace-nowrap">{{ $m['at'] ?? '' }}</div>
+                                                </div>
                                             </div>
                                         </div>
                                         {{-- Email body: HTML in sandboxed iframe, fallback to text --}}
@@ -382,6 +395,62 @@
                 <form method="post" action="javascript:void(0)" onsubmit="return false;">
                     @if($activeCtxType === 'email')
                         <div class="w-full space-y-1.5" x-data="{ showCcBcc: false }">
+                            {{-- Forward Banner: shown while a forwarded message is being composed --}}
+                            @if($isForwarding)
+                                <div class="rounded-lg border border-[var(--ui-primary)]/30 bg-[rgba(var(--ui-primary-rgb),0.04)] px-2.5 py-2 space-y-1.5">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="flex items-start gap-1.5 min-w-0">
+                                            @svg('heroicon-o-arrow-right-on-rectangle', 'w-3.5 h-3.5 text-[var(--ui-primary)] mt-0.5 flex-shrink-0')
+                                            <div class="min-w-0">
+                                                <div class="text-[11px] font-semibold text-[var(--ui-primary)]">Weiterleitung</div>
+                                                <div class="text-[10px] text-[var(--ui-muted)] truncate">
+                                                    Original von <span class="font-medium text-[var(--ui-secondary)]">{{ $forwardingFrom ?: '—' }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            wire:click="cancelForward"
+                                            class="text-[10px] text-[var(--ui-muted)] hover:text-[color:var(--ui-danger)] transition-colors flex-shrink-0"
+                                            title="Weiterleitung abbrechen"
+                                        >
+                                            Abbrechen
+                                        </button>
+                                    </div>
+                                    @if(!empty($forwardingAttachments))
+                                        <div class="flex flex-wrap gap-1">
+                                            @foreach($forwardingAttachments as $att)
+                                                <div class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-white border border-[var(--ui-border)]/60 rounded">
+                                                    @svg('heroicon-o-paper-clip', 'w-3 h-3 text-[var(--ui-muted)]')
+                                                    <span class="truncate max-w-[140px]">{{ $att['filename'] }}</span>
+                                                    <button
+                                                        type="button"
+                                                        wire:click="removeForwardingAttachment({{ (int) $att['id'] }})"
+                                                        class="text-[var(--ui-muted)] hover:text-[color:var(--ui-danger)]"
+                                                        title="Anhang entfernen"
+                                                    >
+                                                        @svg('heroicon-o-x-mark', 'w-3 h-3')
+                                                    </button>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                                <input
+                                    type="email"
+                                    wire:model="emailCompose.to"
+                                    placeholder="An (Empfänger der Weiterleitung)"
+                                    class="w-full px-2.5 py-1.5 border border-[var(--ui-border)] rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/50 bg-white"
+                                />
+                                <input
+                                    type="text"
+                                    wire:model="emailCompose.subject"
+                                    placeholder="Betreff"
+                                    class="w-full px-2.5 py-1.5 border border-[var(--ui-border)] rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/50 bg-white"
+                                />
+                                @error('emailCompose.to') <div class="text-xs text-[color:var(--ui-danger)]">{{ $message }}</div> @enderror
+                                @error('emailCompose.subject') <div class="text-xs text-[color:var(--ui-danger)]">{{ $message }}</div> @enderror
+                            @endif
                             <div class="flex items-center gap-2">
                                 <button type="button" @click="showCcBcc = !showCcBcc" class="text-[10px] text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors">
                                     <span x-show="!showCcBcc">CC/BCC</span>
@@ -402,10 +471,13 @@
                                     rows="1"
                                     wire:model="emailCompose.body"
                                     class="flex-1 w-full px-3 py-2 border border-[var(--ui-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/50 resize-none text-sm bg-white"
-                                    placeholder="Antworten…"
+                                    placeholder="{{ $isForwarding ? 'Optionaler Begleittext oben einfügen…' : 'Antworten…' }}"
                                 ></textarea>
                                 <x-ui-button variant="primary" size="sm" wire:click="sendEmail" wire:loading.attr="disabled" wire:loading.class="animate-pulse" wire:target="sendEmail" class="h-9 self-end px-4">
-                                    <span wire:loading.remove wire:target="sendEmail" class="inline-flex items-center gap-1">@svg('heroicon-o-paper-airplane', 'w-3.5 h-3.5') Senden</span>
+                                    <span wire:loading.remove wire:target="sendEmail" class="inline-flex items-center gap-1">
+                                        @svg('heroicon-o-paper-airplane', 'w-3.5 h-3.5')
+                                        {{ $isForwarding ? 'Weiterleiten' : 'Senden' }}
+                                    </span>
                                     <span wire:loading wire:target="sendEmail">Sende…</span>
                                 </x-ui-button>
                             </div>

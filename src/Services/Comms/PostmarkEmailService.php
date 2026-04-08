@@ -153,10 +153,39 @@ class PostmarkEmailService
         }
 
         // 4) Attachments
+        // Supports three input formats per entry:
+        //  a) UploadedFile  -> stored on the 'emails' disk under threads/{thread}/{name}
+        //  b) string path   -> absolute filesystem path (legacy fallback)
+        //  c) array         -> ['disk' => 'emails', 'path' => 'threads/X/file.pdf', 'name' => '...', 'mime' => '...']
+        //                       used to re-attach existing stored files (e.g. when forwarding)
         $pmAttachments = [];
         $storedAttachments = [];
 
         foreach ($files as $file) {
+            // Case c) Existing stored file (e.g. forwarded attachment)
+            if (is_array($file)) {
+                $disk = (string) ($file['disk'] ?? 'emails');
+                $relPath = (string) ($file['path'] ?? '');
+                if ($relPath === '' || !Storage::disk($disk)->exists($relPath)) {
+                    continue;
+                }
+
+                $name = (string) ($file['name'] ?? basename($relPath));
+                $mime = (string) ($file['mime'] ?? Storage::disk($disk)->mimeType($relPath) ?: 'application/octet-stream');
+                $absPath = Storage::disk($disk)->path($relPath);
+                if (!is_file($absPath) || filesize($absPath) === 0) {
+                    continue;
+                }
+
+                $pmAttachments[] = PostmarkAttachment::fromFile($absPath, $name, $mime);
+                $storedAttachments[] = [
+                    'name' => $name,
+                    'mime' => $mime,
+                    'storedPath' => $relPath,
+                ];
+                continue;
+            }
+
             $path = $file instanceof UploadedFile ? $file->getRealPath() : $file;
             if (!is_string($path) || !is_file($path) || filesize($path) === 0) {
                 continue;
