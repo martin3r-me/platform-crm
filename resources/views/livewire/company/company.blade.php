@@ -128,7 +128,7 @@
                         <x-ui-input-text name="followUpForm.title" wire:model="followUpForm.title" placeholder="Wiedervorlage..." size="sm" :errorKey="'followUpForm.title'" />
                         <div class="flex items-end gap-1.5">
                             <div class="flex-1">
-                                <x-ui-form.input-date-select name="followUpForm.due_date" size="sm" :errorKey="'followUpForm.due_date'" />
+                                <x-ui-input-date-select name="followUpForm.due_date" size="sm" :errorKey="'followUpForm.due_date'" />
                             </div>
                             <x-ui-button type="submit" size="sm" variant="primary" class="flex-shrink-0">
                                 @svg('heroicon-o-plus', 'w-3.5 h-3.5')
