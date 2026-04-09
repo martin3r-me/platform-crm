@@ -38,6 +38,7 @@ class CrmServiceProvider extends ServiceProvider
                 \Platform\Crm\Console\Commands\SeedCrmLookupData::class,
                 \Platform\Crm\Console\Commands\ImportHubspotData::class,
                 \Platform\Crm\Console\Commands\ImportHubspotDeals::class,
+                \Platform\Crm\Console\Commands\PurgeHubspotDeals::class,
             ]);
         }
         
