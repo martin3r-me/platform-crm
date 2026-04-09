@@ -209,9 +209,9 @@ class ImportHubspotData extends Command
 
         foreach ($rows as $row) {
             $hsId = $row['hs_object_id'] ?? '';
-            $name = $row['name'] ?? $row['domain'] ?? "Company {$hsId}";
+            $name = trim($row['name'] ?? '') ?: trim($row['domain'] ?? '') ?: '';
 
-            if (empty($name) || $name === '') {
+            if ($name === '') {
                 $errors++;
                 $bar->advance();
                 continue;
@@ -466,10 +466,15 @@ class ImportHubspotData extends Command
             $timestamp = $this->parseTimestamp($row['hs_timestamp'] ?? $row['hs_createdate'] ?? '');
             $hsId = $row['hs_object_id'] ?? '';
 
-            $subject = $this->resolveActivitySubject($row, $companyMap, $contactMap);
+            $subject = $this->resolveActivitySubject($row, $companyMap, $contactMap, $dryRun);
 
-            if (!$subject || $dryRun) {
-                if ($dryRun && $subject) $created++;
+            if (!$subject) {
+                $bar->advance();
+                continue;
+            }
+
+            if ($dryRun) {
+                $created++;
                 $bar->advance();
                 continue;
             }
@@ -519,10 +524,15 @@ class ImportHubspotData extends Command
             $timestamp = $this->parseTimestamp($row['hs_timestamp'] ?? $row['hs_createdate'] ?? '');
             $hsId = $row['hs_object_id'] ?? '';
 
-            $subject = $this->resolveActivitySubject($row, $companyMap, $contactMap);
+            $subject = $this->resolveActivitySubject($row, $companyMap, $contactMap, $dryRun);
 
-            if (!$subject || $dryRun) {
-                if ($dryRun && $subject) $created++;
+            if (!$subject) {
+                $bar->advance();
+                continue;
+            }
+
+            if ($dryRun) {
+                $created++;
                 $bar->advance();
                 continue;
             }
@@ -577,10 +587,15 @@ class ImportHubspotData extends Command
             $timestamp = $this->parseTimestamp($row['hs_meeting_start_time'] ?? $row['hs_timestamp'] ?? $row['hs_createdate'] ?? '');
             $hsId = $row['hs_object_id'] ?? '';
 
-            $subject = $this->resolveActivitySubject($row, $companyMap, $contactMap);
+            $subject = $this->resolveActivitySubject($row, $companyMap, $contactMap, $dryRun);
 
-            if (!$subject || $dryRun) {
-                if ($dryRun && $subject) $created++;
+            if (!$subject) {
+                $bar->advance();
+                continue;
+            }
+
+            if ($dryRun) {
+                $created++;
                 $bar->advance();
                 continue;
             }
@@ -636,10 +651,15 @@ class ImportHubspotData extends Command
             $timestamp = $this->parseTimestamp($row['hs_timestamp'] ?? $row['hs_createdate'] ?? '');
             $hsId = $row['hs_object_id'] ?? '';
 
-            $subject = $this->resolveActivitySubject($row, $companyMap, $contactMap);
+            $subject = $this->resolveActivitySubject($row, $companyMap, $contactMap, $dryRun);
 
-            if (!$subject || $dryRun) {
-                if ($dryRun && $subject) $created++;
+            if (!$subject) {
+                $bar->advance();
+                continue;
+            }
+
+            if ($dryRun) {
+                $created++;
                 $bar->advance();
                 continue;
             }
@@ -686,13 +706,14 @@ class ImportHubspotData extends Command
      * Resolve the primary subject (CrmCompany or CrmContact) for an engagement.
      * Priority: company first (most engagements are company-scoped), then contact.
      */
-    private function resolveActivitySubject(array $row, array $companyMap, array $contactMap): ?object
+    private function resolveActivitySubject(array $row, array $companyMap, array $contactMap, bool $dryRun = false): ?object
     {
         // Try company first
         $companyIds = $this->parseAssocIds($row['assoc_companies'] ?? '');
         foreach ($companyIds as $hsCompanyId) {
             $crmId = $companyMap[$hsCompanyId] ?? null;
-            if ($crmId) {
+            if ($crmId !== null) {
+                if ($dryRun) return (object) ['type' => 'company', 'id' => $crmId];
                 return CrmCompany::find($crmId);
             }
         }
@@ -701,7 +722,8 @@ class ImportHubspotData extends Command
         $contactIds = $this->parseAssocIds($row['assoc_contacts'] ?? '');
         foreach ($contactIds as $hsContactId) {
             $crmId = $contactMap[$hsContactId] ?? null;
-            if ($crmId) {
+            if ($crmId !== null) {
+                if ($dryRun) return (object) ['type' => 'contact', 'id' => $crmId];
                 return CrmContact::find($crmId);
             }
         }
