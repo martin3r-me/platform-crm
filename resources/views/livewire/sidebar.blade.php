@@ -21,6 +21,20 @@
             <span x-show="!collapsed" class="truncate">Kontakte</span>
         </a>
 
+        {{-- Engagements --}}
+        <a href="{{ route('crm.engagements.index') }}"
+           class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition"
+           :class="[
+               window.location.pathname.includes('/engagements')
+                   ? 'bg-[color:var(--ui-primary)] text-[color:var(--ui-on-primary)] shadow'
+                   : 'text-[color:var(--ui-secondary)] hover:bg-[color:var(--ui-primary-5)] hover:text-[color:var(--ui-primary)]',
+               collapsed ? 'justify-center' : 'gap-3'
+           ]"
+           wire:navigate>
+            <x-heroicon-o-clipboard-document-list class="w-6 h-6 flex-shrink-0"/>
+            <span x-show="!collapsed" class="truncate">Engagements</span>
+        </a>
+
         {{-- Unternehmen --}}
         <a href="{{ route('crm.companies.index') }}"
            class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition"

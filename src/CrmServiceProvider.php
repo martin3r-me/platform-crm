@@ -60,6 +60,7 @@ class CrmServiceProvider extends ServiceProvider
         \Illuminate\Database\Eloquent\Relations\Relation::morphMap([
             'crm_contact' => \Platform\Crm\Models\CrmContact::class,
             'crm_company' => \Platform\Crm\Models\CrmCompany::class,
+            'crm_engagement' => \Platform\Crm\Models\CrmEngagement::class,
         ]);
 
         // EntityLinkProvider registrieren (loose Kopplung mit Organization-Modul)

@@ -5,11 +5,13 @@ namespace Platform\Crm\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Platform\ActivityLog\Models\ActivityLogActivity;
 use Platform\Crm\Models\CrmCompany;
+use Platform\Crm\Models\CrmCompanyLink;
 use Platform\Crm\Models\CrmContact;
+use Platform\Crm\Models\CrmContactLink;
 use Platform\Crm\Models\CrmContactRelation;
 use Platform\Crm\Models\CrmEmailAddress;
+use Platform\Crm\Models\CrmEngagement;
 use Platform\Crm\Models\CrmPhoneNumber;
 use Platform\Crm\Models\CrmPostalAddress;
 
@@ -130,10 +132,10 @@ class ImportHubspotData extends Command
             $contactMap = $this->importContacts($path . '/contacts.csv', $teamId, $userId, $dryRun, $companyMap);
         }
 
-        // 3. Import Engagements (notes, calls, meetings, tasks → activity_log_activities)
+        // 3. Import Engagements (notes, calls, meetings, tasks → crm_engagements)
         $engagementCounts = ['notes' => 0, 'calls' => 0, 'meetings' => 0, 'tasks' => 0];
         if (!$this->option('skip-engagements')) {
-            $engagementCounts = $this->importEngagements($path, $userId, $dryRun, $companyMap, $contactMap);
+            $engagementCounts = $this->importEngagements($path, $teamId, $userId, $dryRun, $companyMap, $contactMap);
         }
 
         $this->newLine();
@@ -423,7 +425,7 @@ class ImportHubspotData extends Command
 
     // ─── Engagements ─────────────────────────────────────────────
 
-    private function importEngagements(string $path, int $userId, bool $dryRun, array $companyMap, array $contactMap): array
+    private function importEngagements(string $path, int $teamId, int $userId, bool $dryRun, array $companyMap, array $contactMap): array
     {
         $this->newLine();
         $this->info('Importing Engagements (Notes, Calls, Meetings, Tasks)...');
@@ -432,28 +434,28 @@ class ImportHubspotData extends Command
 
         // Notes
         if (file_exists($path . '/notes.csv')) {
-            $counts['notes'] = $this->importNotes($path . '/notes.csv', $userId, $dryRun, $companyMap, $contactMap);
+            $counts['notes'] = $this->importNotes($path . '/notes.csv', $teamId, $userId, $dryRun, $companyMap, $contactMap);
         }
 
         // Calls
         if (file_exists($path . '/calls.csv')) {
-            $counts['calls'] = $this->importCalls($path . '/calls.csv', $userId, $dryRun, $companyMap, $contactMap);
+            $counts['calls'] = $this->importCalls($path . '/calls.csv', $teamId, $userId, $dryRun, $companyMap, $contactMap);
         }
 
         // Meetings
         if (file_exists($path . '/meetings.csv')) {
-            $counts['meetings'] = $this->importMeetings($path . '/meetings.csv', $userId, $dryRun, $companyMap, $contactMap);
+            $counts['meetings'] = $this->importMeetings($path . '/meetings.csv', $teamId, $userId, $dryRun, $companyMap, $contactMap);
         }
 
         // Tasks
         if (file_exists($path . '/tasks.csv')) {
-            $counts['tasks'] = $this->importTasks($path . '/tasks.csv', $userId, $dryRun, $companyMap, $contactMap);
+            $counts['tasks'] = $this->importTasks($path . '/tasks.csv', $teamId, $userId, $dryRun, $companyMap, $contactMap);
         }
 
         return $counts;
     }
 
-    private function importNotes(string $file, int $userId, bool $dryRun, array $companyMap, array $contactMap): int
+    private function importNotes(string $file, int $teamId, int $userId, bool $dryRun, array $companyMap, array $contactMap): int
     {
         $rows = $this->readCsv($file);
         $this->info("  Notes: {$rows->count()} in CSV");
@@ -466,13 +468,6 @@ class ImportHubspotData extends Command
             $timestamp = $this->parseTimestamp($row['hs_timestamp'] ?? $row['hs_createdate'] ?? '');
             $hsId = $row['hs_object_id'] ?? '';
 
-            $subject = $this->resolveActivitySubject($row, $companyMap, $contactMap, $dryRun);
-
-            if (!$subject) {
-                $bar->advance();
-                continue;
-            }
-
             if ($dryRun) {
                 $created++;
                 $bar->advance();
@@ -480,21 +475,21 @@ class ImportHubspotData extends Command
             }
 
             try {
-                $subject->activities()->create([
-                    'activity_type' => 'hubspot_import',
-                    'name' => 'hubspot_note',
-                    'message' => $body ?: null,
-                    'user_id' => $userId,
+                $engagement = CrmEngagement::create([
+                    'type' => CrmEngagement::TYPE_NOTE,
+                    'body' => $body ?: null,
+                    'scheduled_at' => $timestamp,
                     'metadata' => array_filter([
                         'hubspot_id' => $hsId,
                         'hubspot_owner_id' => $row['hubspot_owner_id'] ?? null,
-                        'timestamp' => $timestamp,
-                        'assoc_contacts' => $this->parseAssocIds($row['assoc_contacts'] ?? ''),
-                        'assoc_companies' => $this->parseAssocIds($row['assoc_companies'] ?? ''),
-                        'assoc_deals' => $this->parseAssocIds($row['assoc_deals'] ?? ''),
                     ]),
+                    'owned_by_user_id' => $userId,
+                    'created_by_user_id' => $userId,
+                    'team_id' => $teamId,
                     'created_at' => $timestamp ?? now(),
                 ]);
+
+                $this->createEngagementLinks($engagement, $row, $teamId, $userId, $companyMap, $contactMap);
                 $created++;
             } catch (\Throwable $e) {
                 Log::debug("HubSpot Import: Note error HS={$hsId}", ['error' => $e->getMessage()]);
@@ -510,7 +505,7 @@ class ImportHubspotData extends Command
         return $created;
     }
 
-    private function importCalls(string $file, int $userId, bool $dryRun, array $companyMap, array $contactMap): int
+    private function importCalls(string $file, int $teamId, int $userId, bool $dryRun, array $companyMap, array $contactMap): int
     {
         $rows = $this->readCsv($file);
         $this->info("  Calls: {$rows->count()} in CSV");
@@ -520,16 +515,9 @@ class ImportHubspotData extends Command
 
         foreach ($rows as $row) {
             $body = $this->stripHtml($row['hs_call_body'] ?? '');
-            $title = $row['hs_call_title'] ?? '';
+            $title = trim($row['hs_call_title'] ?? '');
             $timestamp = $this->parseTimestamp($row['hs_timestamp'] ?? $row['hs_createdate'] ?? '');
             $hsId = $row['hs_object_id'] ?? '';
-
-            $subject = $this->resolveActivitySubject($row, $companyMap, $contactMap, $dryRun);
-
-            if (!$subject) {
-                $bar->advance();
-                continue;
-            }
 
             if ($dryRun) {
                 $created++;
@@ -537,27 +525,26 @@ class ImportHubspotData extends Command
                 continue;
             }
 
-            $message = $title ? "{$title}\n\n{$body}" : $body;
-
             try {
-                $subject->activities()->create([
-                    'activity_type' => 'hubspot_import',
-                    'name' => 'hubspot_call',
-                    'message' => $message ?: null,
-                    'user_id' => $userId,
+                $engagement = CrmEngagement::create([
+                    'type' => CrmEngagement::TYPE_CALL,
+                    'title' => $title ?: null,
+                    'body' => $body ?: null,
+                    'status' => $row['hs_call_status'] ?? null,
+                    'scheduled_at' => $timestamp,
                     'metadata' => array_filter([
                         'hubspot_id' => $hsId,
                         'hubspot_owner_id' => $row['hubspot_owner_id'] ?? null,
-                        'timestamp' => $timestamp,
                         'direction' => $row['hs_call_direction'] ?? null,
                         'duration_ms' => $row['hs_call_duration'] ?? null,
-                        'status' => $row['hs_call_status'] ?? null,
-                        'assoc_contacts' => $this->parseAssocIds($row['assoc_contacts'] ?? ''),
-                        'assoc_companies' => $this->parseAssocIds($row['assoc_companies'] ?? ''),
-                        'assoc_deals' => $this->parseAssocIds($row['assoc_deals'] ?? ''),
                     ]),
+                    'owned_by_user_id' => $userId,
+                    'created_by_user_id' => $userId,
+                    'team_id' => $teamId,
                     'created_at' => $timestamp ?? now(),
                 ]);
+
+                $this->createEngagementLinks($engagement, $row, $teamId, $userId, $companyMap, $contactMap);
                 $created++;
             } catch (\Throwable $e) {
                 Log::debug("HubSpot Import: Call error HS={$hsId}", ['error' => $e->getMessage()]);
@@ -573,7 +560,7 @@ class ImportHubspotData extends Command
         return $created;
     }
 
-    private function importMeetings(string $file, int $userId, bool $dryRun, array $companyMap, array $contactMap): int
+    private function importMeetings(string $file, int $teamId, int $userId, bool $dryRun, array $companyMap, array $contactMap): int
     {
         $rows = $this->readCsv($file);
         $this->info("  Meetings: {$rows->count()} in CSV");
@@ -583,16 +570,10 @@ class ImportHubspotData extends Command
 
         foreach ($rows as $row) {
             $body = $this->stripHtml($row['hs_meeting_body'] ?? '');
-            $title = $row['hs_meeting_title'] ?? '';
-            $timestamp = $this->parseTimestamp($row['hs_meeting_start_time'] ?? $row['hs_timestamp'] ?? $row['hs_createdate'] ?? '');
+            $title = trim($row['hs_meeting_title'] ?? '');
+            $startTime = $this->parseTimestamp($row['hs_meeting_start_time'] ?? $row['hs_timestamp'] ?? $row['hs_createdate'] ?? '');
+            $endTime = $this->parseTimestamp($row['hs_meeting_end_time'] ?? '');
             $hsId = $row['hs_object_id'] ?? '';
-
-            $subject = $this->resolveActivitySubject($row, $companyMap, $contactMap, $dryRun);
-
-            if (!$subject) {
-                $bar->advance();
-                continue;
-            }
 
             if ($dryRun) {
                 $created++;
@@ -600,28 +581,26 @@ class ImportHubspotData extends Command
                 continue;
             }
 
-            $message = $title ? "{$title}\n\n{$body}" : $body;
-
             try {
-                $subject->activities()->create([
-                    'activity_type' => 'hubspot_import',
-                    'name' => 'hubspot_meeting',
-                    'message' => $message ?: null,
-                    'user_id' => $userId,
+                $engagement = CrmEngagement::create([
+                    'type' => CrmEngagement::TYPE_MEETING,
+                    'title' => $title ?: null,
+                    'body' => $body ?: null,
+                    'status' => $row['hs_meeting_outcome'] ?? null,
+                    'scheduled_at' => $startTime,
+                    'ended_at' => $endTime,
                     'metadata' => array_filter([
                         'hubspot_id' => $hsId,
                         'hubspot_owner_id' => $row['hubspot_owner_id'] ?? null,
-                        'timestamp' => $timestamp,
-                        'start_time' => $this->parseTimestamp($row['hs_meeting_start_time'] ?? ''),
-                        'end_time' => $this->parseTimestamp($row['hs_meeting_end_time'] ?? ''),
                         'location' => $row['hs_meeting_location'] ?? null,
-                        'outcome' => $row['hs_meeting_outcome'] ?? null,
-                        'assoc_contacts' => $this->parseAssocIds($row['assoc_contacts'] ?? ''),
-                        'assoc_companies' => $this->parseAssocIds($row['assoc_companies'] ?? ''),
-                        'assoc_deals' => $this->parseAssocIds($row['assoc_deals'] ?? ''),
                     ]),
-                    'created_at' => $timestamp ?? now(),
+                    'owned_by_user_id' => $userId,
+                    'created_by_user_id' => $userId,
+                    'team_id' => $teamId,
+                    'created_at' => $startTime ?? now(),
                 ]);
+
+                $this->createEngagementLinks($engagement, $row, $teamId, $userId, $companyMap, $contactMap);
                 $created++;
             } catch (\Throwable $e) {
                 Log::debug("HubSpot Import: Meeting error HS={$hsId}", ['error' => $e->getMessage()]);
@@ -637,7 +616,7 @@ class ImportHubspotData extends Command
         return $created;
     }
 
-    private function importTasks(string $file, int $userId, bool $dryRun, array $companyMap, array $contactMap): int
+    private function importTasks(string $file, int $teamId, int $userId, bool $dryRun, array $companyMap, array $contactMap): int
     {
         $rows = $this->readCsv($file);
         $this->info("  Tasks: {$rows->count()} in CSV");
@@ -647,16 +626,9 @@ class ImportHubspotData extends Command
 
         foreach ($rows as $row) {
             $body = $this->stripHtml($row['hs_task_body'] ?? '');
-            $taskSubject = $row['hs_task_subject'] ?? '';
+            $taskSubject = trim($row['hs_task_subject'] ?? '');
             $timestamp = $this->parseTimestamp($row['hs_timestamp'] ?? $row['hs_createdate'] ?? '');
             $hsId = $row['hs_object_id'] ?? '';
-
-            $subject = $this->resolveActivitySubject($row, $companyMap, $contactMap, $dryRun);
-
-            if (!$subject) {
-                $bar->advance();
-                continue;
-            }
 
             if ($dryRun) {
                 $created++;
@@ -664,27 +636,26 @@ class ImportHubspotData extends Command
                 continue;
             }
 
-            $message = $taskSubject ? "{$taskSubject}\n\n{$body}" : $body;
-
             try {
-                $subject->activities()->create([
-                    'activity_type' => 'hubspot_import',
-                    'name' => 'hubspot_task',
-                    'message' => $message ?: null,
-                    'user_id' => $userId,
+                $engagement = CrmEngagement::create([
+                    'type' => CrmEngagement::TYPE_TASK,
+                    'title' => $taskSubject ?: null,
+                    'body' => $body ?: null,
+                    'status' => $row['hs_task_status'] ?? null,
+                    'scheduled_at' => $timestamp,
                     'metadata' => array_filter([
                         'hubspot_id' => $hsId,
                         'hubspot_owner_id' => $row['hubspot_owner_id'] ?? null,
-                        'timestamp' => $timestamp,
-                        'status' => $row['hs_task_status'] ?? null,
                         'priority' => $row['hs_task_priority'] ?? null,
                         'task_type' => $row['hs_task_type'] ?? null,
-                        'assoc_contacts' => $this->parseAssocIds($row['assoc_contacts'] ?? ''),
-                        'assoc_companies' => $this->parseAssocIds($row['assoc_companies'] ?? ''),
-                        'assoc_deals' => $this->parseAssocIds($row['assoc_deals'] ?? ''),
                     ]),
+                    'owned_by_user_id' => $userId,
+                    'created_by_user_id' => $userId,
+                    'team_id' => $teamId,
                     'created_at' => $timestamp ?? now(),
                 ]);
+
+                $this->createEngagementLinks($engagement, $row, $teamId, $userId, $companyMap, $contactMap);
                 $created++;
             } catch (\Throwable $e) {
                 Log::debug("HubSpot Import: Task error HS={$hsId}", ['error' => $e->getMessage()]);
@@ -700,35 +671,49 @@ class ImportHubspotData extends Command
         return $created;
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────
-
     /**
-     * Resolve the primary subject (CrmCompany or CrmContact) for an engagement.
-     * Priority: company first (most engagements are company-scoped), then contact.
+     * Create company and contact links for an engagement.
+     * Uses direct CrmCompanyLink/CrmContactLink::create() to avoid auth() dependency.
      */
-    private function resolveActivitySubject(array $row, array $companyMap, array $contactMap, bool $dryRun = false): ?object
+    private function createEngagementLinks(CrmEngagement $engagement, array $row, int $teamId, int $userId, array $companyMap, array $contactMap): void
     {
-        // Try company first
-        $companyIds = $this->parseAssocIds($row['assoc_companies'] ?? '');
-        foreach ($companyIds as $hsCompanyId) {
-            $crmId = $companyMap[$hsCompanyId] ?? null;
-            if ($crmId !== null) {
-                if ($dryRun) return (object) ['type' => 'company', 'id' => $crmId];
-                return CrmCompany::find($crmId);
+        // Link companies
+        $companyHsIds = $this->parseAssocIds($row['assoc_companies'] ?? '');
+        foreach ($companyHsIds as $hsCompanyId) {
+            $crmCompanyId = $companyMap[$hsCompanyId] ?? null;
+            if ($crmCompanyId) {
+                try {
+                    CrmCompanyLink::create([
+                        'company_id' => $crmCompanyId,
+                        'linkable_id' => $engagement->id,
+                        'linkable_type' => 'crm_engagement',
+                        'team_id' => $teamId,
+                        'created_by_user_id' => $userId,
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::debug("HubSpot Import: CompanyLink error", ['engagement' => $engagement->id, 'company' => $crmCompanyId, 'error' => $e->getMessage()]);
+                }
             }
         }
 
-        // Fallback to contact
-        $contactIds = $this->parseAssocIds($row['assoc_contacts'] ?? '');
-        foreach ($contactIds as $hsContactId) {
-            $crmId = $contactMap[$hsContactId] ?? null;
-            if ($crmId !== null) {
-                if ($dryRun) return (object) ['type' => 'contact', 'id' => $crmId];
-                return CrmContact::find($crmId);
+        // Link contacts
+        $contactHsIds = $this->parseAssocIds($row['assoc_contacts'] ?? '');
+        foreach ($contactHsIds as $hsContactId) {
+            $crmContactId = $contactMap[$hsContactId] ?? null;
+            if ($crmContactId) {
+                try {
+                    CrmContactLink::create([
+                        'contact_id' => $crmContactId,
+                        'linkable_id' => $engagement->id,
+                        'linkable_type' => 'crm_engagement',
+                        'team_id' => $teamId,
+                        'created_by_user_id' => $userId,
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::debug("HubSpot Import: ContactLink error", ['engagement' => $engagement->id, 'contact' => $crmContactId, 'error' => $e->getMessage()]);
+                }
             }
         }
-
-        return null;
     }
 
     /**
@@ -835,6 +820,7 @@ class ImportHubspotData extends Command
             }
             fclose($handle);
         }
+
         return $rows;
     }
 }

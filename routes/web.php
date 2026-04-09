@@ -9,6 +9,8 @@ use Platform\Crm\Livewire\ContactIndex;
 use Platform\Crm\Livewire\CompanyIndex;
 use Platform\Crm\Livewire\Contact\Contact as ContactShow;
 use Platform\Crm\Livewire\Company\Company as CompanyShow;
+use Platform\Crm\Livewire\EngagementIndex;
+use Platform\Crm\Livewire\Engagement\Engagement as EngagementShow;
 
 Route::get('/', Dashboard::class)->name('crm.index');
 Route::get('/dashboard', Dashboard::class)->name('crm.dashboard');
@@ -32,3 +34,6 @@ Route::get('/contacts/{contact}', ContactShow::class)->name('crm.contacts.show')
 
 Route::get('/companies', CompanyIndex::class)->name('crm.companies.index');
 Route::get('/companies/{company}', CompanyShow::class)->name('crm.companies.show');
+
+Route::get('/engagements', EngagementIndex::class)->name('crm.engagements.index');
+Route::get('/engagements/{engagement}', EngagementShow::class)->name('crm.engagements.show');

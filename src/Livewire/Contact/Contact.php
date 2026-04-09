@@ -23,6 +23,8 @@ use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Models\CrmContactRelation;
 use Platform\Crm\Models\CrmContactRelationType;
 use Platform\Crm\Models\CrmFollowUp;
+use Platform\Crm\Models\CrmEngagement;
+use Platform\Crm\Models\CrmContactLink;
 use libphonenumber\PhoneNumberUtil;
 use libphonenumber\NumberParseException;
 use libphonenumber\PhoneNumberFormat;
@@ -116,6 +118,17 @@ class Contact extends Component
     public $followUpForm = [
         'title' => '',
         'due_date' => null,
+    ];
+
+    // Engagement Modal
+    public bool $engagementCreateModalShow = false;
+    public $engagementForm = [
+        'type' => 'note',
+        'title' => '',
+        'body' => '',
+        'status' => null,
+        'priority' => null,
+        'scheduled_at' => null,
     ];
 
     // Prev/Next navigation
@@ -904,6 +917,77 @@ class Contact extends Component
             ->where('user_id', auth()->id())
             ->delete();
         $this->contact->load('activities.user');
+    }
+
+    // Engagement Methods
+    #[Computed]
+    public function engagements()
+    {
+        return CrmEngagement::whereHas('contactLinks', function ($q) {
+            $q->where('contact_id', $this->contact->id);
+        })->with(['ownedByUser', 'companyLinks.company', 'contactLinks.contact'])
+          ->orderByDesc('created_at')
+          ->get();
+    }
+
+    public function openEngagementCreateModal(string $type = 'note'): void
+    {
+        $this->engagementForm = [
+            'type' => $type,
+            'title' => '',
+            'body' => '',
+            'status' => null,
+            'priority' => null,
+            'scheduled_at' => null,
+        ];
+        $this->engagementCreateModalShow = true;
+    }
+
+    public function closeEngagementCreateModal(): void
+    {
+        $this->engagementCreateModalShow = false;
+        $this->engagementForm = [
+            'type' => 'note',
+            'title' => '',
+            'body' => '',
+            'status' => null,
+            'priority' => null,
+            'scheduled_at' => null,
+        ];
+    }
+
+    public function createEngagementForContact(): void
+    {
+        $this->validate([
+            'engagementForm.type' => 'required|in:note,call,meeting,task',
+            'engagementForm.title' => 'required|string|max:255',
+            'engagementForm.body' => 'nullable|string',
+            'engagementForm.status' => 'nullable|string|max:50',
+            'engagementForm.priority' => 'nullable|string|max:50',
+            'engagementForm.scheduled_at' => 'nullable|date',
+        ]);
+
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
+
+        $engagement = CrmEngagement::create([
+            'type' => $this->engagementForm['type'],
+            'title' => $this->engagementForm['title'],
+            'body' => $this->engagementForm['body'] ?: null,
+            'status' => $this->engagementForm['status'] ?: null,
+            'priority' => $this->engagementForm['priority'] ?: null,
+            'scheduled_at' => $this->engagementForm['scheduled_at'] ?: null,
+            'owned_by_user_id' => $user->id,
+            'created_by_user_id' => $user->id,
+            'team_id' => $teamId,
+        ]);
+
+        $engagement->attachContact($this->contact);
+
+        $this->closeEngagementCreateModal();
+        unset($this->engagements);
+        session()->flash('message', 'Engagement erfolgreich erstellt!');
     }
 
     public function render()

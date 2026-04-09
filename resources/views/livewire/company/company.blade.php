@@ -167,6 +167,13 @@
                         </span>
                         <x-ui-badge variant="secondary" size="xs">{{ $company->contactRelations->count() }}</x-ui-badge>
                     </button>
+                    <button wire:click="$set('activeTab', 'engagements')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm hover:bg-[color:var(--ui-muted-5)] transition {{ $activeTab === 'engagements' ? 'bg-[color:var(--ui-muted-5)] font-medium' : '' }}">
+                        <span class="flex items-center gap-2">
+                            @svg('heroicon-o-clipboard-document-list', 'w-4 h-4 text-[color:var(--ui-muted)]')
+                            Engagements
+                        </span>
+                        <x-ui-badge variant="secondary" size="xs">{{ $this->engagements->count() }}</x-ui-badge>
+                    </button>
                 </div>
             </div>
         </x-ui-page-sidebar>
@@ -304,6 +311,13 @@
                 <button wire:click="$set('activeTab', 'kontakte')" class="py-3 px-1 border-b-2 text-sm font-medium transition flex items-center gap-1.5 {{ $activeTab === 'kontakte' ? 'border-[color:var(--ui-primary)] text-[color:var(--ui-primary)]' : 'border-transparent text-[color:var(--ui-muted)] hover:text-[color:var(--ui-secondary)] hover:border-[color:var(--ui-border)]' }}">
                     @svg('heroicon-o-users', 'w-4 h-4')
                     Kontakte
+                </button>
+                <button wire:click="$set('activeTab', 'engagements')" class="py-3 px-1 border-b-2 text-sm font-medium transition flex items-center gap-1.5 {{ $activeTab === 'engagements' ? 'border-[color:var(--ui-primary)] text-[color:var(--ui-primary)]' : 'border-transparent text-[color:var(--ui-muted)] hover:text-[color:var(--ui-secondary)] hover:border-[color:var(--ui-border)]' }}">
+                    @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
+                    Engagements
+                    @if($this->engagements->count() > 0)
+                        <x-ui-badge variant="secondary" size="xs">{{ $this->engagements->count() }}</x-ui-badge>
+                    @endif
                 </button>
             </nav>
         </div>
@@ -574,6 +588,83 @@
             </x-ui-panel>
         @endif
 
+        {{-- Tab: Engagements --}}
+        @if($activeTab === 'engagements')
+            <x-ui-panel>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-[color:var(--ui-secondary)]">Engagements</h3>
+                    <x-ui-button size="xs" variant="secondary-outline" wire:click="openEngagementCreateModal">
+                        @svg('heroicon-o-plus', 'w-3.5 h-3.5')
+                        Hinzufügen
+                    </x-ui-button>
+                </div>
+                @if($this->engagements->count() > 0)
+                    <div class="space-y-2">
+                        @foreach($this->engagements as $eng)
+                            <a href="{{ route('crm.engagements.show', $eng) }}" wire:navigate
+                               class="flex items-center justify-between gap-3 p-3 rounded-lg border border-[color:var(--ui-border)] hover:border-[color:var(--ui-primary-20)] transition block">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    @switch($eng->type)
+                                        @case('note')
+                                            <div class="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                @svg('heroicon-o-pencil-square', 'w-4 h-4 text-blue-600')
+                                            </div>
+                                            @break
+                                        @case('call')
+                                            <div class="w-7 h-7 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                                                @svg('heroicon-o-phone', 'w-4 h-4 text-green-600')
+                                            </div>
+                                            @break
+                                        @case('meeting')
+                                            <div class="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                                @svg('heroicon-o-calendar', 'w-4 h-4 text-purple-600')
+                                            </div>
+                                            @break
+                                        @case('task')
+                                            <div class="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                                                @svg('heroicon-o-clipboard-document-check', 'w-4 h-4 text-amber-600')
+                                            </div>
+                                            @break
+                                    @endswitch
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-medium truncate">{{ $eng->title }}</div>
+                                        <div class="text-xs text-[color:var(--ui-muted)]">
+                                            {{ $eng->scheduled_at ? $eng->scheduled_at->format('d.m.Y H:i') : $eng->created_at->format('d.m.Y H:i') }}
+                                            @if($eng->ownedByUser)
+                                                &middot; {{ $eng->ownedByUser->name }}
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1 flex-shrink-0">
+                                    @if($eng->status)
+                                        @php
+                                            $statusVariant = match($eng->status) {
+                                                'completed' => 'success',
+                                                'cancelled' => 'danger',
+                                                'in_progress' => 'warning',
+                                                default => 'secondary',
+                                            };
+                                            $statusLabel = match($eng->status) {
+                                                'open' => 'Offen',
+                                                'in_progress' => 'In Bearb.',
+                                                'completed' => 'Erledigt',
+                                                'cancelled' => 'Abgebr.',
+                                                default => $eng->status,
+                                            };
+                                        @endphp
+                                        <x-ui-badge :variant="$statusVariant" size="xs">{{ $statusLabel }}</x-ui-badge>
+                                    @endif
+                                </div>
+                            </a>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-sm text-[color:var(--ui-muted)] py-3">Keine Engagements vorhanden.</p>
+                @endif
+            </x-ui-panel>
+        @endif
+
     </x-ui-page-container>
 
     <!-- Phone Create Modal -->
@@ -729,6 +820,72 @@
             <div class="d-flex justify-end gap-2">
                 <x-ui-button type="button" variant="secondary-outline" wire:click="closeContactCreateModal">Abbrechen</x-ui-button>
                 <x-ui-button type="button" variant="primary" wire:click="saveContact">Hinzufügen</x-ui-button>
+            </div>
+        </x-slot>
+    </x-ui-modal>
+
+    {{-- Engagement Create Modal --}}
+    <x-ui-modal size="lg" model="engagementCreateModalShow">
+        <x-slot name="header">Engagement anlegen</x-slot>
+        <div class="space-y-4">
+            <x-ui-input-select
+                name="engagementForm.type"
+                label="Typ"
+                :options="collect([
+                    ['value' => 'note', 'label' => 'Notiz'],
+                    ['value' => 'call', 'label' => 'Anruf'],
+                    ['value' => 'meeting', 'label' => 'Meeting'],
+                    ['value' => 'task', 'label' => 'Aufgabe'],
+                ])"
+                optionValue="value"
+                optionLabel="label"
+                :nullable="false"
+                wire:model.live="engagementForm.type"
+                required
+            />
+            <x-ui-input-text name="engagementForm.title" label="Titel" wire:model.live="engagementForm.title" required placeholder="Titel eingeben..." :errorKey="'engagementForm.title'" />
+            <x-ui-input-textarea name="engagementForm.body" label="Beschreibung" wire:model.live="engagementForm.body" placeholder="Beschreibung (optional)" rows="3" />
+            @if(in_array($engagementForm['type'], ['call', 'meeting', 'task']))
+                <x-ui-input-select
+                    name="engagementForm.status"
+                    label="Status"
+                    :options="collect([
+                        ['value' => 'open', 'label' => 'Offen'],
+                        ['value' => 'in_progress', 'label' => 'In Bearbeitung'],
+                        ['value' => 'completed', 'label' => 'Abgeschlossen'],
+                        ['value' => 'cancelled', 'label' => 'Abgebrochen'],
+                    ])"
+                    optionValue="value"
+                    optionLabel="label"
+                    :nullable="true"
+                    nullLabel="– Status auswählen –"
+                    wire:model.live="engagementForm.status"
+                />
+            @endif
+            @if(in_array($engagementForm['type'], ['meeting', 'task']))
+                <x-ui-input-date name="engagementForm.scheduled_at" label="{{ $engagementForm['type'] === 'task' ? 'Fällig am' : 'Geplant am' }}" wire:model.live="engagementForm.scheduled_at" :nullable="true" />
+            @endif
+            @if($engagementForm['type'] === 'task')
+                <x-ui-input-select
+                    name="engagementForm.priority"
+                    label="Priorität"
+                    :options="collect([
+                        ['value' => 'low', 'label' => 'Niedrig'],
+                        ['value' => 'medium', 'label' => 'Mittel'],
+                        ['value' => 'high', 'label' => 'Hoch'],
+                    ])"
+                    optionValue="value"
+                    optionLabel="label"
+                    :nullable="true"
+                    nullLabel="– Priorität auswählen –"
+                    wire:model.live="engagementForm.priority"
+                />
+            @endif
+        </div>
+        <x-slot name="footer">
+            <div class="d-flex justify-end gap-2">
+                <x-ui-button type="button" variant="secondary-outline" wire:click="closeEngagementCreateModal">Abbrechen</x-ui-button>
+                <x-ui-button type="button" variant="primary" wire:click="createEngagementForCompany">Engagement anlegen</x-ui-button>
             </div>
         </x-slot>
     </x-ui-modal>
