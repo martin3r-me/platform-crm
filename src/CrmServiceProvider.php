@@ -37,6 +37,7 @@ class CrmServiceProvider extends ServiceProvider
             $this->commands([
                 \Platform\Crm\Console\Commands\SeedCrmLookupData::class,
                 \Platform\Crm\Console\Commands\ImportHubspotData::class,
+                \Platform\Crm\Console\Commands\ImportHubspotDeals::class,
             ]);
         }
         
