@@ -11,6 +11,7 @@ use Platform\Crm\Models\CrmContactLink;
 use Platform\Sales\Models\SalesBoard;
 use Platform\Sales\Models\SalesBoardSlot;
 use Platform\Sales\Models\SalesDeal;
+use Platform\Sales\Models\SalesDealBillable;
 
 class ImportHubspotDeals extends Command
 {
@@ -213,6 +214,7 @@ class ImportHubspotDeals extends Command
         $skipped = 0;
         $errors = 0;
         $linksCreated = 0;
+        $billablesCreated = 0;
         $bar = $this->output->createProgressBar($rows->count());
 
         foreach ($rows as $row) {
@@ -265,7 +267,6 @@ class ImportHubspotDeals extends Command
 
                 $syncData = [
                     'title' => $dealname,
-                    'deal_value' => $amount,
                     'description' => $description,
                     'close_date' => $closeDate ? \Carbon\Carbon::parse($closeDate)->toDateString() : null,
                     'probability_percent' => $probability,
@@ -288,6 +289,20 @@ class ImportHubspotDeals extends Command
                     $created++;
                 }
 
+                // Billable (one_time) - only create if amount exists and no billable yet
+                if ($amount !== null && $amount > 0 && $deal->billables()->count() === 0) {
+                    SalesDealBillable::create([
+                        'sales_deal_id' => $deal->id,
+                        'name' => $dealname,
+                        'amount' => $amount,
+                        'probability_percent' => $probability ?? 0,
+                        'billing_type' => 'one_time',
+                        'is_active' => true,
+                        'order' => 0,
+                    ]);
+                    $billablesCreated++;
+                }
+
                 // CRM Links
                 $linksCreated += $this->createDealLinks($deal, $row, $teamId, $userId);
             } catch (\Throwable $e) {
@@ -300,7 +315,8 @@ class ImportHubspotDeals extends Command
 
         $bar->finish();
         $this->newLine();
-        $this->info("  Deals: {$created} created, {$updated} updated, {$skipped} skipped, {$errors} errors, {$linksCreated} CRM links");
+        $this->info("  Deals: {$created} created, {$updated} updated, {$skipped} skipped, {$errors} errors");
+        $this->info("  Billables: {$billablesCreated} created, CRM links: {$linksCreated}");
 
         return $created + $updated;
     }
