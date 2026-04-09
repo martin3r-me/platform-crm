@@ -164,6 +164,20 @@ class Company extends Component
         }
     }
 
+    public function rendered()
+    {
+        $this->dispatch('comms', [
+            'model' => get_class($this->company),
+            'modelId' => $this->company->id,
+            'subject' => $this->company->name,
+            'description' => '',
+            'url' => route('crm.companies.show', $this->company),
+            'source' => 'crm.companies.view'
+        ]);
+
+        $this->dispatch('terminal:app:activity');
+    }
+
     protected function prepareForValidation($attributes)
     {
         // Leere Strings in null umwandeln für nullable Felder

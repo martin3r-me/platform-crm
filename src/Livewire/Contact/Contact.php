@@ -235,6 +235,8 @@ class Contact extends Component
             'url' => route('crm.contacts.show', $this->contact),
             'source' => 'crm.contacts.view'
         ]);
+
+        $this->dispatch('terminal:app:activity');
     }
 
     public function rules(): array
