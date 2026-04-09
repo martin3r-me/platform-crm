@@ -79,8 +79,7 @@ class CrmAccountPotential extends Model
     public function getTotalPotentialAttribute(): float
     {
         return (float) ($this->target_revenue ?? 0)
-             + (float) ($this->additional_potential ?? 0)
-             + (float) ($this->strategic_potential ?? 0);
+             + (float) ($this->additional_potential ?? 0);
     }
 
     public function getConfidenceLabelAttribute(): ?string

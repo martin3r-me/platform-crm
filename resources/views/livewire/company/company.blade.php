@@ -739,8 +739,7 @@
                             <span class="font-semibold text-[color:var(--ui-secondary)] ml-1">
                                 {{ number_format(
                                     (float) ($potentialForm['target_revenue'] ?? 0)
-                                    + (float) ($potentialForm['additional_potential'] ?? 0)
-                                    + (float) ($potentialForm['strategic_potential'] ?? 0),
+                                    + (float) ($potentialForm['additional_potential'] ?? 0),
                                     2, ',', '.'
                                 ) }} &euro;
                             </span>
