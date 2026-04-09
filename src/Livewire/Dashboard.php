@@ -9,6 +9,7 @@ use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Models\CrmFollowUp;
 use Platform\Crm\Models\CrmContactStatus;
 use Platform\ActivityLog\Models\ActivityLogActivity;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -158,7 +159,7 @@ class Dashboard extends Component
             ->whereIn('activityable_type', $morphTypes)
             ->where(function ($q) use ($teamId, $morphTypes) {
                 foreach ($morphTypes as $type) {
-                    $model = app($type);
+                    $model = app(Relation::getMorphedModel($type) ?? $type);
                     $q->orWhere(function ($sub) use ($type, $teamId, $model) {
                         $sub->where('activityable_type', $type)
                             ->whereIn('activityable_id', $model::query()->where('team_id', $teamId)->select('id'));
@@ -172,7 +173,8 @@ class Dashboard extends Component
 
         $activities->groupBy('activityable_type')->each(function ($group, $type) {
             $ids = $group->pluck('activityable_id')->unique();
-            $models = $type::whereIn('id', $ids)->get()->keyBy('id');
+            $class = Relation::getMorphedModel($type) ?? $type;
+            $models = $class::whereIn('id', $ids)->get()->keyBy('id');
             $group->each(fn ($a) => $a->setRelation('activityable', $models->get($a->activityable_id)));
         });
 
