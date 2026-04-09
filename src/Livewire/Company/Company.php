@@ -16,6 +16,7 @@ use Platform\Crm\Models\CrmContactRelationType;
 use Platform\Crm\Models\CrmLegalForm;
 use Platform\Crm\Models\CrmFollowUp;
 use Platform\Crm\Models\CrmEngagement;
+use Platform\Crm\Models\CrmAccountPotential;
 use Platform\Crm\Models\CrmCompanyLink;
 use libphonenumber\PhoneNumberUtil;
 use libphonenumber\NumberParseException;
@@ -106,6 +107,25 @@ class Company extends Component
         'status' => null,
         'priority' => null,
         'scheduled_at' => null,
+    ];
+
+    // Potenzial
+    public $potentialForm = [
+        'target_revenue' => null,
+        'additional_potential' => null,
+        'strategic_potential' => null,
+        'confidence' => null,
+        'notes' => '',
+    ];
+    public ?int $currentPotentialId = null;
+    public bool $potentialCreateModalShow = false;
+    public $potentialHistoryForm = [
+        'year' => null,
+        'target_revenue' => null,
+        'additional_potential' => null,
+        'strategic_potential' => null,
+        'confidence' => null,
+        'notes' => '',
     ];
 
     // Kontakt-Beziehungs-Form
@@ -863,6 +883,164 @@ class Company extends Component
         $this->closeEngagementCreateModal();
         unset($this->engagements);
         session()->flash('message', 'Engagement erfolgreich erstellt!');
+    }
+
+    // Potenzial Methods
+    #[Computed]
+    public function currentYearPotential()
+    {
+        return $this->company->accountPotentials()
+            ->forYear(now()->year)
+            ->first();
+    }
+
+    #[Computed]
+    public function potentialHistory()
+    {
+        return $this->company->accountPotentials()
+            ->where('year', '<', now()->year)
+            ->orderByDesc('year')
+            ->get();
+    }
+
+    public function updatedActiveTab($value): void
+    {
+        if ($value === 'potenzial') {
+            $this->initPotentialForm();
+        }
+    }
+
+    public function initPotentialForm(): void
+    {
+        $potential = $this->company->accountPotentials()
+            ->forYear(now()->year)
+            ->first();
+
+        if ($potential) {
+            $this->currentPotentialId = $potential->id;
+            $this->potentialForm = [
+                'target_revenue' => $potential->target_revenue,
+                'additional_potential' => $potential->additional_potential,
+                'strategic_potential' => $potential->strategic_potential,
+                'confidence' => $potential->confidence,
+                'notes' => $potential->notes ?? '',
+            ];
+        } else {
+            $this->currentPotentialId = null;
+            $this->potentialForm = [
+                'target_revenue' => null,
+                'additional_potential' => null,
+                'strategic_potential' => null,
+                'confidence' => null,
+                'notes' => '',
+            ];
+        }
+    }
+
+    public function savePotential(): void
+    {
+        $this->validate([
+            'potentialForm.target_revenue' => 'nullable|numeric|min:0',
+            'potentialForm.additional_potential' => 'nullable|numeric|min:0',
+            'potentialForm.strategic_potential' => 'nullable|numeric|min:0',
+            'potentialForm.confidence' => 'nullable|in:low,medium,high,very_high',
+            'potentialForm.notes' => 'nullable|string',
+        ]);
+
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
+
+        $this->company->accountPotentials()->updateOrCreate(
+            ['year' => now()->year],
+            [
+                'target_revenue' => $this->potentialForm['target_revenue'] ?: null,
+                'additional_potential' => $this->potentialForm['additional_potential'] ?: null,
+                'strategic_potential' => $this->potentialForm['strategic_potential'] ?: null,
+                'confidence' => $this->potentialForm['confidence'] ?: null,
+                'notes' => $this->potentialForm['notes'] ?: null,
+                'created_by_user_id' => $user->id,
+                'team_id' => $teamId,
+            ]
+        );
+
+        unset($this->currentYearPotential);
+        unset($this->potentialHistory);
+        $this->initPotentialForm();
+        session()->flash('message', 'Potenzial gespeichert.');
+    }
+
+    public function openPotentialHistoryModal(): void
+    {
+        $this->potentialHistoryForm = [
+            'year' => now()->year - 1,
+            'target_revenue' => null,
+            'additional_potential' => null,
+            'strategic_potential' => null,
+            'confidence' => null,
+            'notes' => '',
+        ];
+        $this->potentialCreateModalShow = true;
+    }
+
+    public function closePotentialHistoryModal(): void
+    {
+        $this->potentialCreateModalShow = false;
+        $this->potentialHistoryForm = [
+            'year' => null,
+            'target_revenue' => null,
+            'additional_potential' => null,
+            'strategic_potential' => null,
+            'confidence' => null,
+            'notes' => '',
+        ];
+    }
+
+    public function savePotentialHistory(): void
+    {
+        $this->validate([
+            'potentialHistoryForm.year' => 'required|integer|min:2000|max:' . now()->year,
+            'potentialHistoryForm.target_revenue' => 'nullable|numeric|min:0',
+            'potentialHistoryForm.additional_potential' => 'nullable|numeric|min:0',
+            'potentialHistoryForm.strategic_potential' => 'nullable|numeric|min:0',
+            'potentialHistoryForm.confidence' => 'nullable|in:low,medium,high,very_high',
+            'potentialHistoryForm.notes' => 'nullable|string',
+        ]);
+
+        $exists = $this->company->accountPotentials()
+            ->forYear($this->potentialHistoryForm['year'])
+            ->exists();
+
+        if ($exists) {
+            $this->addError('potentialHistoryForm.year', 'Für dieses Jahr existiert bereits ein Eintrag.');
+            return;
+        }
+
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : $user->current_team_id;
+
+        $this->company->accountPotentials()->create([
+            'year' => $this->potentialHistoryForm['year'],
+            'target_revenue' => $this->potentialHistoryForm['target_revenue'] ?: null,
+            'additional_potential' => $this->potentialHistoryForm['additional_potential'] ?: null,
+            'strategic_potential' => $this->potentialHistoryForm['strategic_potential'] ?: null,
+            'confidence' => $this->potentialHistoryForm['confidence'] ?: null,
+            'notes' => $this->potentialHistoryForm['notes'] ?: null,
+            'created_by_user_id' => $user->id,
+            'team_id' => $teamId,
+        ]);
+
+        $this->closePotentialHistoryModal();
+        unset($this->potentialHistory);
+    }
+
+    public function deletePotentialEntry(int $id): void
+    {
+        $this->company->accountPotentials()->where('id', $id)->delete();
+        unset($this->currentYearPotential);
+        unset($this->potentialHistory);
+        $this->initPotentialForm();
     }
 
     public function render()

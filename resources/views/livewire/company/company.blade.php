@@ -174,6 +174,12 @@
                         </span>
                         <x-ui-badge variant="secondary" size="xs">{{ $this->engagements->count() }}</x-ui-badge>
                     </button>
+                    <button wire:click="$set('activeTab', 'potenzial')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm hover:bg-[color:var(--ui-muted-5)] transition {{ $activeTab === 'potenzial' ? 'bg-[color:var(--ui-muted-5)] font-medium' : '' }}">
+                        <span class="flex items-center gap-2">
+                            @svg('heroicon-o-chart-bar', 'w-4 h-4 text-[color:var(--ui-muted)]')
+                            Potenzial
+                        </span>
+                    </button>
                 </div>
             </div>
         </x-ui-page-sidebar>
@@ -318,6 +324,10 @@
                     @if($this->engagements->count() > 0)
                         <x-ui-badge variant="secondary" size="xs">{{ $this->engagements->count() }}</x-ui-badge>
                     @endif
+                </button>
+                <button wire:click="$set('activeTab', 'potenzial')" class="py-3 px-1 border-b-2 text-sm font-medium transition flex items-center gap-1.5 {{ $activeTab === 'potenzial' ? 'border-[color:var(--ui-primary)] text-[color:var(--ui-primary)]' : 'border-transparent text-[color:var(--ui-muted)] hover:text-[color:var(--ui-secondary)] hover:border-[color:var(--ui-border)]' }}">
+                    @svg('heroicon-o-chart-bar', 'w-4 h-4')
+                    Potenzial
                 </button>
             </nav>
         </div>
@@ -665,6 +675,138 @@
             </x-ui-panel>
         @endif
 
+        {{-- Tab: Potenzial --}}
+        @if($activeTab === 'potenzial')
+            <div class="space-y-6">
+                {{-- Aktuelles Jahr --}}
+                <x-ui-panel title="Potenzial {{ now()->year }}">
+                    <div class="grid grid-cols-2 gap-4">
+                        <x-ui-input-text
+                            name="potentialForm.target_revenue"
+                            label="Zielumsatz"
+                            wire:model.live.debounce.500ms="potentialForm.target_revenue"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            :errorKey="'potentialForm.target_revenue'"
+                        />
+                        <x-ui-input-text
+                            name="potentialForm.additional_potential"
+                            label="Zusatzpotenzial"
+                            wire:model.live.debounce.500ms="potentialForm.additional_potential"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            :errorKey="'potentialForm.additional_potential'"
+                        />
+                        <x-ui-input-text
+                            name="potentialForm.strategic_potential"
+                            label="Strategisches Potenzial"
+                            wire:model.live.debounce.500ms="potentialForm.strategic_potential"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            :errorKey="'potentialForm.strategic_potential'"
+                        />
+                        <x-ui-input-select
+                            name="potentialForm.confidence"
+                            label="Konfidenz"
+                            :options="collect(\Platform\Crm\Models\CrmAccountPotential::confidenceOptions())"
+                            optionValue="value"
+                            optionLabel="label"
+                            :nullable="true"
+                            nullLabel="– Konfidenz auswählen –"
+                            wire:model.live="potentialForm.confidence"
+                            :errorKey="'potentialForm.confidence'"
+                        />
+                    </div>
+                    <div class="mt-4">
+                        <x-ui-input-textarea
+                            name="potentialForm.notes"
+                            label="Notizen"
+                            wire:model.live.debounce.500ms="potentialForm.notes"
+                            placeholder="Anmerkungen zum Potenzial..."
+                            rows="3"
+                            :errorKey="'potentialForm.notes'"
+                        />
+                    </div>
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-[color:var(--ui-border)]">
+                        <div class="text-sm">
+                            <span class="text-[color:var(--ui-muted)]">Gesamtpotenzial:</span>
+                            <span class="font-semibold text-[color:var(--ui-secondary)] ml-1">
+                                {{ number_format(
+                                    (float) ($potentialForm['target_revenue'] ?? 0)
+                                    + (float) ($potentialForm['additional_potential'] ?? 0)
+                                    + (float) ($potentialForm['strategic_potential'] ?? 0),
+                                    2, ',', '.'
+                                ) }} &euro;
+                            </span>
+                        </div>
+                        <x-ui-button variant="primary" size="sm" wire:click="savePotential">
+                            @svg('heroicon-o-check', 'w-4 h-4')
+                            Speichern
+                        </x-ui-button>
+                    </div>
+                </x-ui-panel>
+
+                {{-- Historie --}}
+                <x-ui-panel>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-[color:var(--ui-secondary)]">Historie</h3>
+                        <x-ui-button size="xs" variant="secondary-outline" wire:click="openPotentialHistoryModal">
+                            @svg('heroicon-o-plus', 'w-3.5 h-3.5')
+                            Jahr hinzufügen
+                        </x-ui-button>
+                    </div>
+                    @if($this->potentialHistory->count() > 0)
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b border-[color:var(--ui-border)]">
+                                        <th class="text-left py-2 pr-3 font-medium text-[color:var(--ui-muted)]">Jahr</th>
+                                        <th class="text-right py-2 px-3 font-medium text-[color:var(--ui-muted)]">Zielumsatz</th>
+                                        <th class="text-right py-2 px-3 font-medium text-[color:var(--ui-muted)]">Zusatz</th>
+                                        <th class="text-right py-2 px-3 font-medium text-[color:var(--ui-muted)]">Strategisch</th>
+                                        <th class="text-right py-2 px-3 font-medium text-[color:var(--ui-muted)]">Gesamt</th>
+                                        <th class="text-left py-2 px-3 font-medium text-[color:var(--ui-muted)]">Konfidenz</th>
+                                        <th class="text-right py-2 pl-3 font-medium text-[color:var(--ui-muted)]"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($this->potentialHistory as $entry)
+                                        <tr class="border-b border-[color:var(--ui-border)] last:border-0">
+                                            <td class="py-2 pr-3 font-medium">{{ $entry->year }}</td>
+                                            <td class="py-2 px-3 text-right">{{ $entry->target_revenue ? number_format((float) $entry->target_revenue, 2, ',', '.') . ' €' : '–' }}</td>
+                                            <td class="py-2 px-3 text-right">{{ $entry->additional_potential ? number_format((float) $entry->additional_potential, 2, ',', '.') . ' €' : '–' }}</td>
+                                            <td class="py-2 px-3 text-right">{{ $entry->strategic_potential ? number_format((float) $entry->strategic_potential, 2, ',', '.') . ' €' : '–' }}</td>
+                                            <td class="py-2 px-3 text-right font-medium">{{ number_format($entry->total_potential, 2, ',', '.') }} &euro;</td>
+                                            <td class="py-2 px-3">
+                                                @if($entry->confidence_label)
+                                                    <x-ui-badge variant="secondary" size="xs">{{ $entry->confidence_label }}</x-ui-badge>
+                                                @else
+                                                    <span class="text-[color:var(--ui-muted)]">–</span>
+                                                @endif
+                                            </td>
+                                            <td class="py-2 pl-3 text-right">
+                                                <button wire:click="deletePotentialEntry({{ $entry->id }})" wire:confirm="Eintrag für {{ $entry->year }} wirklich löschen?" class="text-[color:var(--ui-muted)] hover:text-red-500 transition">
+                                                    @svg('heroicon-o-trash', 'w-4 h-4')
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-sm text-[color:var(--ui-muted)] py-3">Keine historischen Einträge vorhanden.</p>
+                    @endif
+                </x-ui-panel>
+            </div>
+        @endif
+
     </x-ui-page-container>
 
     <!-- Phone Create Modal -->
@@ -886,6 +1028,81 @@
             <div class="d-flex justify-end gap-2">
                 <x-ui-button type="button" variant="secondary-outline" wire:click="closeEngagementCreateModal">Abbrechen</x-ui-button>
                 <x-ui-button type="button" variant="primary" wire:click="createEngagementForCompany">Engagement anlegen</x-ui-button>
+            </div>
+        </x-slot>
+    </x-ui-modal>
+
+    <!-- Potential History Modal -->
+    <x-ui-modal size="lg" model="potentialCreateModalShow">
+        <x-slot name="header">Historischen Potenzial-Eintrag hinzufügen</x-slot>
+        <div class="space-y-4">
+            <x-ui-input-text
+                name="potentialHistoryForm.year"
+                label="Jahr"
+                wire:model.live="potentialHistoryForm.year"
+                type="number"
+                min="2000"
+                :max="now()->year"
+                required
+                placeholder="z.B. {{ now()->year - 1 }}"
+                :errorKey="'potentialHistoryForm.year'"
+            />
+            <div class="grid grid-cols-2 gap-4">
+                <x-ui-input-text
+                    name="potentialHistoryForm.target_revenue"
+                    label="Zielumsatz"
+                    wire:model.live="potentialHistoryForm.target_revenue"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    :errorKey="'potentialHistoryForm.target_revenue'"
+                />
+                <x-ui-input-text
+                    name="potentialHistoryForm.additional_potential"
+                    label="Zusatzpotenzial"
+                    wire:model.live="potentialHistoryForm.additional_potential"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    :errorKey="'potentialHistoryForm.additional_potential'"
+                />
+                <x-ui-input-text
+                    name="potentialHistoryForm.strategic_potential"
+                    label="Strategisches Potenzial"
+                    wire:model.live="potentialHistoryForm.strategic_potential"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    :errorKey="'potentialHistoryForm.strategic_potential'"
+                />
+                <x-ui-input-select
+                    name="potentialHistoryForm.confidence"
+                    label="Konfidenz"
+                    :options="collect(\Platform\Crm\Models\CrmAccountPotential::confidenceOptions())"
+                    optionValue="value"
+                    optionLabel="label"
+                    :nullable="true"
+                    nullLabel="– Konfidenz auswählen –"
+                    wire:model.live="potentialHistoryForm.confidence"
+                    :errorKey="'potentialHistoryForm.confidence'"
+                />
+            </div>
+            <x-ui-input-textarea
+                name="potentialHistoryForm.notes"
+                label="Notizen"
+                wire:model.live="potentialHistoryForm.notes"
+                placeholder="Anmerkungen..."
+                rows="3"
+                :errorKey="'potentialHistoryForm.notes'"
+            />
+        </div>
+        <x-slot name="footer">
+            <div class="d-flex justify-end gap-2">
+                <x-ui-button type="button" variant="secondary-outline" wire:click="closePotentialHistoryModal">Abbrechen</x-ui-button>
+                <x-ui-button type="button" variant="primary" wire:click="savePotentialHistory">Hinzufügen</x-ui-button>
             </div>
         </x-slot>
     </x-ui-modal>

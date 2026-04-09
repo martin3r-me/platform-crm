@@ -151,7 +151,12 @@ class CrmCompany extends Model implements CompanyInterface
     {
         return $this->hasMany(CrmContactRelation::class, 'company_id');
     }
-    
+
+    public function accountPotentials(): HasMany
+    {
+        return $this->hasMany(CrmAccountPotential::class, 'company_id');
+    }
+
     public function contacts()
     {
         return $this->belongsToMany(CrmContact::class, 'crm_contact_relations', 'company_id', 'contact_id')
