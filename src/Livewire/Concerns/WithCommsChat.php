@@ -3,7 +3,6 @@
 namespace Platform\Crm\Livewire\Concerns;
 
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Platform\Core\Enums\TeamRole;
 use Platform\Core\Models\Team;
@@ -721,19 +720,13 @@ trait WithCommsChat
         }
         $this->resetForwardState();
 
-        // Assign context to thread (new or existing reply) — addContext is deduplicated via firstOrCreate
+        // Assign context to thread (new or existing reply)
         if ($this->hasContext()) {
             $contextThread = $token
                 ? CommsEmailThread::query()->where('comms_channel_id', $channel->id)->where('token', $token)->first()
                 : ($this->activeEmailThreadId ? CommsEmailThread::find($this->activeEmailThreadId) : null);
             if ($contextThread) {
                 $contextThread->addContext($this->contextModel, (int) $this->contextModelId, 'outbound');
-                if (!$contextThread->context_model) {
-                    $contextThread->updateQuietly([
-                        'context_model' => $this->contextModel,
-                        'context_model_id' => $this->contextModelId,
-                    ]);
-                }
             }
         }
 
@@ -1350,18 +1343,12 @@ trait WithCommsChat
             $this->whatsappCompose['to'] = '';
         }
 
-        // Assign context to thread (new or existing reply) — addContext is deduplicated via firstOrCreate
+        // Assign context to thread (new or existing reply)
         if ($this->hasContext()) {
             $contextThread = $message?->thread
                 ?? ($this->activeWhatsAppThreadId ? CommsWhatsAppThread::find($this->activeWhatsAppThreadId) : null);
             if ($contextThread) {
                 $contextThread->addContext($this->contextModel, (int) $this->contextModelId, 'outbound');
-                if (!$contextThread->context_model) {
-                    $contextThread->updateQuietly([
-                        'context_model' => $this->contextModel,
-                        'context_model_id' => $this->contextModelId,
-                    ]);
-                }
             }
         }
 
@@ -1639,18 +1626,12 @@ trait WithCommsChat
             $this->whatsappCompose['to'] = '';
         }
 
-        // Assign context to thread (new or existing reply) — addContext is deduplicated via firstOrCreate
+        // Assign context to thread (new or existing reply)
         if ($this->hasContext()) {
             $contextThread = $message?->thread
                 ?? ($this->activeWhatsAppThreadId ? CommsWhatsAppThread::find($this->activeWhatsAppThreadId) : null);
             if ($contextThread) {
                 $contextThread->addContext($this->contextModel, (int) $this->contextModelId, 'outbound');
-                if (!$contextThread->context_model) {
-                    $contextThread->updateQuietly([
-                        'context_model' => $this->contextModel,
-                        'context_model_id' => $this->contextModelId,
-                    ]);
-                }
             }
         }
 
@@ -1728,14 +1709,6 @@ trait WithCommsChat
             ->forContext($this->contextModel, (int) $this->contextModelId)
             ->get();
 
-        Log::debug('[Comms:buildContextThreadsList] Email query', [
-            'caller' => static::class,
-            'contextModel' => $this->contextModel,
-            'contextModelId' => $this->contextModelId,
-            'channelIds' => $channelIds,
-            'emailThreadsFound' => $emailThreads->count(),
-        ]);
-
         $emailChannelLabels = collect($this->emailChannels)->keyBy('id');
 
         foreach ($emailThreads as $t) {
@@ -1761,11 +1734,6 @@ trait WithCommsChat
             ->whereIn('comms_channel_id', $waChannelIds)
             ->forContext($this->contextModel, (int) $this->contextModelId)
             ->get();
-
-        Log::debug('[Comms:buildContextThreadsList] WhatsApp query', [
-            'waChannelIds' => $waChannelIds,
-            'waThreadsFound' => $waThreads->count(),
-        ]);
 
         $waChannelLabels = collect($this->whatsappChannels)->keyBy('id');
 

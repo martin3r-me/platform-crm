@@ -18,12 +18,13 @@ trait HasThreadContexts
 
     /**
      * Add a context to this thread (deduplicated).
+     * Single source of truth: writes pivot table AND legacy columns.
      *
      * @return CommsThreadContext The existing or newly created pivot record
      */
     public function addContext(string $contextModel, int $contextModelId, ?string $source = null): CommsThreadContext
     {
-        return CommsThreadContext::firstOrCreate(
+        $pivot = CommsThreadContext::firstOrCreate(
             [
                 'thread_type' => static::class,
                 'thread_id' => $this->id,
@@ -34,6 +35,16 @@ trait HasThreadContexts
                 'source' => $source,
             ]
         );
+
+        // Keep legacy columns in sync (first context wins)
+        if (!$this->context_model) {
+            $this->updateQuietly([
+                'context_model' => $contextModel,
+                'context_model_id' => $contextModelId,
+            ]);
+        }
+
+        return $pivot;
     }
 
     /**

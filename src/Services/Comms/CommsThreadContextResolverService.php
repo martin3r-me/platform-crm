@@ -102,6 +102,7 @@ class CommsThreadContextResolverService
         if ($uniqueContexts->count() === 1) {
             // Unanimous: all siblings agree on the same context
             $first = $siblingContexts->first();
+            // addContext() handles both pivot table and legacy columns
             $thread->addContext($first->context_model, $first->context_model_id, 'sibling');
 
             Log::debug('[CommsThreadContextResolver] Context resolved from sibling (unanimous)', [
@@ -110,9 +111,6 @@ class CommsThreadContextResolverService
                 'context_model' => $first->context_model,
                 'context_model_id' => $first->context_model_id,
             ]);
-
-            // Also set legacy column for backward compat
-            $this->setLegacyContext($thread, $first->context_model, $first->context_model_id);
 
             return true;
         }
@@ -164,6 +162,7 @@ class CommsThreadContextResolverService
             return false;
         }
 
+        // addContext() handles both pivot table and legacy columns
         $thread->addContext($contactType, $contactId, 'contact_as_context');
 
         Log::debug('[CommsThreadContextResolver] Context resolved as contact-as-context', [
@@ -172,9 +171,6 @@ class CommsThreadContextResolverService
             'context_model' => $contactType,
             'context_model_id' => $contactId,
         ]);
-
-        // Legacy column
-        $this->setLegacyContext($thread, $contactType, $contactId);
 
         return true;
     }
@@ -204,16 +200,4 @@ class CommsThreadContextResolverService
         return array_unique($variants);
     }
 
-    /**
-     * Set the legacy context_model/context_model_id columns for backward compat.
-     */
-    protected function setLegacyContext(Model $thread, string $contextModel, int $contextModelId): void
-    {
-        if (!$thread->context_model) {
-            $thread->updateQuietly([
-                'context_model' => $contextModel,
-                'context_model_id' => $contextModelId,
-            ]);
-        }
-    }
 }
