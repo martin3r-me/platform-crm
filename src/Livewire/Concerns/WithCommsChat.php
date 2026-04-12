@@ -3,6 +3,7 @@
 namespace Platform\Crm\Livewire\Concerns;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Platform\Core\Enums\TeamRole;
 use Platform\Core\Models\Team;
@@ -1719,11 +1720,21 @@ trait WithCommsChat
 
         $list = [];
 
+        $channelIds = collect($this->emailChannels)->pluck('id')->all();
+
         // Email threads across all channels
         $emailThreads = CommsEmailThread::query()
-            ->whereIn('comms_channel_id', collect($this->emailChannels)->pluck('id')->all())
+            ->whereIn('comms_channel_id', $channelIds)
             ->forContext($this->contextModel, (int) $this->contextModelId)
             ->get();
+
+        Log::debug('[Comms:buildContextThreadsList] Email query', [
+            'caller' => static::class,
+            'contextModel' => $this->contextModel,
+            'contextModelId' => $this->contextModelId,
+            'channelIds' => $channelIds,
+            'emailThreadsFound' => $emailThreads->count(),
+        ]);
 
         $emailChannelLabels = collect($this->emailChannels)->keyBy('id');
 
@@ -1745,10 +1756,16 @@ trait WithCommsChat
         }
 
         // WhatsApp threads across all channels
+        $waChannelIds = collect($this->whatsappChannels)->pluck('id')->all();
         $waThreads = CommsWhatsAppThread::query()
-            ->whereIn('comms_channel_id', collect($this->whatsappChannels)->pluck('id')->all())
+            ->whereIn('comms_channel_id', $waChannelIds)
             ->forContext($this->contextModel, (int) $this->contextModelId)
             ->get();
+
+        Log::debug('[Comms:buildContextThreadsList] WhatsApp query', [
+            'waChannelIds' => $waChannelIds,
+            'waThreadsFound' => $waThreads->count(),
+        ]);
 
         $waChannelLabels = collect($this->whatsappChannels)->keyBy('id');
 
