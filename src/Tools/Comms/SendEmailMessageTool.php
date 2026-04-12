@@ -184,12 +184,6 @@ class SendEmailMessageTool implements ToolContract, ToolMetadataContract
                 $ctxModelId = $context->metadata['context_model_id'] ?? null;
                 if ($ctxModel && $ctxModelId) {
                     $resultThread->addContext($ctxModel, (int) $ctxModelId, 'outbound');
-                    if (!$resultThread->context_model) {
-                        $resultThread->updateQuietly([
-                            'context_model' => $ctxModel,
-                            'context_model_id' => $ctxModelId,
-                        ]);
-                    }
                 }
             }
 
