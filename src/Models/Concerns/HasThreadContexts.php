@@ -99,7 +99,8 @@ trait HasThreadContexts
     }
 
     /**
-     * Query scope: filter threads that have a specific context in the pivot table.
+     * Query scope: filter threads that have a specific context.
+     * Checks pivot table first, falls back to legacy context_model/context_model_id columns.
      */
     public function scopeForContext(Builder $query, string $contextModel, int $contextModelId): void
     {
@@ -107,19 +108,34 @@ trait HasThreadContexts
         $threadClass = static::class;
         $table = (new static)->getTable();
 
-        $query->whereExists(function ($sub) use ($variants, $contextModelId, $threadClass, $table) {
-            $sub->select(DB::raw(1))
-                ->from('comms_thread_contexts')
-                ->whereColumn('comms_thread_contexts.thread_id', "{$table}.id")
-                ->where('comms_thread_contexts.thread_type', $threadClass)
-                ->where(function ($q) use ($variants, $contextModelId) {
+        $query->where(function ($outer) use ($variants, $contextModelId, $threadClass, $table) {
+            // Primary: pivot table
+            $outer->whereExists(function ($sub) use ($variants, $contextModelId, $threadClass, $table) {
+                $sub->select(DB::raw(1))
+                    ->from('comms_thread_contexts')
+                    ->whereColumn('comms_thread_contexts.thread_id', "{$table}.id")
+                    ->where('comms_thread_contexts.thread_type', $threadClass)
+                    ->where(function ($q) use ($variants, $contextModelId) {
+                        foreach ($variants as $variant) {
+                            $q->orWhere(function ($q2) use ($variant, $contextModelId) {
+                                $q2->where('comms_thread_contexts.context_model', $variant)
+                                   ->where('comms_thread_contexts.context_model_id', $contextModelId);
+                            });
+                        }
+                    });
+            });
+
+            // Fallback: legacy columns on the thread itself
+            $outer->orWhere(function ($legacy) use ($variants, $contextModelId, $table) {
+                $legacy->where(function ($q) use ($variants, $contextModelId, $table) {
                     foreach ($variants as $variant) {
-                        $q->orWhere(function ($q2) use ($variant, $contextModelId) {
-                            $q2->where('comms_thread_contexts.context_model', $variant)
-                               ->where('comms_thread_contexts.context_model_id', $contextModelId);
+                        $q->orWhere(function ($q2) use ($variant, $contextModelId, $table) {
+                            $q2->where("{$table}.context_model", $variant)
+                               ->where("{$table}.context_model_id", $contextModelId);
                         });
                     }
                 });
+            });
         });
     }
 

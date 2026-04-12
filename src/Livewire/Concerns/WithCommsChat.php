@@ -720,15 +720,15 @@ trait WithCommsChat
         }
         $this->resetForwardState();
 
-        if ($wasNewThread && $this->hasContext() && $token) {
-            $newThread = CommsEmailThread::query()
-                ->where('comms_channel_id', $channel->id)
-                ->where('token', $token)
-                ->first();
-            if ($newThread) {
-                $newThread->addContext($this->contextModel, (int) $this->contextModelId, 'outbound');
-                if (!$newThread->context_model) {
-                    $newThread->updateQuietly([
+        // Assign context to thread (new or existing reply) — addContext is deduplicated via firstOrCreate
+        if ($this->hasContext()) {
+            $contextThread = $token
+                ? CommsEmailThread::query()->where('comms_channel_id', $channel->id)->where('token', $token)->first()
+                : ($this->activeEmailThreadId ? CommsEmailThread::find($this->activeEmailThreadId) : null);
+            if ($contextThread) {
+                $contextThread->addContext($this->contextModel, (int) $this->contextModelId, 'outbound');
+                if (!$contextThread->context_model) {
+                    $contextThread->updateQuietly([
                         'context_model' => $this->contextModel,
                         'context_model_id' => $this->contextModelId,
                     ]);
@@ -1349,12 +1349,14 @@ trait WithCommsChat
             $this->whatsappCompose['to'] = '';
         }
 
-        if ($wasNewThread && $this->hasContext() && $message?->thread) {
-            $newThread = $message->thread;
-            if ($newThread) {
-                $newThread->addContext($this->contextModel, (int) $this->contextModelId, 'outbound');
-                if (!$newThread->context_model) {
-                    $newThread->updateQuietly([
+        // Assign context to thread (new or existing reply) — addContext is deduplicated via firstOrCreate
+        if ($this->hasContext()) {
+            $contextThread = $message?->thread
+                ?? ($this->activeWhatsAppThreadId ? CommsWhatsAppThread::find($this->activeWhatsAppThreadId) : null);
+            if ($contextThread) {
+                $contextThread->addContext($this->contextModel, (int) $this->contextModelId, 'outbound');
+                if (!$contextThread->context_model) {
+                    $contextThread->updateQuietly([
                         'context_model' => $this->contextModel,
                         'context_model_id' => $this->contextModelId,
                     ]);
@@ -1636,12 +1638,14 @@ trait WithCommsChat
             $this->whatsappCompose['to'] = '';
         }
 
-        if ($wasNewThread && $this->hasContext() && $message?->thread) {
-            $newThread = $message->thread;
-            if ($newThread) {
-                $newThread->addContext($this->contextModel, (int) $this->contextModelId, 'outbound');
-                if (!$newThread->context_model) {
-                    $newThread->updateQuietly([
+        // Assign context to thread (new or existing reply) — addContext is deduplicated via firstOrCreate
+        if ($this->hasContext()) {
+            $contextThread = $message?->thread
+                ?? ($this->activeWhatsAppThreadId ? CommsWhatsAppThread::find($this->activeWhatsAppThreadId) : null);
+            if ($contextThread) {
+                $contextThread->addContext($this->contextModel, (int) $this->contextModelId, 'outbound');
+                if (!$contextThread->context_model) {
+                    $contextThread->updateQuietly([
                         'context_model' => $this->contextModel,
                         'context_model_id' => $this->contextModelId,
                     ]);
