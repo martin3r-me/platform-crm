@@ -117,34 +117,16 @@ class CommsThreadContextResolverService
             return true;
         }
 
-        // Ambiguous: multiple different contexts found – add all of them
-        Log::info('[CommsThreadContextResolver] Ambiguous sibling contexts, adding all', [
+        // Ambiguous: multiple different contexts found – do NOT assign any.
+        // Assigning all would pollute every context with unrelated threads.
+        // The thread stays unassigned until explicitly sent from a specific context.
+        Log::info('[CommsThreadContextResolver] Ambiguous sibling contexts, skipping auto-assign', [
             'thread_type' => get_class($thread),
             'thread_id' => $thread->id,
             'context_count' => $uniqueContexts->count(),
         ]);
 
-        $firstAdded = null;
-        $seen = [];
-        foreach ($siblingContexts as $ctx) {
-            $key = $ctx->context_model . ':' . $ctx->context_model_id;
-            if (isset($seen[$key])) {
-                continue;
-            }
-            $seen[$key] = true;
-
-            $thread->addContext($ctx->context_model, $ctx->context_model_id, 'sibling');
-            if (!$firstAdded) {
-                $firstAdded = $ctx;
-            }
-        }
-
-        // Legacy column: set to first found
-        if ($firstAdded) {
-            $this->setLegacyContext($thread, $firstAdded->context_model, $firstAdded->context_model_id);
-        }
-
-        return true;
+        return false;
     }
 
     /**
