@@ -1696,11 +1696,6 @@ trait WithCommsChat
         $this->allContextThreads = [];
 
         if (!$this->hasContext()) {
-            \Log::debug('[Comms:buildContextThreadsList] No context', [
-                'contextModel' => $this->contextModel,
-                'contextModelId' => $this->contextModelId,
-                'caller' => class_basename(static::class),
-            ]);
             return;
         }
 
@@ -1708,24 +1703,11 @@ trait WithCommsChat
 
         $channelIds = collect($this->emailChannels)->pluck('id')->all();
 
-        \Log::debug('[Comms:buildContextThreadsList] Query params', [
-            'caller' => class_basename(static::class),
-            'contextModel' => $this->contextModel,
-            'contextModelId' => $this->contextModelId,
-            'emailChannelIds' => $channelIds,
-            'waChannelIds' => collect($this->whatsappChannels)->pluck('id')->all(),
-        ]);
-
         // Email threads across all channels
         $emailThreads = CommsEmailThread::query()
             ->whereIn('comms_channel_id', $channelIds)
             ->forContext($this->contextModel, (int) $this->contextModelId)
             ->get();
-
-        \Log::debug('[Comms:buildContextThreadsList] Email results', [
-            'caller' => class_basename(static::class),
-            'count' => $emailThreads->count(),
-        ]);
 
         $emailChannelLabels = collect($this->emailChannels)->keyBy('id');
 
