@@ -1229,7 +1229,7 @@
                                     <x-ui-button
                                         variant="muted-outline"
                                         size="sm"
-                                        wire:click="loadChannels"
+                                        wire:click="loadCommsSettingsChannels"
                                     >Aktualisieren</x-ui-button>
                                 </div>
                             </div>
@@ -1405,11 +1405,11 @@
                                 <div class="rounded-lg border border-[var(--ui-border)]/60 bg-white overflow-hidden">
                                     <div class="px-4 py-3 border-b border-[var(--ui-border)]/60 flex items-center justify-between">
                                         <div class="text-sm font-semibold text-[var(--ui-secondary)]">Vorhandene Kanäle</div>
-                                        <div class="text-xs text-[var(--ui-muted)]">{{ count($channels) }} total</div>
+                                        <div class="text-xs text-[var(--ui-muted)]">{{ count($commsSettingsChannels) }} total</div>
                                     </div>
 
                                     <div class="divide-y divide-[var(--ui-border)]/60">
-                                        @forelse($channels as $c)
+                                        @forelse($commsSettingsChannels as $c)
                                             <div class="px-4 py-3 flex items-center justify-between gap-3">
                                                 <div class="min-w-0">
                                                     <div class="flex items-center gap-2 min-w-0">
