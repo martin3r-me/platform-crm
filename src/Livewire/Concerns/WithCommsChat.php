@@ -1474,7 +1474,9 @@ trait WithCommsChat
         foreach ($this->whatsappTemplates as $t) {
             if ((int) $t['id'] === $templateId) {
                 $bodyText = (string) ($t['body_text'] ?? '');
-                $variablesCount = (int) ($t['variables_count'] ?? 0);
+
+                // Parse body params with names and examples
+                $paramDefs = $this->parseWhatsAppTemplateBodyParams($t['components'] ?? []);
 
                 $this->whatsappTemplatePreview = [
                     'id' => $t['id'],
@@ -1483,11 +1485,18 @@ trait WithCommsChat
                     'category' => $t['category'],
                     'body_text' => $bodyText,
                     'components' => $t['components'],
-                    'variables_count' => $variablesCount,
+                    'variables_count' => count($paramDefs),
+                    'param_defs' => $paramDefs,
                 ];
 
-                for ($i = 1; $i <= $variablesCount; $i++) {
-                    $this->whatsappTemplateVariables[$i] = '';
+                // Auto-prefill known params from context
+                $contactName = $this->resolveContactNameFromContext();
+
+                foreach ($paramDefs as $param) {
+                    $this->whatsappTemplateVariables[$param['name']] = match (strtolower($param['name'])) {
+                        '1', 'name', 'vorname' => $contactName,
+                        default => '',
+                    };
                 }
 
                 break;
@@ -1535,10 +1544,10 @@ trait WithCommsChat
             return;
         }
 
-        $variablesCount = (int) ($preview['variables_count'] ?? 0);
-        for ($i = 1; $i <= $variablesCount; $i++) {
-            if (trim((string) ($this->whatsappTemplateVariables[$i] ?? '')) === '') {
-                $this->whatsappMessage = "⛔️ Bitte alle Platzhalter ausfüllen (Variable {$i} fehlt).";
+        $paramDefs = $preview['param_defs'] ?? [];
+        foreach ($paramDefs as $param) {
+            if (trim((string) ($this->whatsappTemplateVariables[$param['name']] ?? '')) === '') {
+                $this->whatsappMessage = "⛔️ Bitte alle Platzhalter ausfüllen (Variable {$param['name']} fehlt).";
                 return;
             }
         }
@@ -1571,13 +1580,17 @@ trait WithCommsChat
         }
 
         $components = [];
-        if ($variablesCount > 0) {
+        if (!empty($paramDefs)) {
             $parameters = [];
-            for ($i = 1; $i <= $variablesCount; $i++) {
-                $parameters[] = [
+            foreach ($paramDefs as $param) {
+                $paramEntry = [
                     'type' => 'text',
-                    'text' => (string) ($this->whatsappTemplateVariables[$i] ?? ''),
+                    'text' => (string) ($this->whatsappTemplateVariables[$param['name']] ?? ''),
                 ];
+                if (!is_numeric($param['name'])) {
+                    $paramEntry['parameter_name'] = $param['name'];
+                }
+                $parameters[] = $paramEntry;
             }
             $components[] = [
                 'type' => 'body',
@@ -1660,12 +1673,62 @@ trait WithCommsChat
 
     private function countTemplateVariables(array $components): int
     {
-        $bodyText = $this->extractTemplateBodyText($components);
-        if ($bodyText === '') {
-            return 0;
+        return count($this->parseWhatsAppTemplateBodyParams($components));
+    }
+
+    private function parseWhatsAppTemplateBodyParams(array $components): array
+    {
+        $params = [];
+        foreach ($components as $component) {
+            if (strtolower((string) ($component['type'] ?? '')) !== 'body') {
+                continue;
+            }
+
+            $text = $component['text'] ?? '';
+
+            $examplesByName = [];
+            foreach ($component['example']['body_text_named_params'] ?? [] as $np) {
+                $examplesByName[$np['param_name']] = $np['example'] ?? '';
+            }
+            $positionalExamples = $component['example']['body_text'][0] ?? [];
+
+            preg_match_all('/\{\{(\w+)\}\}/', $text, $matches);
+            foreach ($matches[1] as $i => $paramName) {
+                $params[] = [
+                    'name' => $paramName,
+                    'example' => $examplesByName[$paramName] ?? $positionalExamples[$i] ?? '',
+                ];
+            }
         }
-        preg_match_all('/\{\{(\d+)\}\}/', $bodyText, $matches);
-        return !empty($matches[1]) ? (int) max($matches[1]) : 0;
+        return $params;
+    }
+
+    private function resolveContactNameFromContext(): string
+    {
+        if (!$this->hasContext()) {
+            return '';
+        }
+
+        try {
+            $model = $this->contextModel::find($this->contextModelId);
+            if (!$model) {
+                return '';
+            }
+
+            // Direct CRM contact
+            if ($model instanceof \Platform\Crm\Models\CrmContact) {
+                return $model->full_name ?? '';
+            }
+
+            // Model with getContact() (RecApplicant, HcmEmployee, etc.)
+            if (method_exists($model, 'getContact')) {
+                return $model->getContact()?->full_name ?? '';
+            }
+
+            return '';
+        } catch (\Throwable) {
+            return '';
+        }
     }
 
     public function getTemplatePreviewText(): string

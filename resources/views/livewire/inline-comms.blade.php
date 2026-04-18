@@ -530,15 +530,15 @@
                                             <div class="rounded-lg bg-[#dcf8c6] border border-emerald-200/30 px-2.5 py-2">
                                                 <div class="text-xs text-[var(--ui-secondary)] whitespace-pre-wrap">{{ $this->getTemplatePreviewText() }}</div>
                                             </div>
-                                            @if(($whatsappTemplatePreview['variables_count'] ?? 0) > 0)
+                                            @if(!empty($whatsappTemplatePreview['param_defs']))
                                                 <div class="space-y-1.5">
                                                     <div class="text-[10px] font-semibold text-[var(--ui-secondary)]">Platzhalter</div>
-                                                    @for($i = 1; $i <= $whatsappTemplatePreview['variables_count']; $i++)
+                                                    @foreach($whatsappTemplatePreview['param_defs'] as $param)
                                                         <div class="flex items-center gap-1.5">
-                                                            <span class="text-[10px] text-[var(--ui-muted)] font-mono w-8 flex-shrink-0">&#123;&#123;{{ $i }}&#125;&#125;</span>
-                                                            <input type="text" wire:model.live="whatsappTemplateVariables.{{ $i }}" class="flex-1 px-2.5 py-1 border border-[var(--ui-border)] rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500" placeholder="Variable {{ $i }}…" />
+                                                            <span class="text-[10px] text-[var(--ui-muted)] font-mono w-8 flex-shrink-0">&#123;&#123;{{ $param['name'] }}&#125;&#125;</span>
+                                                            <input type="text" wire:model.live="whatsappTemplateVariables.{{ $param['name'] }}" class="flex-1 px-2.5 py-1 border border-[var(--ui-border)] rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500" placeholder="{{ $param['example'] ?: $param['name'] }}" />
                                                         </div>
-                                                    @endfor
+                                                    @endforeach
                                                 </div>
                                             @endif
                                         </div>
