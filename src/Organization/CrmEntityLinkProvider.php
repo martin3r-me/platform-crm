@@ -5,8 +5,9 @@ namespace Platform\Crm\Organization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Platform\Organization\Contracts\EntityLinkProvider;
+use Platform\Organization\Contracts\HasMetricDefinitions;
 
-class CrmEntityLinkProvider implements EntityLinkProvider
+class CrmEntityLinkProvider implements EntityLinkProvider, HasMetricDefinitions
 {
     public function morphAliases(): array
     {
@@ -139,5 +140,15 @@ class CrmEntityLinkProvider implements EntityLinkProvider
     public function activityChildren(string $morphAlias, array $linkableIds): array
     {
         return [];
+    }
+
+    public function metricDefinitions(): array
+    {
+        return [
+            'crm_contacts_total'   => ['label' => 'Kontakte (gesamt)', 'group' => 'crm', 'direction' => 'neutral', 'unit' => 'count'],
+            'crm_contacts_active'  => ['label' => 'Kontakte (aktiv)', 'group' => 'crm', 'direction' => 'up', 'unit' => 'count', 'pair' => 'crm_contacts_total'],
+            'crm_companies_total'  => ['label' => 'Unternehmen (gesamt)', 'group' => 'crm', 'direction' => 'neutral', 'unit' => 'count'],
+            'crm_companies_active' => ['label' => 'Unternehmen (aktiv)', 'group' => 'crm', 'direction' => 'up', 'unit' => 'count', 'pair' => 'crm_companies_total'],
+        ];
     }
 }
