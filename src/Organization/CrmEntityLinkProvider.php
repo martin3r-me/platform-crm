@@ -3,6 +3,7 @@
 namespace Platform\Crm\Organization;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Platform\Organization\Contracts\EntityLinkProvider;
 
 class CrmEntityLinkProvider implements EntityLinkProvider
@@ -52,7 +53,87 @@ class CrmEntityLinkProvider implements EntityLinkProvider
 
     public function metrics(string $morphAlias, array $linksByEntity): array
     {
-        return [];
+        return match ($morphAlias) {
+            'crm_contact' => $this->contactMetrics($linksByEntity),
+            'crm_company' => $this->companyMetrics($linksByEntity),
+            default => [],
+        };
+    }
+
+    protected function contactMetrics(array $linksByEntity): array
+    {
+        $allIds = [];
+        foreach ($linksByEntity as $ids) {
+            $allIds = array_merge($allIds, $ids);
+        }
+        $allIds = array_values(array_unique($allIds));
+
+        if (empty($allIds)) {
+            return [];
+        }
+
+        $activeIds = DB::table('crm_contacts')
+            ->whereIn('id', $allIds)
+            ->where('is_active', true)
+            ->pluck('id')
+            ->flip()
+            ->all();
+
+        $result = [];
+        foreach ($linksByEntity as $entityId => $ids) {
+            $total = count($ids);
+            $active = 0;
+            foreach ($ids as $id) {
+                if (isset($activeIds[$id])) {
+                    $active++;
+                }
+            }
+
+            $result[$entityId] = [
+                'crm_contacts_total' => $total,
+                'crm_contacts_active' => $active,
+            ];
+        }
+
+        return $result;
+    }
+
+    protected function companyMetrics(array $linksByEntity): array
+    {
+        $allIds = [];
+        foreach ($linksByEntity as $ids) {
+            $allIds = array_merge($allIds, $ids);
+        }
+        $allIds = array_values(array_unique($allIds));
+
+        if (empty($allIds)) {
+            return [];
+        }
+
+        $activeIds = DB::table('crm_companies')
+            ->whereIn('id', $allIds)
+            ->where('is_active', true)
+            ->pluck('id')
+            ->flip()
+            ->all();
+
+        $result = [];
+        foreach ($linksByEntity as $entityId => $ids) {
+            $total = count($ids);
+            $active = 0;
+            foreach ($ids as $id) {
+                if (isset($activeIds[$id])) {
+                    $active++;
+                }
+            }
+
+            $result[$entityId] = [
+                'crm_companies_total' => $total,
+                'crm_companies_active' => $active,
+            ];
+        }
+
+        return $result;
     }
 
     public function activityChildren(string $morphAlias, array $linkableIds): array
