@@ -10,37 +10,37 @@
         ]">
             <div class="flex items-center gap-2">
                 <div x-data @keydown.window.meta.k.prevent="$refs.search.focus()" @keydown.window.ctrl.k.prevent="$refs.search.focus()">
-                    <x-ui-input-text
+                    <input
+                        type="text"
                         x-ref="search"
                         wire:model.live.debounce.300ms="search"
                         placeholder="Suchen... (⌘K)"
-                        size="sm"
                         name="search"
-                        class="w-64"
+                        class="w-64 px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors"
                         @keydown.escape="$refs.search.blur(); $wire.set('search', '')"
                     />
                 </div>
 
                 @if(count($selected) > 0)
-                    <span class="text-sm text-[var(--ui-muted)]">{{ count($selected) }} ausgewählt</span>
-                    <x-ui-input-select
+                    <span class="text-sm text-gray-400">{{ count($selected) }} ausgewählt</span>
+                    <select
                         name="bulkStatus"
-                        :options="$contactStatuses"
-                        optionValue="id"
-                        optionLabel="name"
-                        :nullable="true"
-                        nullLabel="Status ändern..."
-                        size="sm"
                         wire:change="bulkChangeStatus($event.target.value)"
-                    />
-                    <x-ui-button variant="danger" size="sm" wire:click="bulkDelete" wire:confirm="Wirklich deaktivieren?">
+                        class="px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors"
+                    >
+                        <option value="">Status ändern...</option>
+                        @foreach($contactStatuses as $opt)
+                            <option value="{{ $opt->id }}">{{ $opt->name }}</option>
+                        @endforeach
+                    </select>
+                    <button variant="danger" wire:click="bulkDelete" wire:confirm="Wirklich deaktivieren?" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-[13px] font-medium hover:bg-red-700 transition-colors">
                         @svg('heroicon-o-trash', 'w-4 h-4')
-                    </x-ui-button>
+                    </button>
                 @else
-                    <x-ui-button variant="primary" size="sm" wire:click="openCreateModal">
+                    <button wire:click="openCreateModal" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#ff7a59] text-white text-[13px] font-medium hover:bg-[#e8604a] transition-colors">
                         @svg('heroicon-o-plus', 'w-4 h-4')
                         <span>Neuer Kontakt</span>
-                    </x-ui-button>
+                    </button>
                 @endif
             </div>
         </x-ui-page-actionbar>
@@ -49,106 +49,107 @@
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Filter" width="w-72" :defaultOpen="true" side="left">
             <div class="p-4 space-y-4">
-                <x-ui-input-select
-                    name="statusFilter"
-                    label="Status"
-                    :options="$contactStatuses"
-                    optionValue="id"
-                    optionLabel="name"
-                    :nullable="true"
-                    nullLabel="– Alle –"
-                    size="sm"
-                    wire:model.live="statusFilter"
-                />
-                <x-ui-input-select
-                    name="blacklistFilter"
-                    label="Blacklist"
-                    :options="collect([
-                        ['value' => 'all', 'label' => 'Alle'],
-                        ['value' => 'not_blacklisted', 'label' => 'Nicht blacklisted'],
-                        ['value' => 'blacklisted', 'label' => 'Nur blacklisted'],
-                    ])"
-                    optionValue="value"
-                    optionLabel="label"
-                    :nullable="false"
-                    size="sm"
-                    wire:model.live="blacklistFilter"
-                />
-                <x-ui-input-select
-                    name="companyFilter"
-                    label="Unternehmen"
-                    :options="$companiesForFilter"
-                    optionValue="id"
-                    optionLabel="name"
-                    :nullable="true"
-                    nullLabel="– Alle –"
-                    size="sm"
-                    wire:model.live="companyFilter"
-                />
-                <x-ui-input-select
-                    name="genderFilter"
-                    label="Geschlecht"
-                    :options="$genders"
-                    optionValue="id"
-                    optionLabel="name"
-                    :nullable="true"
-                    nullLabel="– Alle –"
-                    size="sm"
-                    wire:model.live="genderFilter"
-                />
-                <x-ui-input-select
-                    name="languageFilter"
-                    label="Sprache"
-                    :options="$languages"
-                    optionValue="id"
-                    optionLabel="name"
-                    :nullable="true"
-                    nullLabel="– Alle –"
-                    size="sm"
-                    wire:model.live="languageFilter"
-                />
                 <div>
-                    <label class="block text-xs font-medium text-[color:var(--ui-muted)] mb-1">Erstellt von – bis</label>
+                    <label class="block text-[11px] font-medium text-gray-500 mb-1">STATUS</label>
+                    <select
+                        name="statusFilter"
+                        wire:model.live="statusFilter"
+                        class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors"
+                    >
+                        <option value="">– Alle –</option>
+                        @foreach($contactStatuses as $opt)
+                            <option value="{{ $opt->id }}">{{ $opt->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 mb-1">BLACKLIST</label>
+                    <select
+                        name="blacklistFilter"
+                        wire:model.live="blacklistFilter"
+                        class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors"
+                    >
+                        <option value="all">Alle</option>
+                        <option value="not_blacklisted">Nicht blacklisted</option>
+                        <option value="blacklisted">Nur blacklisted</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 mb-1">UNTERNEHMEN</label>
+                    <select
+                        name="companyFilter"
+                        wire:model.live="companyFilter"
+                        class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors"
+                    >
+                        <option value="">– Alle –</option>
+                        @foreach($companiesForFilter as $opt)
+                            <option value="{{ $opt->id }}">{{ $opt->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 mb-1">GESCHLECHT</label>
+                    <select
+                        name="genderFilter"
+                        wire:model.live="genderFilter"
+                        class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors"
+                    >
+                        <option value="">– Alle –</option>
+                        @foreach($genders as $opt)
+                            <option value="{{ $opt->id }}">{{ $opt->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 mb-1">SPRACHE</label>
+                    <select
+                        name="languageFilter"
+                        wire:model.live="languageFilter"
+                        class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors"
+                    >
+                        <option value="">– Alle –</option>
+                        @foreach($languages as $opt)
+                            <option value="{{ $opt->id }}">{{ $opt->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 mb-1">ERSTELLT VON – BIS</label>
                     <div class="grid grid-cols-2 gap-2">
-                        <x-ui-input-date name="createdFrom" wire:model.live="createdFrom" size="sm" placeholder="Von" :nullable="true" />
-                        <x-ui-input-date name="createdTo" wire:model.live="createdTo" size="sm" placeholder="Bis" :nullable="true" />
+                        <input type="date" name="createdFrom" wire:model.live="createdFrom" placeholder="Von" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors" />
+                        <input type="date" name="createdTo" wire:model.live="createdTo" placeholder="Bis" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors" />
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-[color:var(--ui-muted)] mb-1">Sortierung</label>
+                    <label class="block text-[11px] font-medium text-gray-500 mb-1">SORTIERUNG</label>
                     <div class="flex gap-2">
-                        <x-ui-input-select
+                        <select
                             name="sortField"
-                            :options="collect([
-                                ['value' => 'last_name', 'label' => 'Name'],
-                                ['value' => 'contact_status_id', 'label' => 'Status'],
-                                ['value' => 'company', 'label' => 'Unternehmen'],
-                                ['value' => 'created_at', 'label' => 'Erstellt'],
-                                ['value' => 'updated_at', 'label' => 'Aktualisiert'],
-                            ])"
-                            optionValue="value"
-                            optionLabel="label"
-                            :nullable="false"
-                            size="sm"
                             wire:model.live="sortField"
-                            class="flex-1"
-                        />
-                        <x-ui-button size="sm" variant="secondary-outline" wire:click="$set('sortDirection', '{{ $sortDirection === 'asc' ? 'desc' : 'asc' }}')">
+                            class="flex-1 px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors"
+                        >
+                            <option value="last_name">Name</option>
+                            <option value="contact_status_id">Status</option>
+                            <option value="company">Unternehmen</option>
+                            <option value="created_at">Erstellt</option>
+                            <option value="updated_at">Aktualisiert</option>
+                        </select>
+                        <button wire:click="$set('sortDirection', '{{ $sortDirection === 'asc' ? 'desc' : 'asc' }}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-700 text-[13px] font-medium hover:bg-gray-50 transition-colors">
                             @if($sortDirection === 'asc')
                                 @svg('heroicon-o-arrow-up', 'w-4 h-4')
                             @else
                                 @svg('heroicon-o-arrow-down', 'w-4 h-4')
                             @endif
-                        </x-ui-button>
+                        </button>
                     </div>
                 </div>
 
                 @if($this->hasActiveFilters)
-                    <x-ui-button variant="secondary-outline" size="sm" wire:click="resetFilters" class="w-full">
+                    <button wire:click="resetFilters" class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-700 text-[13px] font-medium hover:bg-gray-50 transition-colors">
                         @svg('heroicon-o-x-mark', 'w-4 h-4')
                         Filter zurücksetzen
-                    </x-ui-button>
+                    </button>
                 @endif
             </div>
         </x-ui-page-sidebar>
@@ -161,47 +162,47 @@
         @if($this->hasActiveFilters)
             <div class="flex flex-wrap items-center gap-2 mb-4">
                 @if(trim($search) !== '')
-                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-100 text-[#ff7a59]">
                         Suche: "{{ $search }}"
                         <button wire:click="$set('search', '')" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
                     </span>
                 @endif
                 @if(!empty($statusFilter))
                     @php $statusName = $contactStatuses->firstWhere('id', $statusFilter)?->name ?? $statusFilter; @endphp
-                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-100 text-[#ff7a59]">
                         Status: {{ $statusName }}
                         <button wire:click="$set('statusFilter', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
                     </span>
                 @endif
                 @if($blacklistFilter !== 'not_blacklisted')
-                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-100 text-[#ff7a59]">
                         {{ $blacklistFilter === 'blacklisted' ? 'Nur Blacklisted' : 'Alle (inkl. Blacklisted)' }}
                         <button wire:click="$set('blacklistFilter', 'not_blacklisted')" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
                     </span>
                 @endif
                 @if(!empty($companyFilter))
                     @php $companyName = $companiesForFilter->firstWhere('id', $companyFilter)?->name ?? $companyFilter; @endphp
-                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-100 text-[#ff7a59]">
                         Firma: {{ $companyName }}
                         <button wire:click="$set('companyFilter', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
                     </span>
                 @endif
                 @if(!empty($genderFilter))
                     @php $genderName = $genders->firstWhere('id', $genderFilter)?->name ?? $genderFilter; @endphp
-                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-100 text-[#ff7a59]">
                         Geschlecht: {{ $genderName }}
                         <button wire:click="$set('genderFilter', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
                     </span>
                 @endif
                 @if(!empty($languageFilter))
                     @php $langName = $languages->firstWhere('id', $languageFilter)?->name ?? $languageFilter; @endphp
-                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-100 text-[#ff7a59]">
                         Sprache: {{ $langName }}
                         <button wire:click="$set('languageFilter', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
                     </span>
                 @endif
                 @if(!empty($createdFrom) || !empty($createdTo))
-                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[color:var(--ui-primary-10)] text-[color:var(--ui-primary)]">
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-100 text-[#ff7a59]">
                         Erstellt: {{ $createdFrom ?? '...' }} – {{ $createdTo ?? '...' }}
                         <button wire:click="$set('createdFrom', null); $wire.set('createdTo', null)" class="hover:opacity-70">@svg('heroicon-o-x-mark', 'w-3 h-3')</button>
                     </span>
@@ -210,7 +211,7 @@
         @endif
 
         @if($this->contacts->count() === 0)
-            <div class="rounded-lg border border-[color:var(--ui-border)] bg-[color:var(--ui-surface)] p-6 text-sm text-[color:var(--ui-muted)]">
+            <div class="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-400">
                 Keine Kontakte gefunden.
             </div>
         @else
@@ -218,106 +219,133 @@
                  @keydown.arrow-down.prevent="activeRow = Math.min(activeRow+1, $el.querySelectorAll('tr[data-href]').length-1)"
                  @keydown.arrow-up.prevent="activeRow = Math.max(activeRow-1, 0)"
                  @keydown.enter.prevent="if(activeRow>=0) window.location=$el.querySelectorAll('tr[data-href]')[activeRow]?.dataset.href">
-                <x-ui-table compact="true">
-                    <x-ui-table-header>
-                        <x-ui-table-header-cell compact="true" width="w-10">
-                            <input type="checkbox" wire:model.live="selectAll" wire:change="toggleSelectAll"
-                                   class="rounded border-[var(--ui-border)] text-[var(--ui-primary)]" />
-                        </x-ui-table-header-cell>
-                        <x-ui-table-header-cell compact="true" sortable="true" sortField="last_name" :currentSort="$sortField" :sortDirection="$sortDirection">Name</x-ui-table-header-cell>
-                        <x-ui-table-header-cell compact="true">Primäre Kontaktdaten</x-ui-table-header-cell>
-                        <x-ui-table-header-cell compact="true" sortable="true" sortField="company" :currentSort="$sortField" :sortDirection="$sortDirection">Unternehmen</x-ui-table-header-cell>
-                        <x-ui-table-header-cell compact="true" sortable="true" sortField="contact_status_id" :currentSort="$sortField" :sortDirection="$sortDirection">Status</x-ui-table-header-cell>
-                    </x-ui-table-header>
-
-                    <x-ui-table-body>
-                        @foreach($this->contacts as $contact)
-                            <x-ui-table-row
-                                compact="true"
-                                clickable="true"
-                                :href="route('crm.contacts.show', ['contact' => $contact->id])"
-                                :data-href="route('crm.contacts.show', ['contact' => $contact->id])"
-                                :class="'transition'"
-                            >
-                                <x-ui-table-cell compact="true" @click.stop>
-                                    <input type="checkbox" value="{{ $contact->id }}" wire:model.live="selected"
-                                           class="rounded border-[var(--ui-border)] text-[var(--ui-primary)]" />
-                                </x-ui-table-cell>
-                                <x-ui-table-cell compact="true">
-                                    <div class="flex items-center gap-2.5">
-                                        <div class="w-8 h-8 rounded-full bg-[color:var(--ui-primary-10)] flex items-center justify-center text-[10px] font-bold text-[color:var(--ui-primary)] flex-shrink-0">
-                                            {{ strtoupper(mb_substr($contact->first_name, 0, 1) . mb_substr($contact->last_name, 0, 1)) }}
-                                        </div>
-                                        <div class="min-w-0">
-                                            <div class="flex items-center gap-1.5">
-                                                <span class="font-medium">{{ $contact->last_name }}, {{ $contact->first_name }}</span>
-                                                @if($contact->is_blacklisted)
-                                                    <x-ui-badge variant="danger" size="xs">
-                                                        @svg('heroicon-s-no-symbol', 'w-3 h-3')
-                                                    </x-ui-badge>
-                                                @endif
+                <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wide w-10">
+                                    <input type="checkbox" wire:model.live="selectAll" wire:change="toggleSelectAll"
+                                           class="rounded border-gray-200 text-[#ff7a59]" />
+                                </th>
+                                <th wire:click="$set('sortField', 'last_name')" class="px-4 py-3 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wide cursor-pointer hover:text-gray-600">
+                                    Name
+                                    @if($sortField === 'last_name')
+                                        @if($sortDirection === 'asc') @svg('heroicon-s-chevron-up', 'w-3 h-3 inline') @else @svg('heroicon-s-chevron-down', 'w-3 h-3 inline') @endif
+                                    @endif
+                                </th>
+                                <th class="px-4 py-3 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wide">Primäre Kontaktdaten</th>
+                                <th wire:click="$set('sortField', 'company')" class="px-4 py-3 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wide cursor-pointer hover:text-gray-600">
+                                    Unternehmen
+                                    @if($sortField === 'company')
+                                        @if($sortDirection === 'asc') @svg('heroicon-s-chevron-up', 'w-3 h-3 inline') @else @svg('heroicon-s-chevron-down', 'w-3 h-3 inline') @endif
+                                    @endif
+                                </th>
+                                <th wire:click="$set('sortField', 'contact_status_id')" class="px-4 py-3 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wide cursor-pointer hover:text-gray-600">
+                                    Status
+                                    @if($sortField === 'contact_status_id')
+                                        @if($sortDirection === 'asc') @svg('heroicon-s-chevron-up', 'w-3 h-3 inline') @else @svg('heroicon-s-chevron-down', 'w-3 h-3 inline') @endif
+                                    @endif
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @foreach($this->contacts as $contact)
+                                <tr
+                                    wire:navigate
+                                    href="{{ route('crm.contacts.show', ['contact' => $contact->id]) }}"
+                                    data-href="{{ route('crm.contacts.show', ['contact' => $contact->id]) }}"
+                                    class="hover:bg-orange-50/50 transition-colors cursor-pointer"
+                                >
+                                    <td class="px-4 py-3 text-[13px]" @click.stop>
+                                        <input type="checkbox" value="{{ $contact->id }}" wire:model.live="selected"
+                                               class="rounded border-gray-200 text-[#ff7a59]" />
+                                    </td>
+                                    <td class="px-4 py-3 text-[13px]">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-[10px] font-bold text-[#ff7a59] flex-shrink-0">
+                                                {{ strtoupper(mb_substr($contact->first_name, 0, 1) . mb_substr($contact->last_name, 0, 1)) }}
                                             </div>
-                                            @if($contact->nickname)
-                                                <div class="text-xs text-[color:var(--ui-muted)]">"{{ $contact->nickname }}"</div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </x-ui-table-cell>
-                                <x-ui-table-cell compact="true">
-                                    <div class="space-y-1">
-                                        @if($contact->phoneNumbers->where('is_primary', true)->first())
-                                            <div class="text-xs flex items-center gap-1">
-                                                @svg('heroicon-o-phone', 'w-3 h-3 text-[color:var(--ui-muted)]')
-                                                {{ $contact->phoneNumbers->where('is_primary', true)->first()->national }}
-                                            </div>
-                                        @endif
-                                        @if($contact->emailAddresses->where('is_primary', true)->first())
-                                            <div class="text-xs flex items-center gap-1">
-                                                @svg('heroicon-o-envelope', 'w-3 h-3 text-[color:var(--ui-muted)]')
-                                                {{ $contact->emailAddresses->where('is_primary', true)->first()->email_address }}
-                                            </div>
-                                        @endif
-                                        @if($contact->postalAddresses->where('is_primary', true)->first())
-                                            <div class="text-xs flex items-center gap-1">
-                                                @svg('heroicon-o-map-pin', 'w-3 h-3 text-[color:var(--ui-muted)]')
-                                                {{ $contact->postalAddresses->where('is_primary', true)->first()->city }}
-                                            </div>
-                                        @endif
-                                    </div>
-                                </x-ui-table-cell>
-                                <x-ui-table-cell compact="true">
-                                    @if($contact->contactRelations->count() > 0)
-                                        <div class="space-y-1">
-                                            @foreach($contact->contactRelations->take(2) as $relation)
-                                                <div class="text-xs flex items-center gap-1">
-                                                    @svg('heroicon-o-building-office', 'w-3 h-3 text-[color:var(--ui-muted)]')
-                                                    {{ $relation->company?->name ?? '–' }}
-                                                    @if($relation->position)
-                                                        <span class="text-[color:var(--ui-muted)]">({{ $relation->position }})</span>
+                                            <div class="min-w-0">
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="font-medium">{{ $contact->last_name }}, {{ $contact->first_name }}</span>
+                                                    @if($contact->is_blacklisted)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                            @svg('heroicon-s-no-symbol', 'w-3 h-3')
+                                                        </span>
                                                     @endif
                                                 </div>
-                                            @endforeach
-                                            @if($contact->contactRelations->count() > 2)
-                                                <div class="text-xs text-[color:var(--ui-muted)]">+{{ $contact->contactRelations->count() - 2 }} weitere</div>
+                                                @if($contact->nickname)
+                                                    <div class="text-xs text-gray-400">"{{ $contact->nickname }}"</div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-[13px]">
+                                        <div class="space-y-1">
+                                            @if($contact->phoneNumbers->where('is_primary', true)->first())
+                                                <div class="text-xs flex items-center gap-1">
+                                                    @svg('heroicon-o-phone', 'w-3 h-3 text-gray-400')
+                                                    {{ $contact->phoneNumbers->where('is_primary', true)->first()->national }}
+                                                </div>
+                                            @endif
+                                            @if($contact->emailAddresses->where('is_primary', true)->first())
+                                                <div class="text-xs flex items-center gap-1">
+                                                    @svg('heroicon-o-envelope', 'w-3 h-3 text-gray-400')
+                                                    {{ $contact->emailAddresses->where('is_primary', true)->first()->email_address }}
+                                                </div>
+                                            @endif
+                                            @if($contact->postalAddresses->where('is_primary', true)->first())
+                                                <div class="text-xs flex items-center gap-1">
+                                                    @svg('heroicon-o-map-pin', 'w-3 h-3 text-gray-400')
+                                                    {{ $contact->postalAddresses->where('is_primary', true)->first()->city }}
+                                                </div>
                                             @endif
                                         </div>
-                                    @else
-                                        <span class="text-xs text-[color:var(--ui-muted)]">–</span>
-                                    @endif
-                                </x-ui-table-cell>
-                                <x-ui-table-cell compact="true">
-                                    @if($contact->contactStatus)
-                                        <x-ui-badge variant="{{ \Platform\Crm\Models\CrmContactStatus::getVariantForCode($contact->contactStatus->code ?? '') }}" size="sm">
-                                            {{ $contact->contactStatus->name }}
-                                        </x-ui-badge>
-                                    @else
-                                        <span class="text-xs text-[color:var(--ui-muted)]">–</span>
-                                    @endif
-                                </x-ui-table-cell>
-                            </x-ui-table-row>
-                        @endforeach
-                    </x-ui-table-body>
-                </x-ui-table>
+                                    </td>
+                                    <td class="px-4 py-3 text-[13px]">
+                                        @if($contact->contactRelations->count() > 0)
+                                            <div class="space-y-1">
+                                                @foreach($contact->contactRelations->take(2) as $relation)
+                                                    <div class="text-xs flex items-center gap-1">
+                                                        @svg('heroicon-o-building-office', 'w-3 h-3 text-gray-400')
+                                                        {{ $relation->company?->name ?? '–' }}
+                                                        @if($relation->position)
+                                                            <span class="text-gray-400">({{ $relation->position }})</span>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                                @if($contact->contactRelations->count() > 2)
+                                                    <div class="text-xs text-gray-400">+{{ $contact->contactRelations->count() - 2 }} weitere</div>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-xs text-gray-400">–</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-[13px]">
+                                        @if($contact->contactStatus)
+                                            @php
+                                                $variant = \Platform\Crm\Models\CrmContactStatus::getVariantForCode($contact->contactStatus->code ?? '');
+                                                $badgeClasses = match($variant) {
+                                                    'success' => 'bg-green-100 text-green-800',
+                                                    'danger' => 'bg-red-100 text-red-800',
+                                                    'warning' => 'bg-amber-100 text-amber-800',
+                                                    'primary' => 'bg-orange-100 text-orange-800',
+                                                    default => 'bg-gray-100 text-gray-700',
+                                                };
+                                            @endphp
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $badgeClasses }}">
+                                                {{ $contact->contactStatus->name }}
+                                            </span>
+                                        @else
+                                            <span class="text-xs text-gray-400">–</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             @if($this->contacts->count() >= $perPage * $page)
@@ -340,41 +368,105 @@
         <div class="space-y-4">
             <form wire:submit.prevent="createContact" class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
-                    <x-ui-input-text name="first_name" label="Vorname" wire:model.live="first_name" required placeholder="Vorname eingeben" />
-                    <x-ui-input-text name="last_name" label="Nachname" wire:model.live="last_name" required placeholder="Nachname eingeben" />
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">VORNAME</label>
+                        <input type="text" name="first_name" wire:model.live="first_name" required placeholder="Vorname eingeben" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">NACHNAME</label>
+                        <input type="text" name="last_name" wire:model.live="last_name" required placeholder="Nachname eingeben" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors" />
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <x-ui-input-text name="middle_name" label="Zweiter Vorname" wire:model.live="middle_name" placeholder="Zweiter Vorname (optional)" />
-                    <x-ui-input-text name="nickname" label="Spitzname" wire:model.live="nickname" placeholder="Spitzname (optional)" />
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">ZWEITER VORNAME</label>
+                        <input type="text" name="middle_name" wire:model.live="middle_name" placeholder="Zweiter Vorname (optional)" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">SPITZNAME</label>
+                        <input type="text" name="nickname" wire:model.live="nickname" placeholder="Spitzname (optional)" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors" />
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <x-ui-input-date name="birth_date" label="Geburtsdatum" wire:model.live="birth_date" placeholder="Geburtsdatum (optional)" :nullable="true" />
-                    <x-ui-input-select name="contact_status_id" label="Status" :options="$contactStatuses" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Status auswählen –" wire:model.live="contact_status_id" required />
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">GEBURTSDATUM</label>
+                        <input type="date" name="birth_date" wire:model.live="birth_date" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">STATUS</label>
+                        <select name="contact_status_id" wire:model.live="contact_status_id" required class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors">
+                            <option value="">– Status auswählen –</option>
+                            @foreach($contactStatuses as $opt)
+                                <option value="{{ $opt->id }}">{{ $opt->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <x-ui-input-select name="salutation_id" label="Anrede" :options="$salutations" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Anrede auswählen –" wire:model.live="salutation_id" />
-                    <x-ui-input-select name="academic_title_id" label="Akademischer Titel" :options="$academicTitles" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Titel auswählen –" wire:model.live="academic_title_id" />
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">ANREDE</label>
+                        <select name="salutation_id" wire:model.live="salutation_id" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors">
+                            <option value="">– Anrede auswählen –</option>
+                            @foreach($salutations as $opt)
+                                <option value="{{ $opt->id }}">{{ $opt->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">AKADEMISCHER TITEL</label>
+                        <select name="academic_title_id" wire:model.live="academic_title_id" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors">
+                            <option value="">– Titel auswählen –</option>
+                            @foreach($academicTitles as $opt)
+                                <option value="{{ $opt->id }}">{{ $opt->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <x-ui-input-select name="gender_id" label="Geschlecht" :options="$genders" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Geschlecht auswählen –" wire:model.live="gender_id" />
-                    <x-ui-input-select name="language_id" label="Sprache" :options="$languages" optionValue="id" optionLabel="name" :nullable="true" nullLabel="– Sprache auswählen –" wire:model.live="language_id" />
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">GESCHLECHT</label>
+                        <select name="gender_id" wire:model.live="gender_id" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors">
+                            <option value="">– Geschlecht auswählen –</option>
+                            @foreach($genders as $opt)
+                                <option value="{{ $opt->id }}">{{ $opt->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">SPRACHE</label>
+                        <select name="language_id" wire:model.live="language_id" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors">
+                            <option value="">– Sprache auswählen –</option>
+                            @foreach($languages as $opt)
+                                <option value="{{ $opt->id }}">{{ $opt->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
 
                 {{-- Quick-create: Primary Email + Phone --}}
-                <hr class="border-[color:var(--ui-border)]">
+                <hr class="border-gray-200">
                 <div class="grid grid-cols-2 gap-4">
-                    <x-ui-input-text name="primary_email" label="Primäre E-Mail" wire:model.live="primary_email" type="email" placeholder="email@example.com (optional)" />
-                    <x-ui-input-text name="primary_phone" label="Primäre Telefonnummer" wire:model.live="primary_phone" placeholder="+49 123 456789 (optional)" />
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">PRIMÄRE E-MAIL</label>
+                        <input type="email" name="primary_email" wire:model.live="primary_email" placeholder="email@example.com (optional)" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">PRIMÄRE TELEFONNUMMER</label>
+                        <input type="text" name="primary_phone" wire:model.live="primary_phone" placeholder="+49 123 456789 (optional)" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors" />
+                    </div>
                 </div>
 
-                <x-ui-input-textarea name="notes" label="Notizen" wire:model.live="notes" placeholder="Zusätzliche Notizen (optional)" rows="3" />
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 mb-1">NOTIZEN</label>
+                    <textarea name="notes" wire:model.live="notes" rows="3" placeholder="Zusätzliche Notizen (optional)" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors resize-none"></textarea>
+                </div>
             </form>
         </div>
 
         <x-slot name="footer">
-            <div class="d-flex justify-end gap-2">
-                <x-ui-button type="button" variant="secondary-outline" @click="$wire.closeCreateModal()">Abbrechen</x-ui-button>
-                <x-ui-button type="button" variant="primary" wire:click="createContact">Kontakt anlegen</x-ui-button>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="$wire.closeCreateModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-700 text-[13px] font-medium hover:bg-gray-50 transition-colors">Abbrechen</button>
+                <button type="button" wire:click="createContact" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#ff7a59] text-white text-[13px] font-medium hover:bg-[#e8604a] transition-colors">Kontakt anlegen</button>
             </div>
         </x-slot>
     </x-ui-modal>
