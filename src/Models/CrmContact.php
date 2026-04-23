@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Crm\Contracts\ContactInterface;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Symfony\Component\Uid\UuidV7;
@@ -148,6 +149,13 @@ class CrmContact extends Model implements ContactInterface
     {
         return $this->belongsToMany(CrmCompany::class, 'crm_contact_relations', 'contact_id', 'company_id')
                     ->withPivot(['relation_type_id', 'position', 'is_primary', 'start_date', 'end_date'])
+                    ->withTimestamps();
+    }
+
+    public function contactLists(): BelongsToMany
+    {
+        return $this->belongsToMany(CrmContactList::class, 'crm_contact_list_members', 'contact_id', 'contact_list_id')
+                    ->withPivot(['notes', 'added_by_user_id'])
                     ->withTimestamps();
     }
     

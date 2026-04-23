@@ -236,6 +236,16 @@ class CrmServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Crm\Tools\UpdateContactRelationTool());
             $registry->register(new \Platform\Crm\Tools\DeleteContactRelationTool());
 
+            // Contact List Tools
+            $registry->register(new \Platform\Crm\Tools\ListContactListsTool());
+            $registry->register(new \Platform\Crm\Tools\GetContactListTool());
+            $registry->register(new \Platform\Crm\Tools\CreateContactListTool());
+            $registry->register(new \Platform\Crm\Tools\UpdateContactListTool());
+            $registry->register(new \Platform\Crm\Tools\DeleteContactListTool());
+            $registry->register(new \Platform\Crm\Tools\ListContactListMembersTool());
+            $registry->register(new \Platform\Crm\Tools\AddContactListMembersTool());
+            $registry->register(new \Platform\Crm\Tools\RemoveContactListMembersTool());
+
             // Lookup Tools (IDs/Codes deterministisch nachschlagen – niemals raten)
             $registry->register(new \Platform\Crm\Tools\CrmLookupsTool());
             $registry->register(new \Platform\Crm\Tools\GetLookupTool());

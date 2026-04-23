@@ -37,3 +37,7 @@ Route::get('/companies/{company}', CompanyShow::class)->name('crm.companies.show
 
 Route::get('/engagements', EngagementIndex::class)->name('crm.engagements.index');
 Route::get('/engagements/{engagement}', EngagementShow::class)->name('crm.engagements.show');
+
+// Contact Lists (UI kommt in Phase 2)
+// Route::get('/lists', ContactListIndex::class)->name('crm.lists.index');
+// Route::get('/lists/{contactList}', ContactListShow::class)->name('crm.lists.show');
