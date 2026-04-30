@@ -145,10 +145,10 @@ class CrmEntityLinkProvider implements EntityLinkProvider, HasMetricDefinitions
     public function metricDefinitions(): array
     {
         return [
-            'crm_contacts_total'   => ['label' => 'Kontakte (gesamt)', 'group' => 'crm', 'direction' => 'neutral', 'unit' => 'count'],
-            'crm_contacts_active'  => ['label' => 'Kontakte (aktiv)', 'group' => 'crm', 'direction' => 'up', 'unit' => 'count', 'pair' => 'crm_contacts_total'],
-            'crm_companies_total'  => ['label' => 'Unternehmen (gesamt)', 'group' => 'crm', 'direction' => 'neutral', 'unit' => 'count'],
-            'crm_companies_active' => ['label' => 'Unternehmen (aktiv)', 'group' => 'crm', 'direction' => 'up', 'unit' => 'count', 'pair' => 'crm_companies_total'],
+            'crm_contacts_total'   => ['label' => 'Kontakte (gesamt)', 'group' => 'crm', 'direction' => 'neutral', 'unit' => 'count', 'dimension' => 'org_capital', 'type' => 'stock'],
+            'crm_contacts_active'  => ['label' => 'Kontakte (aktiv)', 'group' => 'crm', 'direction' => 'up', 'unit' => 'count', 'pair' => 'crm_contacts_total', 'dimension' => 'org_capital', 'type' => 'stock'],
+            'crm_companies_total'  => ['label' => 'Unternehmen (gesamt)', 'group' => 'crm', 'direction' => 'neutral', 'unit' => 'count', 'dimension' => 'org_capital', 'type' => 'stock'],
+            'crm_companies_active' => ['label' => 'Unternehmen (aktiv)', 'group' => 'crm', 'direction' => 'up', 'unit' => 'count', 'pair' => 'crm_companies_total', 'dimension' => 'org_capital', 'type' => 'stock'],
         ];
     }
 }
