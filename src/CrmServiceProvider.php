@@ -40,11 +40,13 @@ class CrmServiceProvider extends ServiceProvider
                 \Platform\Crm\Console\Commands\ImportHubspotDeals::class,
                 \Platform\Crm\Console\Commands\PurgeHubspotDeals::class,
                 \Platform\Crm\Console\Commands\BackfillThreadContexts::class,
+                \Platform\Crm\Console\Commands\SendScheduledNewsletters::class,
             ]);
         }
         
         // Services registrieren
         $this->app->singleton(\Platform\Crm\Services\ContactLinkService::class);
+        $this->app->singleton(\Platform\Crm\Services\Comms\NewsletterService::class);
 
         // Core Contracts binden (überschreiben Null-Implementierungen)
         $this->app->singleton(CrmCompanyOptionsProviderInterface::class, fn() => new CoreCrmCompanyOptionsProvider());
@@ -279,6 +281,14 @@ class CrmServiceProvider extends ServiceProvider
 
             // Comms Logs
             $registry->register(new \Platform\Crm\Tools\Comms\ListCommsLogsTool());
+
+            // Newsletter Tools
+            $registry->register(new \Platform\Crm\Tools\Comms\ListNewslettersTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\GetNewsletterTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\CreateNewsletterTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\UpdateNewsletterTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\SendNewsletterTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\GetNewsletterStatsTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('CRM: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);

@@ -11,6 +11,8 @@ use Platform\Crm\Livewire\Contact\Contact as ContactShow;
 use Platform\Crm\Livewire\Company\Company as CompanyShow;
 use Platform\Crm\Livewire\EngagementIndex;
 use Platform\Crm\Livewire\Engagement\Engagement as EngagementShow;
+use Platform\Crm\Livewire\NewsletterIndex;
+use Platform\Crm\Livewire\Newsletter\Newsletter as NewsletterShow;
 
 Route::get('/', Dashboard::class)->name('crm.index');
 Route::get('/dashboard', Dashboard::class)->name('crm.dashboard');
@@ -37,6 +39,9 @@ Route::get('/companies/{company}', CompanyShow::class)->name('crm.companies.show
 
 Route::get('/engagements', EngagementIndex::class)->name('crm.engagements.index');
 Route::get('/engagements/{engagement}', EngagementShow::class)->name('crm.engagements.show');
+
+Route::get('/newsletters', NewsletterIndex::class)->name('crm.newsletters.index');
+Route::get('/newsletters/{newsletter}', NewsletterShow::class)->name('crm.newsletters.show');
 
 // Contact Lists (UI kommt in Phase 2)
 // Route::get('/lists', ContactListIndex::class)->name('crm.lists.index');

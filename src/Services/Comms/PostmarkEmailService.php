@@ -319,6 +319,66 @@ class PostmarkEmailService
         return $token;
     }
 
+    /**
+     * Send a raw email via Postmark WITHOUT creating Thread/OutboundMail records.
+     * Used for bulk newsletter sends where thread overhead is not needed.
+     *
+     * Returns the Postmark MessageID on success.
+     */
+    public function sendRaw(
+        CommsChannel $channel,
+        string $to,
+        string $subject,
+        string $htmlBody,
+        ?string $textBody = null,
+        array $opt = [],
+    ): string {
+        if ($channel->type !== 'email' || $channel->provider !== 'postmark') {
+            throw new \InvalidArgumentException('Channel must be type=email and provider=postmark.');
+        }
+
+        $channel->loadMissing('providerConnection');
+        $connection = $channel->providerConnection ?: CommsProviderConnection::query()->find($channel->comms_provider_connection_id);
+        $creds = is_array($connection?->credentials) ? $connection->credentials : [];
+        $serverToken = (string) ($creds['server_token'] ?? '');
+        if ($serverToken === '') {
+            throw new \RuntimeException('Missing Postmark server_token in provider connection.');
+        }
+
+        $client = new PostmarkClient($serverToken);
+
+        $textBody ??= strip_tags($htmlBody);
+
+        $fromName = $opt['from_name'] ?? ($channel->name ?: null);
+        $from = $fromName ? "{$fromName} <{$channel->sender_identifier}>" : $channel->sender_identifier;
+
+        $headersArray = [];
+        if (!empty($opt['list_unsubscribe'])) {
+            $headersArray['List-Unsubscribe'] = '<' . $opt['list_unsubscribe'] . '>';
+            $headersArray['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+        }
+
+        $result = $client->sendEmail(
+            $from,
+            $to,
+            $subject,
+            $htmlBody,
+            $textBody,
+            $opt['tag'] ?? null,
+            $opt['track_opens'] ?? true,
+            null, // reply_to
+            null, // cc
+            null, // bcc
+            $headersArray ?: null,
+            null, // attachments
+            $opt['track_links'] ?? 'HtmlAndText',
+            $opt['metadata'] ?? null,
+            null  // message stream
+        );
+
+        return (string) ($result->MessageID ?? '');
+    }
+
     private function isHelpdeskTicket(?string $contextModel): bool
     {
         if (!$contextModel) {
