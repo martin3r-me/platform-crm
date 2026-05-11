@@ -18,7 +18,7 @@ class Newsletter extends Component
     public string $subject = '';
     public ?string $preheader = null;
     public ?int $commsChannelId = null;
-    public ?int $contactListId = null;
+    public array $contactListIds = [];
     public ?string $scheduledAt = null;
     public ?string $htmlBody = null;
     public ?string $textBody = null;
@@ -32,13 +32,13 @@ class Newsletter extends Component
 
     public function mount(CommsNewsletter $newsletter)
     {
-        $this->newsletter = $newsletter->load(['channel', 'contactList', 'createdByUser']);
+        $this->newsletter = $newsletter->load(['channel', 'contactLists', 'createdByUser']);
 
         $this->name = $this->newsletter->name ?? '';
         $this->subject = $this->newsletter->subject ?? '';
         $this->preheader = $this->newsletter->preheader;
         $this->commsChannelId = $this->newsletter->comms_channel_id;
-        $this->contactListId = $this->newsletter->contact_list_id;
+        $this->contactListIds = $this->newsletter->contactLists->pluck('id')->toArray();
         $this->scheduledAt = $this->newsletter->scheduled_at?->format('Y-m-d\TH:i');
         $this->htmlBody = $this->newsletter->html_body;
         $this->textBody = $this->newsletter->text_body;
@@ -62,7 +62,8 @@ class Newsletter extends Component
             'subject' => 'required|string|max:255',
             'preheader' => 'nullable|string|max:255',
             'commsChannelId' => 'nullable|integer',
-            'contactListId' => 'nullable|integer',
+            'contactListIds' => 'nullable|array',
+            'contactListIds.*' => 'integer',
             'scheduledAt' => 'nullable|date',
             'htmlBody' => 'nullable|string',
             'textBody' => 'nullable|string',
@@ -77,12 +78,12 @@ class Newsletter extends Component
         $this->newsletter->subject = $this->subject;
         $this->newsletter->preheader = $this->preheader ?: null;
         $this->newsletter->comms_channel_id = $this->commsChannelId ?: null;
-        $this->newsletter->contact_list_id = $this->contactListId ?: null;
         $this->newsletter->scheduled_at = $this->scheduledAt ?: null;
         $this->newsletter->html_body = $this->htmlBody ?: null;
         $this->newsletter->text_body = $this->textBody ?: null;
 
         $this->newsletter->save();
+        $this->newsletter->contactLists()->sync($this->contactListIds);
         $this->newsletter->refresh();
 
         $this->scheduledAt = $this->newsletter->scheduled_at?->format('Y-m-d\TH:i');
@@ -146,6 +147,7 @@ class Newsletter extends Component
         $copy->sent_at = null;
         $copy->stats = null;
         $copy->save();
+        $copy->contactLists()->sync($this->newsletter->contactLists->pluck('id'));
 
         $this->redirect(route('crm.newsletters.show', ['newsletter' => $copy->id]), navigate: true);
     }
@@ -164,7 +166,7 @@ class Newsletter extends Component
             || $this->subject !== ($this->newsletter->subject ?? '')
             || ($this->preheader ?: null) !== $this->newsletter->preheader
             || ($this->commsChannelId ?: null) != $this->newsletter->comms_channel_id
-            || ($this->contactListId ?: null) != $this->newsletter->contact_list_id
+            || $this->contactListIds !== $this->newsletter->contactLists->pluck('id')->toArray()
             || ($this->scheduledAt ?: null) !== $this->newsletter->scheduled_at?->format('Y-m-d\TH:i')
             || ($this->htmlBody ?: null) !== $this->newsletter->html_body
             || ($this->textBody ?: null) !== $this->newsletter->text_body;

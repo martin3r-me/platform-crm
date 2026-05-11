@@ -15,9 +15,9 @@
                 @endif
 
                 @if($newsletter->isSent())
-                    <button type="button" wire:click="duplicate" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-700 text-[13px] font-medium hover:bg-gray-50 transition-colors">
+                    <button type="button" wire:click="duplicate" class="inline-flex items-center gap-1.5 px-3 h-8 whitespace-nowrap rounded-md border border-gray-300 bg-white text-gray-700 text-[13px] font-medium hover:bg-gray-50 transition-colors">
                         @svg('heroicon-o-document-duplicate', 'w-4 h-4')
-                        <span>Duplizieren</span>
+                        Duplizieren
                     </button>
                 @endif
 
@@ -48,32 +48,32 @@
                 {{-- Action buttons based on status --}}
                 @if($newsletter->isDraft())
                     @if($this->isDirty)
-                        <button type="button" wire:click="save" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#ff7a59] text-white text-[13px] font-medium hover:bg-[#e8604a] transition-colors">
+                        <button type="button" wire:click="save" class="inline-flex items-center gap-1.5 px-3 h-8 whitespace-nowrap rounded-md bg-[#ff7a59] text-white text-[13px] font-medium hover:bg-[#e8604a] transition-colors">
                             @svg('heroicon-o-check', 'w-4 h-4')
-                            <span>Speichern</span>
+                            Speichern
                         </button>
                     @endif
-                    <button type="button" wire:click="schedule" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-blue-300 bg-blue-50 text-blue-700 text-[13px] font-medium hover:bg-blue-100 transition-colors">
+                    <button type="button" wire:click="schedule" class="inline-flex items-center gap-1.5 px-3 h-8 whitespace-nowrap rounded-md border border-blue-300 bg-blue-50 text-blue-700 text-[13px] font-medium hover:bg-blue-100 transition-colors">
                         @svg('heroicon-o-clock', 'w-4 h-4')
-                        <span>Planen</span>
+                        Planen
                     </button>
-                    <button type="button" wire:click="sendNow" wire:confirm="Newsletter jetzt an alle Empfänger senden?" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-600 text-white text-[13px] font-medium hover:bg-green-700 transition-colors">
+                    <button type="button" wire:click="sendNow" wire:confirm="Newsletter jetzt an alle Empfänger senden?" class="inline-flex items-center gap-1.5 px-3 h-8 whitespace-nowrap rounded-md bg-green-600 text-white text-[13px] font-medium hover:bg-green-700 transition-colors">
                         @svg('heroicon-o-paper-airplane', 'w-4 h-4')
-                        <span>Jetzt senden</span>
+                        Jetzt senden
                     </button>
                 @elseif($newsletter->isScheduled())
-                    <button type="button" wire:click="cancelSchedule" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-700 text-[13px] font-medium hover:bg-gray-50 transition-colors">
+                    <button type="button" wire:click="cancelSchedule" class="inline-flex items-center gap-1.5 px-3 h-8 whitespace-nowrap rounded-md border border-gray-300 bg-white text-gray-700 text-[13px] font-medium hover:bg-gray-50 transition-colors">
                         @svg('heroicon-o-x-mark', 'w-4 h-4')
-                        <span>Abbrechen</span>
+                        Abbrechen
                     </button>
-                    <button type="button" wire:click="sendNow" wire:confirm="Newsletter jetzt senden?" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-600 text-white text-[13px] font-medium hover:bg-green-700 transition-colors">
+                    <button type="button" wire:click="sendNow" wire:confirm="Newsletter jetzt senden?" class="inline-flex items-center gap-1.5 px-3 h-8 whitespace-nowrap rounded-md bg-green-600 text-white text-[13px] font-medium hover:bg-green-700 transition-colors">
                         @svg('heroicon-o-paper-airplane', 'w-4 h-4')
-                        <span>Jetzt senden</span>
+                        Jetzt senden
                     </button>
                 @elseif($newsletter->isSending())
-                    <button type="button" wire:click="cancelSending" wire:confirm="Versand wirklich abbrechen?" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-300 bg-red-50 text-red-700 text-[13px] font-medium hover:bg-red-100 transition-colors">
+                    <button type="button" wire:click="cancelSending" wire:confirm="Versand wirklich abbrechen?" class="inline-flex items-center gap-1.5 px-3 h-8 whitespace-nowrap rounded-md border border-red-300 bg-red-50 text-red-700 text-[13px] font-medium hover:bg-red-100 transition-colors">
                         @svg('heroicon-o-stop', 'w-4 h-4')
-                        <span>Abbrechen</span>
+                        Abbrechen
                     </button>
                 @endif
             </div>
@@ -199,13 +199,27 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-[11px] font-medium text-gray-500 mb-1">Kontaktliste</label>
-                            <select wire:model.live="contactListId" {{ !$newsletter->canEdit() ? 'disabled' : '' }} class="w-full appearance-none px-3 py-2 pr-10 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg+xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22+viewBox%3D%220+0+20+20%22+fill%3D%22%236b7280%22%3E%3Cpath+fill-rule%3D%22evenodd%22+d%3D%22M5.23+7.21a.75.75+0+011.06.02L10+11.168l3.71-3.938a.75.75+0+111.08+1.04l-4.25+4.5a.75.75+0+01-1.08+0l-4.25-4.5a.75.75+0+01.02-1.06z%22+clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[position:right_8px_center] bg-no-repeat focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors disabled:bg-gray-50">
-                                <option value="">– Kontaktliste auswählen –</option>
-                                @foreach($this->contactLists as $list)
-                                    <option value="{{ $list->id }}">{{ $list->name }} ({{ $list->member_count }} Kontakte)</option>
-                                @endforeach
-                            </select>
+                            <label class="block text-[11px] font-medium text-gray-500 mb-1">Kontaktlisten</label>
+                            @if($this->contactLists->isEmpty())
+                                <p class="text-[13px] text-gray-400">Keine Kontaktlisten vorhanden.</p>
+                            @else
+                                <div class="space-y-1.5 max-h-48 overflow-y-auto rounded-md border border-gray-300 p-2 {{ !$newsletter->canEdit() ? 'bg-gray-50 pointer-events-none opacity-60' : 'bg-white' }}">
+                                    @foreach($this->contactLists as $list)
+                                        <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer text-[13px] text-gray-900">
+                                            <input type="checkbox" wire:model.live="contactListIds" value="{{ $list->id }}" {{ !$newsletter->canEdit() ? 'disabled' : '' }} class="rounded border-gray-300 text-[#ff7a59] focus:ring-[#ff7a59]/20" />
+                                            <span>{{ $list->name }}</span>
+                                            <span class="ml-auto text-[11px] text-gray-400">{{ $list->member_count }} Kontakte</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                @if(!empty($contactListIds))
+                                    @php
+                                        $selectedLists = $this->contactLists->whereIn('id', $contactListIds);
+                                        $totalMembers = $selectedLists->sum('member_count');
+                                    @endphp
+                                    <p class="mt-1.5 text-[11px] text-gray-400">{{ $selectedLists->count() }} {{ $selectedLists->count() === 1 ? 'Liste' : 'Listen' }} ausgewählt &middot; {{ $totalMembers }} Kontakte gesamt (vor Deduplizierung)</p>
+                                @endif
+                            @endif
                         </div>
                         <div>
                             <label class="block text-[11px] font-medium text-gray-500 mb-1">Geplanter Versand</label>

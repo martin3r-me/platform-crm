@@ -67,7 +67,7 @@ class ListNewslettersTool implements ToolContract, ToolMetadataContract
 
             $query = CommsNewsletter::query()
                 ->where('team_id', $teamId)
-                ->with(['createdByUser', 'contactList', 'channel']);
+                ->with(['createdByUser', 'contactLists', 'channel']);
 
             if (!empty($arguments['status'])) {
                 $query->where('status', $arguments['status']);
@@ -85,7 +85,8 @@ class ListNewslettersTool implements ToolContract, ToolMetadataContract
                 'name' => $nl->name,
                 'subject' => $nl->subject,
                 'status' => $nl->status,
-                'contact_list' => $nl->contactList?->name,
+                'contact_lists' => $nl->contactLists->pluck('name')->values()->toArray(),
+                'contact_lists_count' => $nl->contactLists->count(),
                 'channel' => $nl->channel?->name,
                 'stats' => $nl->stats,
                 'scheduled_at' => $nl->scheduled_at?->toIso8601String(),

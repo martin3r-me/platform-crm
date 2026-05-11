@@ -35,7 +35,7 @@ class UpdateNewsletterTool implements ToolContract, ToolMetadataContract
                 'html_body' => ['type' => 'string', 'description' => 'HTML-Inhalt.'],
                 'text_body' => ['type' => 'string', 'description' => 'Plaintext-Fallback.'],
                 'comms_channel_id' => ['type' => 'integer', 'description' => 'E-Mail Kanal ID.'],
-                'contact_list_id' => ['type' => 'integer', 'description' => 'Kontaktliste ID.'],
+                'contact_list_ids' => ['type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'Array von Kontaktlisten-IDs.'],
                 'scheduled_at' => ['type' => 'string', 'description' => 'Geplanter Versandzeitpunkt (ISO 8601).'],
             ],
             'required' => ['id'],
@@ -64,7 +64,7 @@ class UpdateNewsletterTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('STATUS_ERROR', "Newsletter im Status '{$newsletter->status}' kann nicht bearbeitet werden.");
             }
 
-            $fillable = ['name', 'subject', 'preheader', 'html_body', 'text_body', 'comms_channel_id', 'contact_list_id', 'scheduled_at'];
+            $fillable = ['name', 'subject', 'preheader', 'html_body', 'text_body', 'comms_channel_id', 'scheduled_at'];
             $updates = [];
             foreach ($fillable as $field) {
                 if (array_key_exists($field, $arguments)) {
@@ -74,6 +74,10 @@ class UpdateNewsletterTool implements ToolContract, ToolMetadataContract
 
             if (!empty($updates)) {
                 $newsletter->update($updates);
+            }
+
+            if (array_key_exists('contact_list_ids', $arguments)) {
+                $newsletter->contactLists()->sync($arguments['contact_list_ids'] ?? []);
             }
 
             return ToolResult::success([

@@ -20,7 +20,7 @@ class CreateNewsletterTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'POST /newsletters - Newsletter erstellen. Erforderlich: name, subject. Optional: preheader, html_body, text_body, comms_channel_id, contact_list_id, scheduled_at.';
+        return 'POST /newsletters - Newsletter erstellen. Erforderlich: name, subject. Optional: preheader, html_body, text_body, comms_channel_id, contact_list_ids (Array), scheduled_at.';
     }
 
     public function getSchema(): array
@@ -34,7 +34,7 @@ class CreateNewsletterTool implements ToolContract, ToolMetadataContract
                 'html_body' => ['type' => 'string', 'description' => 'HTML-Inhalt des Newsletters.'],
                 'text_body' => ['type' => 'string', 'description' => 'Plaintext-Fallback.'],
                 'comms_channel_id' => ['type' => 'integer', 'description' => 'E-Mail Kanal ID.'],
-                'contact_list_id' => ['type' => 'integer', 'description' => 'Kontaktliste ID.'],
+                'contact_list_ids' => ['type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'Array von Kontaktlisten-IDs.'],
                 'scheduled_at' => ['type' => 'string', 'description' => 'Geplanter Versandzeitpunkt (ISO 8601).'],
             ],
             'required' => ['name', 'subject'],
@@ -64,10 +64,13 @@ class CreateNewsletterTool implements ToolContract, ToolMetadataContract
                 'html_body' => $arguments['html_body'] ?? null,
                 'text_body' => $arguments['text_body'] ?? null,
                 'comms_channel_id' => $arguments['comms_channel_id'] ?? null,
-                'contact_list_id' => $arguments['contact_list_id'] ?? null,
                 'scheduled_at' => $arguments['scheduled_at'] ?? null,
                 'status' => 'draft',
             ]);
+
+            if (!empty($arguments['contact_list_ids'])) {
+                $newsletter->contactLists()->sync($arguments['contact_list_ids']);
+            }
 
             return ToolResult::success([
                 'message' => 'Newsletter erstellt.',

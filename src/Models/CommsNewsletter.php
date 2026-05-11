@@ -5,6 +5,7 @@ namespace Platform\Crm\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Core\Models\Team;
@@ -23,7 +24,6 @@ class CommsNewsletter extends Model
         'team_id',
         'created_by_user_id',
         'comms_channel_id',
-        'contact_list_id',
         'name',
         'subject',
         'preheader',
@@ -95,9 +95,10 @@ class CommsNewsletter extends Model
         return $this->belongsTo(CommsChannel::class, 'comms_channel_id');
     }
 
-    public function contactList(): BelongsTo
+    public function contactLists(): BelongsToMany
     {
-        return $this->belongsTo(CrmContactList::class, 'contact_list_id');
+        return $this->belongsToMany(CrmContactList::class, 'comms_newsletter_contact_lists', 'newsletter_id', 'contact_list_id')
+            ->withTimestamps();
     }
 
     public function recipients(): HasMany

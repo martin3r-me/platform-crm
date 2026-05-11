@@ -12,15 +12,16 @@ use Platform\Crm\Models\CrmContact;
 class NewsletterService
 {
     /**
-     * Prepare recipients from the newsletter's contact list.
-     * Filters out blacklisted, inactive, and unsubscribed contacts.
+     * Prepare recipients from the newsletter's contact lists.
+     * Iterates all assigned lists, deduplicates by email, and filters out
+     * blacklisted, inactive, and unsubscribed contacts.
      */
     public function prepareRecipients(CommsNewsletter $newsletter): int
     {
-        $newsletter->loadMissing('contactList.members.contact.emailAddresses');
+        $newsletter->loadMissing('contactLists.members.contact.emailAddresses');
 
-        if (!$newsletter->contactList) {
-            throw new \RuntimeException('Newsletter has no contact list assigned.');
+        if ($newsletter->contactLists->isEmpty()) {
+            throw new \RuntimeException('Newsletter has no contact lists assigned.');
         }
 
         // Gather unsubscribed emails for this team
@@ -30,48 +31,59 @@ class NewsletterService
             ->toArray();
 
         $created = 0;
+        $seenEmails = [];
 
-        foreach ($newsletter->contactList->members as $member) {
-            $contact = $member->contact;
-            if (!$contact) {
-                continue;
+        foreach ($newsletter->contactLists as $contactList) {
+            foreach ($contactList->members as $member) {
+                $contact = $member->contact;
+                if (!$contact) {
+                    continue;
+                }
+
+                // Skip blacklisted or inactive contacts
+                if ($contact->is_blacklisted ?? false) {
+                    continue;
+                }
+                if (method_exists($contact, 'scopeActive') && ($contact->contact_status_code === 'INACTIVE' || $contact->contact_status_code === 'inactive')) {
+                    continue;
+                }
+
+                // Get primary email address
+                $email = $this->getPrimaryEmail($contact);
+                if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    continue;
+                }
+
+                $emailLower = strtolower($email);
+
+                // Deduplicate across lists
+                if (isset($seenEmails[$emailLower])) {
+                    continue;
+                }
+                $seenEmails[$emailLower] = true;
+
+                // Skip unsubscribed
+                if (in_array($emailLower, $unsubscribed, true)) {
+                    continue;
+                }
+
+                // Skip if already exists for this newsletter
+                $exists = CommsNewsletterRecipient::where('newsletter_id', $newsletter->id)
+                    ->where('email_address', $email)
+                    ->exists();
+                if ($exists) {
+                    continue;
+                }
+
+                CommsNewsletterRecipient::create([
+                    'newsletter_id' => $newsletter->id,
+                    'contact_id' => $contact->id,
+                    'email_address' => $email,
+                    'status' => 'pending',
+                ]);
+
+                $created++;
             }
-
-            // Skip blacklisted or inactive contacts
-            if ($contact->is_blacklisted ?? false) {
-                continue;
-            }
-            if (method_exists($contact, 'scopeActive') && ($contact->contact_status_code === 'INACTIVE' || $contact->contact_status_code === 'inactive')) {
-                continue;
-            }
-
-            // Get primary email address
-            $email = $this->getPrimaryEmail($contact);
-            if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                continue;
-            }
-
-            // Skip unsubscribed
-            if (in_array(strtolower($email), $unsubscribed, true)) {
-                continue;
-            }
-
-            // Skip if already exists for this newsletter
-            $exists = CommsNewsletterRecipient::where('newsletter_id', $newsletter->id)
-                ->where('email_address', $email)
-                ->exists();
-            if ($exists) {
-                continue;
-            }
-
-            CommsNewsletterRecipient::create([
-                'newsletter_id' => $newsletter->id,
-                'contact_id' => $contact->id,
-                'email_address' => $email,
-                'status' => 'pending',
-            ]);
-
-            $created++;
         }
 
         $newsletter->updateStats();

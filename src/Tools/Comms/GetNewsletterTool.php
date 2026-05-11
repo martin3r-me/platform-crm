@@ -45,7 +45,7 @@ class GetNewsletterTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('VALIDATION_ERROR', 'id ist erforderlich.');
             }
 
-            $newsletter = CommsNewsletter::with(['createdByUser', 'channel', 'contactList'])->find($id);
+            $newsletter = CommsNewsletter::with(['createdByUser', 'channel', 'contactLists'])->find($id);
             if (!$newsletter) {
                 return ToolResult::error('NOT_FOUND', 'Newsletter nicht gefunden.');
             }
@@ -68,11 +68,11 @@ class GetNewsletterTool implements ToolContract, ToolMetadataContract
                     'name' => $newsletter->channel->name,
                     'sender' => $newsletter->channel->sender_identifier,
                 ] : null,
-                'contact_list' => $newsletter->contactList ? [
-                    'id' => $newsletter->contactList->id,
-                    'name' => $newsletter->contactList->name,
-                    'member_count' => $newsletter->contactList->member_count,
-                ] : null,
+                'contact_lists' => $newsletter->contactLists->map(fn ($list) => [
+                    'id' => $list->id,
+                    'name' => $list->name,
+                    'member_count' => $list->member_count,
+                ])->values()->toArray(),
                 'stats' => $newsletter->stats,
                 'scheduled_at' => $newsletter->scheduled_at?->toIso8601String(),
                 'sent_at' => $newsletter->sent_at?->toIso8601String(),
