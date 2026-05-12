@@ -4,36 +4,27 @@ namespace Platform\Crm\Livewire;
 
 use Livewire\Attributes\Computed;
 use Livewire\Component;
-use Platform\Crm\Models\CommsNewsletter;
+use Platform\Crm\Models\CrmContactList;
 
-class NewsletterIndex extends Component
+class ContactListIndex extends Component
 {
     public string $search = '';
-    public $statusFilter = null;
-    public string $sortField = 'created_at';
-    public string $sortDirection = 'desc';
+    public string $sortField = 'name';
+    public string $sortDirection = 'asc';
     public int $perPage = 50;
     public int $page = 1;
 
     // Create Modal
     public bool $modalShow = false;
-    public string $newsletterName = '';
-    public string $newsletterSubject = '';
+    public string $listName = '';
+    public string $listDescription = '';
 
     public function updatedSearch(): void { $this->page = 1; }
-    public function updatedStatusFilter(): void { $this->page = 1; }
-
-    public function resetFilters(): void
-    {
-        $this->reset(['statusFilter', 'search']);
-        $this->page = 1;
-    }
 
     #[Computed]
     public function hasActiveFilters(): bool
     {
-        return !empty($this->statusFilter)
-            || trim($this->search) !== '';
+        return trim($this->search) !== '';
     }
 
     public function loadMore(): void
@@ -42,19 +33,18 @@ class NewsletterIndex extends Component
     }
 
     #[Computed]
-    public function newsletters()
+    public function contactLists()
     {
         $search = trim($this->search);
 
-        return CommsNewsletter::with(['createdByUser', 'contactLists'])
-            ->where('team_id', $this->getTeamId())
+        return CrmContactList::forTeam($this->getTeamId())
+            ->active()
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(fn ($sub) => $sub
                     ->where('name', 'like', "%{$search}%")
-                    ->orWhere('subject', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
                 );
             })
-            ->when(!empty($this->statusFilter), fn ($q) => $q->where('status', $this->statusFilter))
             ->orderBy($this->sortField, $this->sortDirection)
             ->take($this->perPage * $this->page)
             ->get();
@@ -71,17 +61,18 @@ class NewsletterIndex extends Component
         $this->resetForm();
     }
 
-    public function createNewsletter(): void
+    public function createList(): void
     {
         $this->validate([
-            'newsletterName' => 'required|string|max:255',
-            'newsletterSubject' => 'required|string|max:255',
+            'listName' => 'required|string|max:255',
+            'listDescription' => 'nullable|string|max:1000',
         ]);
 
-        $newsletter = CommsNewsletter::create([
-            'name' => $this->newsletterName,
-            'subject' => $this->newsletterSubject,
-            'status' => 'draft',
+        $list = CrmContactList::create([
+            'name' => $this->listName,
+            'description' => $this->listDescription ?: null,
+            'is_active' => true,
+            'member_count' => 0,
             'created_by_user_id' => auth()->id(),
             'team_id' => $this->getTeamId(),
         ]);
@@ -89,7 +80,7 @@ class NewsletterIndex extends Component
         $this->resetForm();
         $this->modalShow = false;
 
-        $this->redirect(route('crm.newsletters.show', ['newsletter' => $newsletter->id]), navigate: true);
+        $this->redirect(route('crm.lists.show', ['contactList' => $list->id]), navigate: true);
     }
 
     public function sortBy(string $field): void
@@ -98,7 +89,7 @@ class NewsletterIndex extends Component
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
             $this->sortField = $field;
-            $this->sortDirection = 'desc';
+            $this->sortDirection = $field === 'name' ? 'asc' : 'desc';
         }
     }
 
@@ -106,14 +97,14 @@ class NewsletterIndex extends Component
     {
         $this->storeNavigationContext();
 
-        return view('crm::livewire.newsletter-index')
+        return view('crm::livewire.contact-list-index')
             ->layout('platform::layouts.app');
     }
 
     private function storeNavigationContext(): void
     {
-        $ids = $this->newsletters->pluck('id')->toArray();
-        session()->put('crm.newsletter_nav', [
+        $ids = $this->contactLists->pluck('id')->toArray();
+        session()->put('crm.list_nav', [
             'ids' => $ids,
             'sort' => $this->sortField,
             'dir' => $this->sortDirection,
@@ -130,6 +121,6 @@ class NewsletterIndex extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['newsletterName', 'newsletterSubject']);
+        $this->reset(['listName', 'listDescription']);
     }
 }

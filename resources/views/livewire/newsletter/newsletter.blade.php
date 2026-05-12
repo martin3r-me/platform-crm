@@ -256,7 +256,7 @@
                 <div class="p-4">
                     @if($newsletter->html_body)
                         <iframe
-                            srcdoc="{{ e($newsletter->html_body) }}"
+                            srcdoc="{!! str_replace('"', '&quot;', $newsletter->html_body) !!}"
                             sandbox="allow-same-origin"
                             class="w-full border border-gray-200 rounded-lg"
                             style="min-height: 600px;"
