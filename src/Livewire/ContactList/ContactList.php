@@ -7,6 +7,7 @@ use Livewire\Attributes\Computed;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmContactList;
 use Platform\Crm\Models\CrmContactListMember;
+use Platform\Crm\Services\Comms\SubscriptionService;
 
 class ContactList extends Component
 {
@@ -17,6 +18,9 @@ class ContactList extends Component
     public ?string $description = null;
     public ?string $color = null;
     public bool $isActive = true;
+    public bool $requiresDoi = false;
+    public ?string $doiConfirmationSubject = null;
+    public ?string $doiConfirmationBody = null;
 
     // UI state
     public string $activeTab = 'settings';
@@ -36,6 +40,9 @@ class ContactList extends Component
         $this->description = $this->contactList->description;
         $this->color = $this->contactList->color;
         $this->isActive = (bool) $this->contactList->is_active;
+        $this->requiresDoi = (bool) $this->contactList->requires_doi;
+        $this->doiConfirmationSubject = $this->contactList->doi_confirmation_subject;
+        $this->doiConfirmationBody = $this->contactList->doi_confirmation_body;
 
         // Prev/Next navigation from index list
         $nav = session('crm.list_nav');
@@ -56,12 +63,18 @@ class ContactList extends Component
             'description' => 'nullable|string|max:1000',
             'color' => 'nullable|string|max:7',
             'isActive' => 'boolean',
+            'requiresDoi' => 'boolean',
+            'doiConfirmationSubject' => 'nullable|string|max:255',
+            'doiConfirmationBody' => 'nullable|string',
         ]);
 
         $this->contactList->name = $this->name;
         $this->contactList->description = $this->description ?: null;
         $this->contactList->color = $this->color ?: null;
         $this->contactList->is_active = $this->isActive;
+        $this->contactList->requires_doi = $this->requiresDoi;
+        $this->contactList->doi_confirmation_subject = $this->doiConfirmationSubject ?: null;
+        $this->contactList->doi_confirmation_body = $this->doiConfirmationBody ?: null;
 
         $this->contactList->save();
         $this->contactList->refresh();
@@ -82,7 +95,10 @@ class ContactList extends Component
         return $this->name !== ($this->contactList->name ?? '')
             || ($this->description ?: null) !== $this->contactList->description
             || ($this->color ?: null) !== $this->contactList->color
-            || $this->isActive !== (bool) $this->contactList->is_active;
+            || $this->isActive !== (bool) $this->contactList->is_active
+            || $this->requiresDoi !== (bool) $this->contactList->requires_doi
+            || ($this->doiConfirmationSubject ?: null) !== $this->contactList->doi_confirmation_subject
+            || ($this->doiConfirmationBody ?: null) !== $this->contactList->doi_confirmation_body;
     }
 
     #[Computed]
@@ -141,22 +157,18 @@ class ContactList extends Component
 
     public function addMember(int $contactId): void
     {
-        // Prevent duplicates
-        $exists = CrmContactListMember::where('contact_list_id', $this->contactList->id)
-            ->where('contact_id', $contactId)
-            ->exists();
-
-        if ($exists) {
+        $contact = CrmContact::find($contactId);
+        if (!$contact) {
             return;
         }
 
-        CrmContactListMember::create([
-            'contact_list_id' => $this->contactList->id,
-            'contact_id' => $contactId,
-            'added_by_user_id' => auth()->id(),
-        ]);
+        $member = app(SubscriptionService::class)->subscribe(
+            $this->contactList,
+            $contact,
+            'manual_admin',
+            auth()->id()
+        );
 
-        $this->contactList->updateMemberCount();
         $this->contactList->refresh();
 
         $this->contactSearch = '';

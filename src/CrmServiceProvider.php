@@ -47,6 +47,7 @@ class CrmServiceProvider extends ServiceProvider
         // Services registrieren
         $this->app->singleton(\Platform\Crm\Services\ContactLinkService::class);
         $this->app->singleton(\Platform\Crm\Services\Comms\NewsletterService::class);
+        $this->app->singleton(\Platform\Crm\Services\Comms\SubscriptionService::class);
 
         // Core Contracts binden (überschreiben Null-Implementierungen)
         $this->app->singleton(CrmCompanyOptionsProviderInterface::class, fn() => new CoreCrmCompanyOptionsProvider());

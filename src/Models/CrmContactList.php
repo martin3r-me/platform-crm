@@ -23,6 +23,9 @@ class CrmContactList extends Model
         'description',
         'color',
         'is_active',
+        'requires_doi',
+        'doi_confirmation_subject',
+        'doi_confirmation_body',
         'member_count',
         'created_by_user_id',
         'owned_by_user_id',
@@ -31,6 +34,7 @@ class CrmContactList extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'requires_doi' => 'boolean',
         'member_count' => 'integer',
     ];
 
@@ -83,7 +87,7 @@ class CrmContactList extends Model
     public function contacts(): BelongsToMany
     {
         return $this->belongsToMany(CrmContact::class, 'crm_contact_list_members', 'contact_list_id', 'contact_id')
-            ->withPivot(['notes', 'added_by_user_id'])
+            ->withPivot(['notes', 'added_by_user_id', 'status', 'subscribed_at', 'unsubscribed_at', 'consent_source', 'opt_in_confirmed_at', 'doi_token'])
             ->withTimestamps();
     }
 
@@ -91,6 +95,6 @@ class CrmContactList extends Model
 
     public function updateMemberCount(): void
     {
-        $this->update(['member_count' => $this->members()->count()]);
+        $this->update(['member_count' => $this->members()->where('status', 'subscribed')->count()]);
     }
 }

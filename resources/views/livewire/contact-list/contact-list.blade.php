@@ -139,6 +139,31 @@
                         </div>
                     </div>
                 </section>
+
+                {{-- Double Opt-In Section --}}
+                <section class="bg-white rounded-lg border border-gray-200">
+                    <div class="px-4 py-3 border-b border-gray-200"><h3 class="text-sm font-semibold text-gray-900">Double Opt-In</h3></div>
+                    <div class="p-4 space-y-4">
+                        <div>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" wire:model.live="requiresDoi" class="rounded border-gray-300 text-[#ff7a59] focus:ring-[#ff7a59]/20" />
+                                <span class="text-[13px] text-gray-900">Double Opt-In erforderlich</span>
+                            </label>
+                            <p class="text-[11px] text-gray-400 mt-1 ml-6">Neue Abonnenten müssen ihre Anmeldung per E-Mail bestätigen. Admin-Zuweisungen überspringen die Bestätigung.</p>
+                        </div>
+                        @if($requiresDoi)
+                            <div>
+                                <label class="block text-[11px] font-medium text-gray-500 mb-1">Betreff der Bestätigungs-E-Mail (optional)</label>
+                                <input type="text" wire:model.live.debounce.500ms="doiConfirmationSubject" placeholder="Bitte bestätigen Sie Ihre Anmeldung" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors" />
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-medium text-gray-500 mb-1">HTML-Body der Bestätigungs-E-Mail (optional)</label>
+                                <textarea wire:model.live.debounce.500ms="doiConfirmationBody" rows="5" placeholder="Eigenes HTML-Template. Platzhalter: {{CONFIRMATION_URL}}" class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors font-mono"></textarea>
+                                <p class="text-[11px] text-gray-400 mt-1">Verwenden Sie <code class="bg-gray-100 px-1 rounded">@{{CONFIRMATION_URL}}</code> als Platzhalter für den Bestätigungslink. Ohne Angabe wird ein Standard-Template verwendet.</p>
+                            </div>
+                        @endif
+                    </div>
+                </section>
             </div>
         @endif
 
@@ -178,6 +203,7 @@
                                 <tr>
                                     <th class="px-4 py-3 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wide">Kontakt</th>
                                     <th class="px-4 py-3 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wide">E-Mail</th>
+                                    <th class="px-4 py-3 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wide">Status</th>
                                     <th class="px-4 py-3 text-left text-[11px] font-medium text-gray-400 uppercase tracking-wide">Hinzugefügt</th>
                                     <th class="px-4 py-3 text-right text-[11px] font-medium text-gray-400 uppercase tracking-wide"></th>
                                 </tr>
@@ -196,6 +222,15 @@
                                         </td>
                                         <td class="px-4 py-2 text-[13px] text-gray-500">
                                             {{ $member->contact?->emails?->first()?->email ?? '–' }}
+                                        </td>
+                                        <td class="px-4 py-2 text-[13px]">
+                                            @if(($member->status ?? 'subscribed') === 'subscribed')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Abonniert</span>
+                                            @elseif($member->status === 'pending_doi')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Bestätigung ausstehend</span>
+                                            @elseif($member->status === 'unsubscribed')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">Abgemeldet</span>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-2 text-xs text-gray-400">
                                             {{ $member->created_at->format('d.m.Y H:i') }}

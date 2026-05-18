@@ -40,6 +40,11 @@ class NewsletterService
                     continue;
                 }
 
+                // Skip members that are not subscribed
+                if (($member->status ?? 'subscribed') !== 'subscribed') {
+                    continue;
+                }
+
                 // Skip blacklisted or inactive contacts
                 if ($contact->is_blacklisted ?? false) {
                     continue;
@@ -171,6 +176,10 @@ class NewsletterService
             ->where('status', 'pending')
             ->whereHas('newsletter', fn ($q) => $q->where('team_id', $teamId))
             ->update(['status' => 'unsubscribed']);
+
+        // Unsubscribe from all per-list memberships
+        app(\Platform\Crm\Services\Comms\SubscriptionService::class)
+            ->unsubscribeAllListsForEmail($teamId, $email, $reason ?? 'global_unsubscribe');
     }
 
     /**

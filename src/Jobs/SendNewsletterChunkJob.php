@@ -12,6 +12,7 @@ use Platform\Crm\Models\CommsNewsletter;
 use Platform\Crm\Models\CommsNewsletterRecipient;
 use Platform\Crm\Services\Comms\NewsletterService;
 use Platform\Crm\Services\Comms\PostmarkEmailService;
+use Platform\Crm\Services\Comms\SubscriptionService;
 
 class SendNewsletterChunkJob implements ShouldQueue
 {
@@ -50,16 +51,22 @@ class SendNewsletterChunkJob implements ShouldQueue
             }
 
             try {
-                // Generate unsubscribe link
+                // Generate unsubscribe link (for RFC 8058 List-Unsubscribe header)
                 $unsubscribeUrl = $newsletterService->generateUnsubscribeUrl(
                     $newsletter->team_id,
                     $recipient->email_address
                 );
 
-                // Inject unsubscribe link into HTML body
+                // Generate preference center link (for footer)
+                $preferenceCenterUrl = app(SubscriptionService::class)->generatePreferenceCenterUrl(
+                    $newsletter->team_id,
+                    $recipient->email_address
+                );
+
+                // Inject preference center link into HTML body
                 $htmlBody = $newsletter->html_body;
                 $unsubscribeHtml = '<div style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #e0e0e0;font-size:12px;color:#999;">'
-                    . '<a href="' . e($unsubscribeUrl) . '" style="color:#999;text-decoration:underline;">Newsletter abbestellen</a>'
+                    . '<a href="' . e($preferenceCenterUrl) . '" style="color:#999;text-decoration:underline;">Newsletter-Einstellungen verwalten</a>'
                     . '</div>';
                 $htmlBody .= $unsubscribeHtml;
 

@@ -16,6 +16,18 @@ class CrmContactListMember extends Model
         'contact_id',
         'added_by_user_id',
         'notes',
+        'status',
+        'subscribed_at',
+        'unsubscribed_at',
+        'consent_source',
+        'opt_in_confirmed_at',
+        'doi_token',
+    ];
+
+    protected $casts = [
+        'subscribed_at' => 'datetime',
+        'unsubscribed_at' => 'datetime',
+        'opt_in_confirmed_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -29,6 +41,42 @@ class CrmContactListMember extends Model
             }
         });
     }
+
+    // Scopes
+
+    public function scopeSubscribed($query)
+    {
+        return $query->where('status', 'subscribed');
+    }
+
+    public function scopeUnsubscribed($query)
+    {
+        return $query->where('status', 'unsubscribed');
+    }
+
+    public function scopePendingDoi($query)
+    {
+        return $query->where('status', 'pending_doi');
+    }
+
+    // Helpers
+
+    public function isSubscribed(): bool
+    {
+        return $this->status === 'subscribed';
+    }
+
+    public function isUnsubscribed(): bool
+    {
+        return $this->status === 'unsubscribed';
+    }
+
+    public function isPendingDoi(): bool
+    {
+        return $this->status === 'pending_doi';
+    }
+
+    // Relationships
 
     public function contactList(): BelongsTo
     {

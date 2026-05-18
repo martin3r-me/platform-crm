@@ -6,8 +6,9 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Contracts\ToolMetadataContract;
+use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmContactList;
-use Platform\Crm\Models\CrmContactListMember;
+use Platform\Crm\Services\Comms\SubscriptionService;
 
 class AddContactListMembersTool implements ToolContract, ToolMetadataContract
 {
@@ -18,7 +19,7 @@ class AddContactListMembersTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'POST /contact-lists/{id}/members - Fügt Kontakte zu einer Kontaktliste hinzu (dedupliziert). Required: contact_list_id, contact_ids (array).';
+        return 'POST /contact-lists/{id}/members - Fügt Kontakte zu einer Kontaktliste hinzu (dedupliziert). Bei DOI-Listen erhalten nicht-admin Quellen eine Bestätigungs-E-Mail. Required: contact_list_id, contact_ids (array).';
     }
 
     public function getSchema(): array
@@ -62,36 +63,35 @@ class AddContactListMembersTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('NOT_FOUND', 'Die angegebene Kontaktliste wurde nicht gefunden.');
             }
 
-            // Existing members for dedup
-            $existingContactIds = CrmContactListMember::where('contact_list_id', $listId)
-                ->whereIn('contact_id', $contactIds)
-                ->pluck('contact_id')
-                ->toArray();
-
+            $service = app(SubscriptionService::class);
             $added = 0;
+            $pendingDoi = 0;
             $skipped = 0;
 
             foreach ($contactIds as $contactId) {
-                if (in_array((int)$contactId, $existingContactIds)) {
+                $contact = CrmContact::find((int) $contactId);
+                if (!$contact) {
                     $skipped++;
                     continue;
                 }
 
-                CrmContactListMember::create([
-                    'contact_list_id' => $listId,
-                    'contact_id' => (int)$contactId,
-                    'added_by_user_id' => $context->user->id,
-                ]);
-                $added++;
-            }
+                $member = $service->subscribe($list, $contact, 'api', $context->user->id);
 
-            $list->updateMemberCount();
+                if ($member->isSubscribed()) {
+                    $added++;
+                } elseif ($member->isPendingDoi()) {
+                    $pendingDoi++;
+                } else {
+                    $skipped++;
+                }
+            }
 
             return ToolResult::success([
                 'added' => $added,
+                'pending_doi' => $pendingDoi,
                 'skipped' => $skipped,
                 'total' => $list->fresh()->member_count,
-                'message' => "{$added} Kontakt(e) hinzugefügt, {$skipped} übersprungen (bereits vorhanden).",
+                'message' => "{$added} Kontakt(e) hinzugefügt" . ($pendingDoi > 0 ? ", {$pendingDoi} warten auf DOI-Bestätigung" : '') . ($skipped > 0 ? ", {$skipped} übersprungen" : '') . '.',
             ]);
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Hinzufügen von Mitgliedern: ' . $e->getMessage());
