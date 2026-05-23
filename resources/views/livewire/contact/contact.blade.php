@@ -190,6 +190,13 @@
                         </span>
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ $this->engagements->count() }}</span>
                     </button>
+                    <button wire:click="$set('activeTab', 'listen')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm hover:bg-gray-50 transition {{ $activeTab === 'listen' ? 'bg-gray-50 font-medium' : '' }}">
+                        <span class="flex items-center gap-2">
+                            @svg('heroicon-o-list-bullet', 'w-4 h-4 text-gray-400')
+                            Listen
+                        </span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ $this->contactListMemberships->count() }}</span>
+                    </button>
                 </div>
             </div>
         </x-ui-page-sidebar>
@@ -344,6 +351,13 @@
                     Engagements
                     @if($this->engagements->count() > 0)
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ $this->engagements->count() }}</span>
+                    @endif
+                </button>
+                <button wire:click="$set('activeTab', 'listen')" class="py-3 px-1 border-b-2 text-sm font-medium transition flex items-center gap-1.5 {{ $activeTab === 'listen' ? 'border-[#ff7a59] text-[#ff7a59]' : 'border-transparent text-gray-400 hover:text-gray-900 hover:border-gray-200' }}">
+                    @svg('heroicon-o-list-bullet', 'w-4 h-4')
+                    Listen
+                    @if($this->contactListMemberships->count() > 0)
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ $this->contactListMemberships->count() }}</span>
                     @endif
                 </button>
             </nav>
@@ -615,6 +629,78 @@
                         </div>
                     @else
                         <p class="text-sm text-gray-400 py-3">Keine Unternehmen verknüpft.</p>
+                    @endif
+                </div>
+            </section>
+        @endif
+
+        {{-- Tab: Listen --}}
+        @if($activeTab === 'listen')
+            <section class="bg-white rounded-lg border border-gray-200">
+                <div class="p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-gray-900">Kontaktlisten</h3>
+                        <button type="button" wire:click="openAddToListModal" class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-gray-300 bg-white text-gray-700 text-[13px] font-medium hover:bg-gray-50 transition-colors">
+                            @svg('heroicon-o-plus', 'w-3.5 h-3.5')
+                            Zu Liste hinzufügen
+                        </button>
+                    </div>
+                    @if($this->contactListMemberships->count() > 0)
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-left py-2 px-3 text-[11px] font-medium text-gray-500 uppercase">Liste</th>
+                                        <th class="text-left py-2 px-3 text-[11px] font-medium text-gray-500 uppercase">Status</th>
+                                        <th class="text-left py-2 px-3 text-[11px] font-medium text-gray-500 uppercase">Datum</th>
+                                        <th class="text-right py-2 px-3 text-[11px] font-medium text-gray-500 uppercase"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($this->contactListMemberships as $membership)
+                                        <tr class="border-b border-gray-100 last:border-0">
+                                            <td class="py-2 px-3 text-[13px] text-gray-900">
+                                                @if($membership->contactList)
+                                                    @if($membership->contactList->color)
+                                                        <span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background-color: {{ $membership->contactList->color }}"></span>
+                                                    @endif
+                                                    {{ $membership->contactList->name }}
+                                                @else
+                                                    <span class="text-gray-400">Gelöschte Liste</span>
+                                                @endif
+                                            </td>
+                                            <td class="py-2 px-3">
+                                                @php
+                                                    $statusClass = match($membership->status) {
+                                                        'subscribed' => 'bg-green-100 text-green-800',
+                                                        'unsubscribed' => 'bg-red-100 text-red-800',
+                                                        'pending_doi' => 'bg-amber-100 text-amber-800',
+                                                        default => 'bg-gray-100 text-gray-700',
+                                                    };
+                                                    $statusLabel = match($membership->status) {
+                                                        'subscribed' => 'Abonniert',
+                                                        'unsubscribed' => 'Abgemeldet',
+                                                        'pending_doi' => 'Bestätigung ausstehend',
+                                                        default => $membership->status,
+                                                    };
+                                                @endphp
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $statusClass }}">{{ $statusLabel }}</span>
+                                            </td>
+                                            <td class="py-2 px-3 text-[13px] text-gray-500">
+                                                {{ ($membership->subscribed_at ?? $membership->created_at)?->format('d.m.Y') }}
+                                            </td>
+                                            <td class="py-2 px-3 text-right">
+                                                @if($membership->status !== 'unsubscribed')
+                                                    <x-ui-confirm-button action="removeFromList({{ $membership->id }})" text="Entfernen" confirmText="Wirklich entfernen?" variant="danger-outline" size="xs" />
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-sm text-gray-400 py-3">Nicht in Kontaktlisten eingetragen.</p>
                     @endif
                 </div>
             </section>
@@ -1112,6 +1198,29 @@
             <div class="flex justify-end gap-2">
                 <button type="button" wire:click="closeEngagementCreateModal" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-700 text-[13px] font-medium hover:bg-gray-50 transition-colors">Abbrechen</button>
                 <button type="button" wire:click="createEngagementForContact" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#ff7a59] text-white text-[13px] font-medium hover:bg-[#e8604a] transition-colors">Engagement anlegen</button>
+            </div>
+        </x-slot>
+    </x-ui-modal>
+
+    {{-- Add to List Modal --}}
+    <x-ui-modal size="sm" model="addToListModalShow">
+        <x-slot name="header">Zu Kontaktliste hinzufügen</x-slot>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-[11px] font-medium text-gray-500 mb-1">Kontaktliste</label>
+                <select wire:model.live="selectedListId" required class="w-full appearance-none px-3 py-2 pr-10 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg+xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22+viewBox%3D%220+0+20+20%22+fill%3D%22%236b7280%22%3E%3Cpath+fill-rule%3D%22evenodd%22+d%3D%22M5.23+7.21a.75.75+0+011.06.02L10+11.168l3.71-3.938a.75.75+0+111.08+1.04l-4.25+4.5a.75.75+0+01-1.08+0l-4.25-4.5a.75.75+0+01.02-1.06z%22+clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[position:right_8px_center] bg-no-repeat focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors">
+                    <option value="">-- Liste auswählen --</option>
+                    @foreach($this->availableContactLists as $list)
+                        <option value="{{ $list->id }}">{{ $list->name }}</option>
+                    @endforeach
+                </select>
+                @error('selectedListId') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+            </div>
+        </div>
+        <x-slot name="footer">
+            <div class="flex justify-end gap-2">
+                <button type="button" wire:click="closeAddToListModal" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-700 text-[13px] font-medium hover:bg-gray-50 transition-colors">Abbrechen</button>
+                <button type="button" wire:click="addToList" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#ff7a59] text-white text-[13px] font-medium hover:bg-[#e8604a] transition-colors">Hinzufügen</button>
             </div>
         </x-slot>
     </x-ui-modal>

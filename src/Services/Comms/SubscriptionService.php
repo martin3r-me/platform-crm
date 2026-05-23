@@ -9,6 +9,7 @@ use Platform\Crm\Models\CommsUnsubscribe;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmContactList;
 use Platform\Crm\Models\CrmContactListMember;
+use Platform\Crm\Events\ContactListSubscriptionChanged;
 
 class SubscriptionService
 {
@@ -86,6 +87,9 @@ class SubscriptionService
         }
 
         $list->updateMemberCount();
+
+        ContactListSubscriptionChanged::dispatch($member, 'subscribed');
+
         return $member;
     }
 
@@ -102,6 +106,8 @@ class SubscriptionService
         ]);
 
         $member->contactList?->updateMemberCount();
+
+        ContactListSubscriptionChanged::dispatch($member, 'unsubscribed');
     }
 
     /**
@@ -183,6 +189,8 @@ class SubscriptionService
         ]);
 
         $member->contactList?->updateMemberCount();
+
+        ContactListSubscriptionChanged::dispatch($member, 'doi_confirmed');
 
         return $member->fresh();
     }

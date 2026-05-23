@@ -8,6 +8,7 @@ use Platform\Crm\Models\CommsNewsletter;
 use Platform\Crm\Models\CommsNewsletterRecipient;
 use Platform\Crm\Models\CommsUnsubscribe;
 use Platform\Crm\Models\CrmContact;
+use Platform\Crm\Events\NewsletterSent;
 
 class NewsletterService
 {
@@ -139,6 +140,8 @@ class NewsletterService
                     $chunk->pluck('id')->toArray()
                 );
             });
+
+        NewsletterSent::dispatch($newsletter);
     }
 
     /**

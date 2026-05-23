@@ -27,6 +27,10 @@ use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Policies\CrmContactPolicy;
 use Platform\Crm\Policies\CrmCompanyPolicy;
+use Platform\Crm\Models\CrmContactList;
+use Platform\Crm\Policies\CrmContactListPolicy;
+use Platform\Crm\Models\CommsNewsletter;
+use Platform\Crm\Policies\CommsNewsletterPolicy;
 
 class CrmServiceProvider extends ServiceProvider
 {
@@ -304,6 +308,8 @@ class CrmServiceProvider extends ServiceProvider
         $policies = [
             CrmContact::class => CrmContactPolicy::class,
             CrmCompany::class => CrmCompanyPolicy::class,
+            CrmContactList::class => CrmContactListPolicy::class,
+            CommsNewsletter::class => CommsNewsletterPolicy::class,
         ];
 
         foreach ($policies as $model => $policy) {

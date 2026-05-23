@@ -25,6 +25,9 @@ use Platform\Crm\Models\CrmContactRelationType;
 use Platform\Crm\Models\CrmFollowUp;
 use Platform\Crm\Models\CrmEngagement;
 use Platform\Crm\Models\CrmContactLink;
+use Platform\Crm\Models\CrmContactList;
+use Platform\Crm\Models\CrmContactListMember;
+use Platform\Crm\Services\Comms\SubscriptionService;
 use libphonenumber\PhoneNumberUtil;
 use libphonenumber\NumberParseException;
 use libphonenumber\PhoneNumberFormat;
@@ -119,6 +122,10 @@ class Contact extends Component
         'title' => '',
         'due_date' => null,
     ];
+
+    // Kontaktlisten Modal
+    public bool $addToListModalShow = false;
+    public ?int $selectedListId = null;
 
     // Engagement Modal
     public bool $engagementCreateModalShow = false;
@@ -988,6 +995,79 @@ class Contact extends Component
         $this->closeEngagementCreateModal();
         unset($this->engagements);
         session()->flash('message', 'Engagement erfolgreich erstellt!');
+    }
+
+    // Kontaktlisten Methods
+    #[Computed]
+    public function contactListMemberships()
+    {
+        return CrmContactListMember::where('contact_id', $this->contact->id)
+            ->with('contactList')
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    #[Computed]
+    public function availableContactLists()
+    {
+        $user = auth()->user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : null;
+
+        if (!$teamId) {
+            return collect();
+        }
+
+        $existingListIds = CrmContactListMember::where('contact_id', $this->contact->id)
+            ->whereIn('status', ['subscribed', 'pending_doi'])
+            ->pluck('contact_list_id');
+
+        return CrmContactList::where('team_id', $teamId)
+            ->where('is_active', true)
+            ->whereNotIn('id', $existingListIds)
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function openAddToListModal(): void
+    {
+        $this->selectedListId = null;
+        $this->addToListModalShow = true;
+        unset($this->availableContactLists);
+    }
+
+    public function closeAddToListModal(): void
+    {
+        $this->addToListModalShow = false;
+        $this->selectedListId = null;
+    }
+
+    public function addToList(): void
+    {
+        $this->validate([
+            'selectedListId' => 'required|exists:crm_contact_lists,id',
+        ]);
+
+        $list = CrmContactList::findOrFail($this->selectedListId);
+        $user = auth()->user();
+
+        app(SubscriptionService::class)->subscribe($list, $this->contact, 'manual_admin', $user->id);
+
+        $this->closeAddToListModal();
+        unset($this->contactListMemberships);
+        unset($this->availableContactLists);
+    }
+
+    public function removeFromList(int $membershipId): void
+    {
+        $member = CrmContactListMember::where('id', $membershipId)
+            ->where('contact_id', $this->contact->id)
+            ->firstOrFail();
+
+        app(SubscriptionService::class)->unsubscribe($member, 'manual_admin');
+
+        unset($this->contactListMemberships);
+        unset($this->availableContactLists);
     }
 
     public function render()
