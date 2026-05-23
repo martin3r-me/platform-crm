@@ -296,6 +296,12 @@ class CrmServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Crm\Tools\Comms\UpdateNewsletterTool());
             $registry->register(new \Platform\Crm\Tools\Comms\SendNewsletterTool());
             $registry->register(new \Platform\Crm\Tools\Comms\GetNewsletterStatsTool());
+
+            // Newsletter Template Tools
+            $registry->register(new \Platform\Crm\Tools\Comms\ListNewsletterTemplatesTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\GetNewsletterTemplateTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\CreateNewsletterTemplateTool());
+            $registry->register(new \Platform\Crm\Tools\Comms\UpdateNewsletterTemplateTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('CRM: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);
