@@ -112,7 +112,7 @@ class ContactList extends Component
                 $query->whereHas('contact', fn ($q) => $q
                     ->where('first_name', 'like', "%{$search}%")
                     ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhereHas('emails', fn ($eq) => $eq->where('email', 'like', "%{$search}%"))
+                    ->orWhereHas('emailAddresses', fn ($eq) => $eq->where('email_address', 'like', "%{$search}%"))
                 );
             })
             ->orderBy('created_at', 'desc')
@@ -136,7 +136,7 @@ class ContactList extends Component
             ->where(fn ($q) => $q
                 ->where('first_name', 'like', "%{$search}%")
                 ->orWhere('last_name', 'like', "%{$search}%")
-                ->orWhereHas('emails', fn ($eq) => $eq->where('email', 'like', "%{$search}%"))
+                ->orWhereHas('emailAddresses', fn ($eq) => $eq->where('email_address', 'like', "%{$search}%"))
             )
             ->orderBy('last_name')
             ->take(20)
