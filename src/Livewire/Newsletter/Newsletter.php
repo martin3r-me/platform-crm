@@ -4,14 +4,21 @@ namespace Platform\Crm\Livewire\Newsletter;
 
 use Livewire\Component;
 use Livewire\Attributes\Computed;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
 use Platform\Crm\Models\CommsChannel;
 use Platform\Crm\Models\CommsNewsletter;
+use Platform\Crm\Models\CommsNewsletterAttachment;
 use Platform\Crm\Models\CrmContactList;
 use Platform\Crm\Services\Comms\NewsletterService;
 
 class Newsletter extends Component
 {
+    use WithFileUploads;
+
     public CommsNewsletter $newsletter;
+
+    public $attachmentUpload;
 
     // Editable fields
     public string $name = '';
@@ -137,6 +144,53 @@ class Newsletter extends Component
         }
     }
 
+    public function updatedAttachmentUpload(): void
+    {
+        $this->uploadAttachment();
+    }
+
+    public function uploadAttachment(): void
+    {
+        if (!$this->newsletter->canEdit()) {
+            return;
+        }
+
+        $this->validate([
+            'attachmentUpload' => 'required|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,csv,txt,png,jpg,jpeg,gif,webp,svg,zip',
+        ]);
+
+        $file = $this->attachmentUpload;
+        $dir = "newsletters/{$this->newsletter->id}";
+        $name = $file->getClientOriginalName();
+        $path = Storage::disk('emails')->putFileAs($dir, $file, $name);
+
+        CommsNewsletterAttachment::create([
+            'newsletter_id' => $this->newsletter->id,
+            'filename' => $name,
+            'mime' => $file->getClientMimeType(),
+            'size' => $file->getSize(),
+            'disk' => 'emails',
+            'path' => $path,
+        ]);
+
+        $this->attachmentUpload = null;
+    }
+
+    public function removeAttachment(int $id): void
+    {
+        if (!$this->newsletter->canEdit()) {
+            return;
+        }
+
+        $attachment = CommsNewsletterAttachment::where('newsletter_id', $this->newsletter->id)->find($id);
+        if (!$attachment) {
+            return;
+        }
+
+        Storage::disk($attachment->disk)->delete($attachment->path);
+        $attachment->delete();
+    }
+
     public function duplicate(): void
     {
         $copy = $this->newsletter->replicate();
@@ -148,6 +202,23 @@ class Newsletter extends Component
         $copy->stats = null;
         $copy->save();
         $copy->contactLists()->sync($this->newsletter->contactLists->pluck('id'));
+
+        // Duplicate attachments
+        foreach ($this->newsletter->attachments as $attachment) {
+            $newDir = "newsletters/{$copy->id}";
+            $newPath = "{$newDir}/{$attachment->filename}";
+            if (Storage::disk($attachment->disk)->exists($attachment->path)) {
+                Storage::disk($attachment->disk)->copy($attachment->path, $newPath);
+            }
+            CommsNewsletterAttachment::create([
+                'newsletter_id' => $copy->id,
+                'filename' => $attachment->filename,
+                'mime' => $attachment->mime,
+                'size' => $attachment->size,
+                'disk' => $attachment->disk,
+                'path' => $newPath,
+            ]);
+        }
 
         $this->redirect(route('crm.newsletters.show', ['newsletter' => $copy->id]), navigate: true);
     }
@@ -189,6 +260,12 @@ class Newsletter extends Component
             ->active()
             ->orderBy('name')
             ->get();
+    }
+
+    #[Computed]
+    public function newsletterAttachments()
+    {
+        return $this->newsletter->attachments()->get();
     }
 
     #[Computed]

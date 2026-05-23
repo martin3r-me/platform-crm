@@ -246,6 +246,42 @@
                         <textarea wire:model.live.debounce.500ms="textBody" rows="10" placeholder="Plaintext-Version (optional, wird automatisch aus HTML generiert)" {{ !$newsletter->canEdit() ? 'disabled' : '' }} class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 placeholder-gray-400 font-mono focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors disabled:bg-gray-50"></textarea>
                     </div>
                 </section>
+
+                <section class="bg-white rounded-lg border border-gray-200">
+                    <div class="px-4 py-3 border-b border-gray-200"><h3 class="text-sm font-semibold text-gray-900">Anhänge</h3></div>
+                    <div class="p-4 space-y-3">
+                        @if($this->newsletterAttachments->count() > 0)
+                            <div class="space-y-2">
+                                @foreach($this->newsletterAttachments as $attachment)
+                                    <div wire:key="attachment-{{ $attachment->id }}" class="flex items-center justify-between px-3 py-2 rounded-md border border-gray-200 bg-gray-50">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            @svg('heroicon-o-paper-clip', 'w-4 h-4 text-gray-400 flex-shrink-0')
+                                            <span class="text-[13px] text-gray-900 truncate">{{ $attachment->filename }}</span>
+                                            <span class="text-[11px] text-gray-400 flex-shrink-0">{{ $attachment->size ? number_format($attachment->size / 1024, 0) . ' KB' : '' }}</span>
+                                        </div>
+                                        @if($newsletter->canEdit())
+                                            <button type="button" wire:click="removeAttachment({{ $attachment->id }})" wire:confirm="Anhang wirklich entfernen?" class="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
+                                                @svg('heroicon-o-x-mark', 'w-4 h-4')
+                                            </button>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if($newsletter->canEdit())
+                            <div>
+                                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-700 text-[13px] font-medium hover:bg-gray-50 transition-colors cursor-pointer">
+                                    @svg('heroicon-o-arrow-up-tray', 'w-4 h-4')
+                                    <span>Datei hochladen</span>
+                                    <input type="file" wire:model="attachmentUpload" class="hidden" />
+                                </label>
+                                <p class="mt-1.5 text-[11px] text-gray-400">Max. 10 MB pro Datei. PDF, Office, Bilder, ZIP.</p>
+                                @error('attachmentUpload') <p class="mt-1 text-[11px] text-red-500">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
+                    </div>
+                </section>
             </div>
         @endif
 

@@ -24,6 +24,7 @@ class CommsNewsletter extends Model
         'team_id',
         'created_by_user_id',
         'comms_channel_id',
+        'newsletter_template_id',
         'name',
         'subject',
         'preheader',
@@ -104,6 +105,16 @@ class CommsNewsletter extends Model
     public function recipients(): HasMany
     {
         return $this->hasMany(CommsNewsletterRecipient::class, 'newsletter_id');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(CommsNewsletterAttachment::class, 'newsletter_id');
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(CommsNewsletterTemplate::class, 'newsletter_template_id');
     }
 
     // Helpers

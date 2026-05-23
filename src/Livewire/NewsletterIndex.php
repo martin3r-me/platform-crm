@@ -5,6 +5,7 @@ namespace Platform\Crm\Livewire;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Platform\Crm\Models\CommsNewsletter;
+use Platform\Crm\Models\CommsNewsletterTemplate;
 
 class NewsletterIndex extends Component
 {
@@ -19,6 +20,7 @@ class NewsletterIndex extends Component
     public bool $modalShow = false;
     public string $newsletterName = '';
     public string $newsletterSubject = '';
+    public ?int $templateId = null;
 
     public function updatedSearch(): void { $this->page = 1; }
     public function updatedStatusFilter(): void { $this->page = 1; }
@@ -71,20 +73,54 @@ class NewsletterIndex extends Component
         $this->resetForm();
     }
 
+    public function updatedTemplateId($value): void
+    {
+        if ($value) {
+            $template = CommsNewsletterTemplate::find($value);
+            if ($template) {
+                if ($template->default_subject && $this->newsletterSubject === '') {
+                    $this->newsletterSubject = $template->default_subject;
+                }
+            }
+        }
+    }
+
+    #[Computed]
+    public function availableTemplates()
+    {
+        return CommsNewsletterTemplate::forTeam($this->getTeamId())
+            ->active()
+            ->orderBy('name')
+            ->get(['id', 'name', 'category']);
+    }
+
     public function createNewsletter(): void
     {
         $this->validate([
             'newsletterName' => 'required|string|max:255',
             'newsletterSubject' => 'required|string|max:255',
+            'templateId' => 'nullable|integer',
         ]);
 
-        $newsletter = CommsNewsletter::create([
+        $data = [
             'name' => $this->newsletterName,
             'subject' => $this->newsletterSubject,
             'status' => 'draft',
             'created_by_user_id' => auth()->id(),
             'team_id' => $this->getTeamId(),
-        ]);
+        ];
+
+        if ($this->templateId) {
+            $template = CommsNewsletterTemplate::find($this->templateId);
+            if ($template) {
+                $data['newsletter_template_id'] = $template->id;
+                $data['html_body'] = $template->html_body;
+                $data['text_body'] = $template->text_body;
+                $data['preheader'] = $template->default_preheader;
+            }
+        }
+
+        $newsletter = CommsNewsletter::create($data);
 
         $this->resetForm();
         $this->modalShow = false;
@@ -130,6 +166,6 @@ class NewsletterIndex extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['newsletterName', 'newsletterSubject']);
+        $this->reset(['newsletterName', 'newsletterSubject', 'templateId']);
     }
 }

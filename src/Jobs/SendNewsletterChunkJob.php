@@ -30,7 +30,7 @@ class SendNewsletterChunkJob implements ShouldQueue
 
     public function handle(PostmarkEmailService $postmarkService, NewsletterService $newsletterService): void
     {
-        $newsletter = CommsNewsletter::with('channel')->find($this->newsletterId);
+        $newsletter = CommsNewsletter::with(['channel', 'attachments'])->find($this->newsletterId);
         if (!$newsletter || !$newsletter->channel) {
             Log::error('[SendNewsletterChunkJob] Newsletter or channel not found', [
                 'newsletter_id' => $this->newsletterId,
@@ -43,6 +43,13 @@ class SendNewsletterChunkJob implements ShouldQueue
         }
 
         $channel = $newsletter->channel;
+
+        $attachmentFiles = $newsletter->attachments->map(fn ($a) => [
+            'disk' => $a->disk,
+            'path' => $a->path,
+            'name' => $a->filename,
+            'mime' => $a->mime,
+        ])->toArray();
 
         foreach ($this->recipientIds as $recipientId) {
             $recipient = CommsNewsletterRecipient::find($recipientId);
@@ -93,7 +100,8 @@ class SendNewsletterChunkJob implements ShouldQueue
                             'recipient_id' => (string) $recipient->id,
                         ],
                         'list_unsubscribe' => $unsubscribeUrl,
-                    ]
+                    ],
+                    $attachmentFiles,
                 );
 
                 $recipient->update([

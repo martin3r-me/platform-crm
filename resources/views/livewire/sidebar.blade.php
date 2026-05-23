@@ -49,6 +49,20 @@
             <span x-show="!collapsed" class="truncate">Newsletter</span>
         </a>
 
+        {{-- Vorlagen --}}
+        <a href="{{ route('crm.newsletter-templates.index') }}"
+           class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition"
+           :class="[
+               window.location.pathname.includes('/newsletter-templates')
+                   ? 'bg-[#ff7a59] text-white shadow'
+                   : 'text-gray-900 hover:bg-orange-50 hover:text-[#ff7a59]',
+               collapsed ? 'justify-center' : 'gap-3'
+           ]"
+           wire:navigate>
+            <x-heroicon-o-document-duplicate class="w-6 h-6 flex-shrink-0"/>
+            <span x-show="!collapsed" class="truncate">Vorlagen</span>
+        </a>
+
         {{-- Kontaktlisten --}}
         <a href="{{ route('crm.lists.index') }}"
            class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition"

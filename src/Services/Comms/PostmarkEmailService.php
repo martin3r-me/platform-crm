@@ -332,6 +332,7 @@ class PostmarkEmailService
         string $htmlBody,
         ?string $textBody = null,
         array $opt = [],
+        array $files = [],
     ): string {
         if ($channel->type !== 'email' || $channel->provider !== 'postmark') {
             throw new \InvalidArgumentException('Channel must be type=email and provider=postmark.');
@@ -352,6 +353,26 @@ class PostmarkEmailService
         $fromName = $opt['from_name'] ?? ($channel->name ?: null);
         $from = $fromName ? "{$fromName} <{$channel->sender_identifier}>" : $channel->sender_identifier;
 
+        // Attachments (format: ['disk' => '...', 'path' => '...', 'name' => '...', 'mime' => '...'])
+        $pmAttachments = [];
+        foreach ($files as $file) {
+            if (!is_array($file)) {
+                continue;
+            }
+            $disk = (string) ($file['disk'] ?? 'emails');
+            $relPath = (string) ($file['path'] ?? '');
+            if ($relPath === '' || !Storage::disk($disk)->exists($relPath)) {
+                continue;
+            }
+            $name = (string) ($file['name'] ?? basename($relPath));
+            $mime = (string) ($file['mime'] ?? Storage::disk($disk)->mimeType($relPath) ?: 'application/octet-stream');
+            $absPath = Storage::disk($disk)->path($relPath);
+            if (!is_file($absPath) || filesize($absPath) === 0) {
+                continue;
+            }
+            $pmAttachments[] = PostmarkAttachment::fromFile($absPath, $name, $mime);
+        }
+
         $headersArray = [];
         if (!empty($opt['list_unsubscribe'])) {
             $headersArray['List-Unsubscribe'] = '<' . $opt['list_unsubscribe'] . '>';
@@ -370,7 +391,7 @@ class PostmarkEmailService
             null, // cc
             null, // bcc
             $headersArray ?: null,
-            null, // attachments
+            $pmAttachments ?: null,
             $opt['track_links'] ?? 'HtmlAndText',
             $opt['metadata'] ?? null,
             null  // message stream

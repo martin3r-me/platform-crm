@@ -1,0 +1,27 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('comms_newsletters', function (Blueprint $table) {
+            $table->unsignedBigInteger('newsletter_template_id')->nullable()->after('comms_channel_id');
+            $table->foreign('newsletter_template_id')
+                ->references('id')
+                ->on('comms_newsletter_templates')
+                ->nullOnDelete();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('comms_newsletters', function (Blueprint $table) {
+            $table->dropForeign(['newsletter_template_id']);
+            $table->dropColumn('newsletter_template_id');
+        });
+    }
+};

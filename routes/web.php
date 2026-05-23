@@ -13,6 +13,8 @@ use Platform\Crm\Livewire\EngagementIndex;
 use Platform\Crm\Livewire\Engagement\Engagement as EngagementShow;
 use Platform\Crm\Livewire\NewsletterIndex;
 use Platform\Crm\Livewire\Newsletter\Newsletter as NewsletterShow;
+use Platform\Crm\Livewire\NewsletterTemplateIndex;
+use Platform\Crm\Livewire\NewsletterTemplate\NewsletterTemplate as NewsletterTemplateShow;
 use Platform\Crm\Livewire\ContactListIndex;
 use Platform\Crm\Livewire\ContactList\ContactList as ContactListShow;
 
@@ -44,6 +46,9 @@ Route::get('/engagements/{engagement}', EngagementShow::class)->name('crm.engage
 
 Route::get('/newsletters', NewsletterIndex::class)->name('crm.newsletters.index');
 Route::get('/newsletters/{newsletter}', NewsletterShow::class)->name('crm.newsletters.show');
+
+Route::get('/newsletter-templates', NewsletterTemplateIndex::class)->name('crm.newsletter-templates.index');
+Route::get('/newsletter-templates/{newsletterTemplate}', NewsletterTemplateShow::class)->name('crm.newsletter-templates.show');
 
 Route::get('/lists', ContactListIndex::class)->name('crm.lists.index');
 Route::get('/lists/{contactList}', ContactListShow::class)->name('crm.lists.show');
