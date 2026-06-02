@@ -22,6 +22,8 @@ use Platform\Core\Contracts\CrmCompanyContactsProviderInterface;
 use Platform\Crm\Services\CoreCrmCompanyContactsProvider;
 use Platform\Core\Contracts\CrmContactLinkManagerInterface;
 use Platform\Crm\Services\CrmContactLinkManager;
+use Platform\Core\Contracts\CrmEngagementManagerInterface;
+use Platform\Crm\Services\CrmEngagementManager;
 use Illuminate\Support\Facades\Gate;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmCompany;
@@ -62,6 +64,7 @@ class CrmServiceProvider extends ServiceProvider
         $this->app->singleton(CrmContactResolverInterface::class, fn() => new CoreCrmContactResolver());
         $this->app->singleton(CrmCompanyContactsProviderInterface::class, fn() => new CoreCrmCompanyContactsProvider());
         $this->app->singleton(CrmContactLinkManagerInterface::class, fn() => new CrmContactLinkManager());
+        $this->app->singleton(CrmEngagementManagerInterface::class, fn() => new CrmEngagementManager());
     }
 
     public function boot(): void
@@ -152,6 +155,9 @@ class CrmServiceProvider extends ServiceProvider
         // Contact Enrichment Listener registrieren
         $this->registerContactEnrichmentListener();
 
+        // Newsletter → Engagement Listener registrieren
+        $this->registerNewsletterEngagementListener();
+
         // ModalComms Livewire Komponente registrieren
         \Livewire\Livewire::component('crm.modal-comms', \Platform\Crm\Livewire\ModalComms::class);
     }
@@ -186,6 +192,21 @@ class CrmServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\Event::listen(
                 \Platform\Crm\Events\CommsWhatsAppInboundReceived::class,
                 [\Platform\Crm\Listeners\EnrichContactOnInbound::class, 'handleWhatsApp']
+            );
+        } catch (\Throwable $e) {
+            // Silent fail
+        }
+    }
+
+    /**
+     * Registriert den Newsletter → Engagement Listener.
+     */
+    protected function registerNewsletterEngagementListener(): void
+    {
+        try {
+            \Illuminate\Support\Facades\Event::listen(
+                \Platform\Crm\Events\NewsletterSent::class,
+                \Platform\Crm\Listeners\CreateNewsletterEngagement::class
             );
         } catch (\Throwable $e) {
             // Silent fail
