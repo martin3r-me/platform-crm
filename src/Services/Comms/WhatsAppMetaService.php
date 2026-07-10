@@ -60,6 +60,7 @@ class WhatsAppMetaService
         array $components = [],
         string $languageCode = 'de',
         ?User $sender = null,
+        bool $isAutoReply = false,
     ): CommsWhatsAppMessage {
         $this->validateChannel($channel);
         $creds = $this->getCredentials($channel);
@@ -94,7 +95,8 @@ class WhatsAppMetaService
             'template',
             $sender,
             $templateName,
-            $components
+            $components,
+            $isAutoReply
         );
     }
 
@@ -404,6 +406,7 @@ class WhatsAppMetaService
         ?User $sender,
         ?string $templateName = null,
         ?array $templateParams = null,
+        bool $isAutoReply = false,
     ): CommsWhatsAppMessage {
         $responseData = $response->json();
 
@@ -423,6 +426,7 @@ class WhatsAppMetaService
             'message_type' => $messageType,
             'template_name' => $templateName,
             'template_params' => $templateParams,
+            'is_auto_reply' => $isAutoReply,
             'status' => $status,
             'status_updated_at' => now(),
             'sent_by_user_id' => $sender?->id,

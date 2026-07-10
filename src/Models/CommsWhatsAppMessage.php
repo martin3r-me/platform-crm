@@ -24,6 +24,7 @@ class CommsWhatsAppMessage extends Model
         'message_type',
         'template_name',
         'template_params',
+        'is_auto_reply',
         'status',
         'status_updated_at',
         'sent_by_user_id',
@@ -36,6 +37,7 @@ class CommsWhatsAppMessage extends Model
 
     protected $casts = [
         'template_params' => 'array',
+        'is_auto_reply' => 'boolean',
         'meta_payload' => 'array',
         'reactions' => 'array',
         'status_updated_at' => 'datetime',
