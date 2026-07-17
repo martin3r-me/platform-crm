@@ -9,6 +9,13 @@ return [
     ],
     'guard' => 'web',
 
+    // CardDAV-Server: abonnierbares Telefonbuch (read-only). Siehe docs/carddav.md
+    'carddav' => [
+        'enabled'         => env('CRM_CARDDAV_ENABLED', true),
+        'path'            => env('CRM_CARDDAV_PATH', 'crm/dav'), // Basis-URL-Segment des DAV-Servers
+        'secret_ttl_days' => env('CRM_CARDDAV_SECRET_TTL_DAYS'), // null = unbegrenzt gültig
+    ],
+
     'navigation' => [
         'route' => 'crm.index',
         'icon'  => 'heroicon-o-user-group',
