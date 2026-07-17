@@ -10,7 +10,11 @@ use Symfony\Component\Uid\UuidV7;
 class CrmEmailAddress extends Model
 {
     protected $table = 'crm_email_addresses';
-    
+
+    // Änderung an einer E-Mail-Adresse aktualisiert den Kontakt (updated_at) –
+    // nötig für CardDAV-Change-Detection (ETag/CTag). Siehe docs/carddav.md.
+    protected $touches = ['emailable'];
+
     protected $fillable = [
         'uuid',
         'emailable_type',

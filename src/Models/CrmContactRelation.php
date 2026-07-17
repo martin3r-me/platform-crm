@@ -9,7 +9,11 @@ use Symfony\Component\Uid\UuidV7;
 class CrmContactRelation extends Model
 {
     protected $table = 'crm_contact_relations';
-    
+
+    // Änderung an einer Firmen-Beziehung aktualisiert den Kontakt (updated_at) –
+    // nötig für CardDAV-Change-Detection (ORG/TITLE in der vCard). Siehe docs/carddav.md.
+    protected $touches = ['contact'];
+
     protected $fillable = [
         'uuid',
         'contact_id',

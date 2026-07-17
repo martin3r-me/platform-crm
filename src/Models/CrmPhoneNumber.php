@@ -10,7 +10,11 @@ use Symfony\Component\Uid\UuidV7;
 class CrmPhoneNumber extends Model
 {
     protected $table = 'crm_phone_numbers';
-    
+
+    // Änderung an einer Rufnummer aktualisiert den Kontakt (updated_at) –
+    // nötig für CardDAV-Change-Detection (ETag/CTag). Siehe docs/carddav.md.
+    protected $touches = ['phoneable'];
+
     protected $fillable = [
         'uuid',
         'phoneable_type',
