@@ -4,6 +4,7 @@ namespace Platform\Crm\Livewire\ContactList;
 
 use Livewire\Component;
 use Livewire\Attributes\Computed;
+use Platform\Crm\Models\CrmCardDavSubscription;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmContactList;
 use Platform\Crm\Models\CrmContactListMember;
@@ -27,6 +28,10 @@ class ContactList extends Component
     public string $memberSearch = '';
     public string $contactSearch = '';
     public bool $addMemberModal = false;
+
+    // CardDAV: Name für neues Abo + einmalig angezeigtes Secret nach dem Erstellen
+    public string $cardDavName = '';
+    public ?string $newCardDavSecret = null;
 
     // Prev/Next navigation
     public ?int $prevListId = null;
@@ -185,6 +190,64 @@ class ContactList extends Component
     {
         $this->addMemberModal = false;
         $this->contactSearch = '';
+    }
+
+    // ----------------------------------------------------------------
+    // CardDAV: abonnierbares Telefonbuch (siehe docs/carddav.md)
+    // ----------------------------------------------------------------
+
+    #[Computed]
+    public function cardDavSubscriptions()
+    {
+        return CrmCardDavSubscription::query()
+            ->where('contact_list_id', $this->contactList->id)
+            ->where('user_id', auth()->id())
+            ->whereNull('revoked_at')
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    #[Computed]
+    public function cardDavUrl(): string
+    {
+        return rtrim(url('/'.trim((string) config('crm.carddav.path', 'crm/dav'), '/')), '/');
+    }
+
+    public function createCardDavSubscription(): void
+    {
+        $subscription = CrmCardDavSubscription::create([
+            'user_id'         => auth()->id(),
+            'team_id'         => $this->getTeamId(),
+            'contact_list_id' => $this->contactList->id,
+            'name'            => trim($this->cardDavName) ?: 'CardDAV-Abo',
+        ]);
+
+        // Secret nur genau jetzt anzeigen – danach nicht mehr abrufbar.
+        $this->newCardDavSecret = $subscription->secret;
+        $this->cardDavName = '';
+        unset($this->cardDavSubscriptions);
+
+        session()->flash('message', 'CardDAV-Abo erstellt. Kopiere das Secret jetzt – es wird nur einmal angezeigt.');
+    }
+
+    public function revokeCardDavSubscription(int $id): void
+    {
+        $subscription = CrmCardDavSubscription::query()
+            ->where('id', $id)
+            ->where('contact_list_id', $this->contactList->id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if ($subscription) {
+            $subscription->revoke();
+            $this->newCardDavSecret = null;
+            unset($this->cardDavSubscriptions);
+        }
+    }
+
+    public function dismissNewCardDavSecret(): void
+    {
+        $this->newCardDavSecret = null;
     }
 
     public function render()

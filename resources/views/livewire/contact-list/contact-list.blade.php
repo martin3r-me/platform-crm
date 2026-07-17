@@ -101,6 +101,7 @@
                 @foreach([
                     'settings' => 'Einstellungen',
                     'members' => 'Mitglieder',
+                    'carddav' => 'Adressbuch (CardDAV)',
                 ] as $tab => $label)
                     <button wire:click="$set('activeTab', '{{ $tab }}')" class="pb-3 text-[13px] font-medium border-b-2 transition-colors {{ $activeTab === $tab ? 'border-[#ff7a59] text-[#ff7a59]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                         {{ $label }}
@@ -248,6 +249,110 @@
                     </div>
                 @endif
             </section>
+        @endif
+
+        {{-- Tab: Adressbuch (CardDAV) --}}
+        @if($activeTab === 'carddav')
+            <div class="space-y-6">
+                <section class="bg-white rounded-lg border border-gray-200">
+                    <div class="px-4 py-3 border-b border-gray-200">
+                        <h3 class="text-sm font-semibold text-gray-900">Als Adressbuch abonnieren</h3>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        <p class="text-[13px] text-gray-600 leading-relaxed">
+                            Abonniere die Kontakte dieser Liste als Telefonbuch auf deinem Gerät (iPhone/Mac, Android via DAVx5, Thunderbird).
+                            Es werden nur Kontakte übertragen, die du im CRM sehen darfst. Der Zugriff ist <strong>schreibgeschützt</strong>.
+                        </p>
+
+                        {{-- Server-URL --}}
+                        <div>
+                            <label class="block text-[11px] font-medium text-gray-500 mb-1">Server-Adresse</label>
+                            <div x-data="{ copied: false }" class="flex items-center gap-2">
+                                <code x-ref="davurl" class="flex-1 px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-gray-50 text-gray-900 font-mono break-all">{{ $this->cardDavUrl }}</code>
+                                <button type="button"
+                                    @click="navigator.clipboard.writeText($refs.davurl.textContent.trim()); copied = true; setTimeout(() => copied = false, 1500)"
+                                    class="shrink-0 px-3 py-2 text-[12px] font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                                    <span x-show="!copied">Kopieren</span><span x-show="copied" x-cloak>Kopiert ✓</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Neues Secret: nur einmalig sichtbar --}}
+                        @if($newCardDavSecret)
+                            <div class="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-3">
+                                <div class="flex items-start justify-between gap-3">
+                                    <p class="text-[13px] font-medium text-amber-900">Dein Zugangs-Secret (Passwort) – jetzt kopieren, es wird <u>nur einmal</u> angezeigt:</p>
+                                    <button type="button" wire:click="dismissNewCardDavSecret" class="shrink-0 text-amber-500 hover:text-amber-700 text-lg leading-none">&times;</button>
+                                </div>
+                                <div x-data="{ copied: false }" class="flex items-center gap-2">
+                                    <code x-ref="secret" class="flex-1 px-3 py-2 text-[13px] rounded-md border border-amber-300 bg-white text-gray-900 font-mono break-all">{{ $newCardDavSecret }}</code>
+                                    <button type="button"
+                                        @click="navigator.clipboard.writeText($refs.secret.textContent.trim()); copied = true; setTimeout(() => copied = false, 1500)"
+                                        class="shrink-0 px-3 py-2 text-[12px] font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors">
+                                        <span x-show="!copied">Kopieren</span><span x-show="copied" x-cloak>Kopiert ✓</span>
+                                    </button>
+                                </div>
+                                <p class="text-[11px] text-amber-700">
+                                    Beim Einrichten: Benutzername beliebig (z. B. deine E-Mail), Passwort = dieses Secret.
+                                </p>
+                            </div>
+                        @endif
+
+                        {{-- Neues Abo erstellen --}}
+                        <div class="flex items-end gap-2 pt-1">
+                            <div class="flex-1">
+                                <label class="block text-[11px] font-medium text-gray-500 mb-1">Name (z. B. Gerät)</label>
+                                <input type="text" wire:model="cardDavName" placeholder="iPhone von Martin"
+                                    class="w-full px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff7a59]/20 focus:border-[#ff7a59] transition-colors" />
+                            </div>
+                            <button type="button" wire:click="createCardDavSubscription"
+                                class="shrink-0 px-4 py-2 text-[13px] font-medium rounded-md bg-[#ff7a59] text-white hover:bg-[#ff6a45] transition-colors">
+                                Abo erstellen
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                {{-- Aktive Abos --}}
+                <section class="bg-white rounded-lg border border-gray-200">
+                    <div class="px-4 py-3 border-b border-gray-200">
+                        <h3 class="text-sm font-semibold text-gray-900">Aktive Abos</h3>
+                    </div>
+                    <div class="divide-y divide-gray-100">
+                        @forelse($this->cardDavSubscriptions as $sub)
+                            <div class="flex items-center justify-between px-4 py-3">
+                                <div>
+                                    <div class="text-[13px] font-medium text-gray-900">{{ $sub->name }}</div>
+                                    <div class="text-[11px] text-gray-400">
+                                        Erstellt {{ $sub->created_at?->format('d.m.Y') }}
+                                        · Zuletzt genutzt: {{ $sub->last_used_at?->diffForHumans() ?? 'noch nie' }}
+                                    </div>
+                                </div>
+                                <button type="button" wire:click="revokeCardDavSubscription({{ $sub->id }})"
+                                    wire:confirm="Abo wirklich widerrufen? Geräte, die es nutzen, verlieren den Zugriff."
+                                    class="shrink-0 px-3 py-1.5 text-[12px] font-medium rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+                                    Widerrufen
+                                </button>
+                            </div>
+                        @empty
+                            <div class="px-4 py-6 text-center text-[13px] text-gray-400">Noch keine Abos für diese Liste.</div>
+                        @endforelse
+                    </div>
+                </section>
+
+                {{-- Kurzanleitung --}}
+                <section class="bg-white rounded-lg border border-gray-200">
+                    <div class="px-4 py-3 border-b border-gray-200">
+                        <h3 class="text-sm font-semibold text-gray-900">Einrichtung</h3>
+                    </div>
+                    <div class="p-4 text-[13px] text-gray-600 space-y-1">
+                        <p><strong>iPhone/iPad:</strong> Einstellungen → Apps → Kontakte → Accounts → Account hinzufügen → Andere → CardDAV-Account.</p>
+                        <p><strong>Mac:</strong> Kontakte → Einstellungen → Accounts → „+" → CardDAV.</p>
+                        <p><strong>Android:</strong> App „DAVx5" installieren, Account mit obiger URL anlegen.</p>
+                        <p class="text-[11px] text-gray-400 pt-1">Server = die Adresse oben, Benutzername beliebig, Passwort = dein Secret.</p>
+                    </div>
+                </section>
+            </div>
         @endif
     </x-ui-page-container>
 
