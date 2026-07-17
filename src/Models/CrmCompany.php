@@ -49,10 +49,38 @@ class CrmCompany extends Model implements CompanyInterface
                 do {
                     $uuid = UuidV7::generate();
                 } while (self::where('uuid', $uuid)->exists());
-                
+
                 $model->uuid = $uuid;
             }
         });
+
+        // CardDAV: Firmenname landet als ORG in der vCard der verknüpften Kontakte.
+        // Ändert sich der Name, müssen deren updated_at bumpen (ETag/CTag), damit
+        // Clients den neuen ORG synchronisieren. Siehe docs/carddav.md.
+        static::updated(function (self $model) {
+            if ($model->wasChanged('name')) {
+                $model->touchRelatedContacts();
+            }
+        });
+
+        // Beim Löschen räumt der FK-Cascade die Beziehungen ohne Eloquent-Event ab –
+        // die Kontakte daher vorher anstoßen, damit das entfernte ORG synct.
+        static::deleting(function (self $model) {
+            $model->touchRelatedContacts();
+        });
+    }
+
+    /**
+     * Setzt updated_at aller über Beziehungen verknüpften Kontakte neu,
+     * damit die CardDAV-Change-Detection (ETag/CTag) greift.
+     */
+    public function touchRelatedContacts(): void
+    {
+        CrmContact::whereIn('id', function ($query) {
+            $query->select('contact_id')
+                ->from('crm_contact_relations')
+                ->where('company_id', $this->id);
+        })->update(['updated_at' => now()]);
     }
     
     /**
