@@ -122,6 +122,11 @@ class CrmServiceProvider extends ServiceProvider
         // Comms Webhook Routes (ohne Auth, da externe Webhooks)
         $this->loadRoutesFrom(__DIR__.'/../routes/comms-webhooks.php');
 
+        // CardDAV-Server (ohne Session-Guard, eigene HTTP-Basic-Auth via TokenAuthBackend)
+        if (config('crm.carddav.enabled')) {
+            $this->loadRoutesFrom(__DIR__.'/../routes/carddav.php');
+        }
+
         // Schritt 4: Migrationen laden
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
