@@ -1,9 +1,10 @@
 <?php
 
-namespace Platform\Crm\CardDav;
+namespace Platform\Crm\Dav;
 
 use Illuminate\Database\Eloquent\Builder;
-use Platform\Crm\Models\CrmCardDavSubscription;
+use Platform\Core\Dav\DavContext;
+use Platform\Core\Models\DavSubscription;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmContactList;
 use Platform\Crm\Services\CardDav\ContactVCardMapper;
@@ -17,19 +18,21 @@ use Sabre\DAV\PropPatch;
  * Read-only CardDAV-Backend. Jede sichtbare {@see CrmContactList} = ein Adressbuch,
  * jeder Member-Kontakt = eine vCard.
  *
- * Sichtbarkeit ist an das aktive Abo gebunden: nur Kontakte/Listen im Team des
- * Abos, die entweder öffentlich (kein Owner) oder dem User des Abos gehören.
- * Alle Schreib-Operationen werfen {@see Forbidden}. Siehe docs/carddav.md.
+ * Sichtbarkeit ist an das aktive Abo (Core-{@see DavSubscription}) gebunden: nur
+ * Kontakte/Listen im Team des Abos, die entweder öffentlich (kein Owner) oder dem
+ * User des Abos gehören. Alle Schreib-Operationen werfen {@see Forbidden}.
+ *
+ * Siehe modules/crm/docs/dav-core-extraction.md.
  */
 class CrmCardDavBackend extends AbstractBackend
 {
     public function __construct(
-        private readonly CardDavContext $context,
+        private readonly DavContext $context,
         private readonly ContactVCardMapper $mapper,
     ) {
     }
 
-    private function sub(): CrmCardDavSubscription
+    private function sub(): DavSubscription
     {
         return $this->context->subscription();
     }
@@ -40,7 +43,9 @@ class CrmCardDavBackend extends AbstractBackend
 
     public function getAddressBooksForUser($principalUri)
     {
-        if ($principalUri !== 'principals/'.$this->sub()->user_id) {
+        // Nur für carddav-Abos des passenden Users – andere Abo-Typen sehen nichts.
+        if ($this->sub()->type !== 'carddav'
+            || $principalUri !== 'principals/'.$this->sub()->user_id) {
             return [];
         }
 
@@ -151,8 +156,8 @@ class CrmCardDavBackend extends AbstractBackend
     // ----------------------------------------------------------------
 
     /**
-     * Listen, die das Abo freigibt: die abonnierte Liste — oder, wenn keine
-     * gesetzt ist, alle für den User sichtbaren Listen des Teams.
+     * Listen, die das Abo freigibt: die abonnierte Liste (resource_id) – oder,
+     * wenn keine gesetzt ist, alle für den User sichtbaren Listen des Teams.
      */
     private function visibleListsQuery(): Builder
     {
@@ -164,8 +169,8 @@ class CrmCardDavBackend extends AbstractBackend
                     ->orWhere('owned_by_user_id', $this->sub()->user_id);
             });
 
-        if ($this->sub()->contact_list_id !== null) {
-            $query->where('id', $this->sub()->contact_list_id);
+        if ($this->sub()->resource_id !== null) {
+            $query->where('id', $this->sub()->resource_id);
         }
 
         return $query;

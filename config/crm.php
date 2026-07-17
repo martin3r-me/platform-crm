@@ -9,12 +9,9 @@ return [
     ],
     'guard' => 'web',
 
-    // CardDAV-Server: abonnierbares Telefonbuch (read-only). Siehe docs/carddav.md
-    'carddav' => [
-        'enabled'         => env('CRM_CARDDAV_ENABLED', true),
-        'path'            => env('CRM_CARDDAV_PATH', 'crm/dav'), // Basis-URL-Segment des DAV-Servers
-        'secret_ttl_days' => env('CRM_CARDDAV_SECRET_TTL_DAYS'), // null = unbegrenzt gültig
-    ],
+    // Hinweis: Der CardDAV-Server ist in den Core gewandert (config/dav.php +
+    // Platform\Core\Dav\*). Das CRM registriert nur noch sein CrmCardDavModule.
+    // Siehe docs/dav-core-extraction.md.
 
     'navigation' => [
         'route' => 'crm.index',

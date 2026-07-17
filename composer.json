@@ -19,7 +19,6 @@
   "require": {
     "propaganistas/laravel-phone": "^6.0",
     "giggsey/libphonenumber-for-php": "^9.0",
-    "sabre/dav": "^4.7",
     "sabre/vobject": "^4.5"
   }
 }

@@ -4,7 +4,7 @@ namespace Platform\Crm\Livewire\ContactList;
 
 use Livewire\Component;
 use Livewire\Attributes\Computed;
-use Platform\Crm\Models\CrmCardDavSubscription;
+use Platform\Core\Models\DavSubscription;
 use Platform\Crm\Models\CrmContact;
 use Platform\Crm\Models\CrmContactList;
 use Platform\Crm\Models\CrmContactListMember;
@@ -199,8 +199,10 @@ class ContactList extends Component
     #[Computed]
     public function cardDavSubscriptions()
     {
-        return CrmCardDavSubscription::query()
-            ->where('contact_list_id', $this->contactList->id)
+        return DavSubscription::query()
+            ->where('module', 'crm')
+            ->where('type', 'carddav')
+            ->where('resource_id', $this->contactList->id)
             ->where('user_id', auth()->id())
             ->whereNull('revoked_at')
             ->orderByDesc('created_at')
@@ -210,16 +212,18 @@ class ContactList extends Component
     #[Computed]
     public function cardDavUrl(): string
     {
-        return rtrim(url('/'.trim((string) config('crm.carddav.path', 'crm/dav'), '/')), '/');
+        return rtrim(url('/'.trim((string) config('dav.path', 'crm/dav'), '/')), '/');
     }
 
     public function createCardDavSubscription(): void
     {
-        $subscription = CrmCardDavSubscription::create([
-            'user_id'         => auth()->id(),
-            'team_id'         => $this->getTeamId(),
-            'contact_list_id' => $this->contactList->id,
-            'name'            => trim($this->cardDavName) ?: 'CardDAV-Abo',
+        $subscription = DavSubscription::create([
+            'user_id'     => auth()->id(),
+            'team_id'     => $this->getTeamId(),
+            'module'      => 'crm',
+            'type'        => 'carddav',
+            'resource_id' => $this->contactList->id,
+            'name'        => trim($this->cardDavName) ?: 'CardDAV-Abo',
         ]);
 
         // Secret nur genau jetzt anzeigen – danach nicht mehr abrufbar.
@@ -232,9 +236,11 @@ class ContactList extends Component
 
     public function revokeCardDavSubscription(int $id): void
     {
-        $subscription = CrmCardDavSubscription::query()
+        $subscription = DavSubscription::query()
             ->where('id', $id)
-            ->where('contact_list_id', $this->contactList->id)
+            ->where('module', 'crm')
+            ->where('type', 'carddav')
+            ->where('resource_id', $this->contactList->id)
             ->where('user_id', auth()->id())
             ->first();
 
