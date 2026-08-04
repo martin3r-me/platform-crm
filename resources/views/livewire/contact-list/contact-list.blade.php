@@ -264,34 +264,47 @@
                             Es werden nur Kontakte übertragen, die du im CRM sehen darfst. Der Zugriff ist <strong>schreibgeschützt</strong>.
                         </p>
 
-                        {{-- Server-URL --}}
-                        <div>
-                            <label class="block text-[11px] font-medium text-gray-500 mb-1">Server-Adresse</label>
-                            <div x-data="{ copied: false }" class="flex items-center gap-2">
-                                <code x-ref="davurl" class="flex-1 px-3 py-2 text-[13px] rounded-md border border-gray-300 bg-gray-50 text-gray-900 font-mono break-all">{{ $this->cardDavUrl }}</code>
-                                <button type="button"
-                                    @click="navigator.clipboard.writeText($refs.davurl.textContent.trim()); copied = true; setTimeout(() => copied = false, 1500)"
-                                    class="shrink-0 px-3 py-2 text-[12px] font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
-                                    <span x-show="!copied">Kopieren</span><span x-show="copied" x-cloak>Kopiert ✓</span>
-                                </button>
-                            </div>
-                        </div>
+                        {{-- Hinweis: die geräte-taugliche URL ist pro Abo unterschiedlich
+                             (sie enthält einen abo-eigenen Handle). Sie wird beim Erstellen
+                             und je Abo unten angezeigt. --}}
+                        <p class="text-[11px] text-gray-500">
+                            Beim Erstellen eines Abos bekommst du eine eigene Server-Adresse
+                            (inkl. gerätespezifischem Handle) und das Secret. Trage <strong>genau diese
+                            vollständige URL</strong> auf dem Gerät ein – die Basis-Adresse allein reicht nicht.
+                        </p>
 
-                        {{-- Neues Secret: nur einmalig sichtbar --}}
+                        {{-- Neues Abo: URL (inkl. Handle) + Secret, nur einmalig sichtbar --}}
                         @if($newCardDavSecret)
                             <div class="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-3">
                                 <div class="flex items-start justify-between gap-3">
-                                    <p class="text-[13px] font-medium text-amber-900">Dein Zugangs-Secret (Passwort) – jetzt kopieren, es wird <u>nur einmal</u> angezeigt:</p>
+                                    <p class="text-[13px] font-medium text-amber-900">Abo erstellt – kopiere <u>Server-Adresse</u> und <u>Secret</u> jetzt. Das Secret wird <u>nur einmal</u> angezeigt:</p>
                                     <button type="button" wire:click="dismissNewCardDavSecret" class="shrink-0 text-amber-500 hover:text-amber-700 text-lg leading-none">&times;</button>
                                 </div>
-                                <div x-data="{ copied: false }" class="flex items-center gap-2">
-                                    <code x-ref="secret" class="flex-1 px-3 py-2 text-[13px] rounded-md border border-amber-300 bg-white text-gray-900 font-mono break-all">{{ $newCardDavSecret }}</code>
-                                    <button type="button"
-                                        @click="navigator.clipboard.writeText($refs.secret.textContent.trim()); copied = true; setTimeout(() => copied = false, 1500)"
-                                        class="shrink-0 px-3 py-2 text-[12px] font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors">
-                                        <span x-show="!copied">Kopieren</span><span x-show="copied" x-cloak>Kopiert ✓</span>
-                                    </button>
+
+                                <div>
+                                    <label class="block text-[11px] font-medium text-amber-800 mb-1">Server-Adresse (vollständig, inkl. Handle)</label>
+                                    <div x-data="{ copied: false }" class="flex items-center gap-2">
+                                        <code x-ref="newdavurl" class="flex-1 px-3 py-2 text-[13px] rounded-md border border-amber-300 bg-white text-gray-900 font-mono break-all">{{ $newCardDavUrl }}</code>
+                                        <button type="button"
+                                            @click="navigator.clipboard.writeText($refs.newdavurl.textContent.trim()); copied = true; setTimeout(() => copied = false, 1500)"
+                                            class="shrink-0 px-3 py-2 text-[12px] font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors">
+                                            <span x-show="!copied">Kopieren</span><span x-show="copied" x-cloak>Kopiert ✓</span>
+                                        </button>
+                                    </div>
                                 </div>
+
+                                <div>
+                                    <label class="block text-[11px] font-medium text-amber-800 mb-1">Secret (Passwort)</label>
+                                    <div x-data="{ copied: false }" class="flex items-center gap-2">
+                                        <code x-ref="secret" class="flex-1 px-3 py-2 text-[13px] rounded-md border border-amber-300 bg-white text-gray-900 font-mono break-all">{{ $newCardDavSecret }}</code>
+                                        <button type="button"
+                                            @click="navigator.clipboard.writeText($refs.secret.textContent.trim()); copied = true; setTimeout(() => copied = false, 1500)"
+                                            class="shrink-0 px-3 py-2 text-[12px] font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors">
+                                            <span x-show="!copied">Kopieren</span><span x-show="copied" x-cloak>Kopiert ✓</span>
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <p class="text-[11px] text-amber-700">
                                     Beim Einrichten: Benutzername beliebig (z. B. deine E-Mail), Passwort = dieses Secret.
                                 </p>
@@ -320,12 +333,20 @@
                     </div>
                     <div class="divide-y divide-gray-100">
                         @forelse($this->cardDavSubscriptions as $sub)
-                            <div class="flex items-center justify-between px-4 py-3">
-                                <div>
+                            <div class="flex items-start justify-between gap-3 px-4 py-3">
+                                <div class="min-w-0 flex-1">
                                     <div class="text-[13px] font-medium text-gray-900">{{ $sub->name }}</div>
                                     <div class="text-[11px] text-gray-400">
                                         Erstellt {{ $sub->created_at?->format('d.m.Y') }}
                                         · Zuletzt genutzt: {{ $sub->last_used_at?->diffForHumans() ?? 'noch nie' }}
+                                    </div>
+                                    <div x-data="{ copied: false }" class="mt-1.5 flex items-center gap-2">
+                                        <code class="min-w-0 flex-1 truncate px-2 py-1 text-[11px] rounded border border-gray-200 bg-gray-50 text-gray-600 font-mono" x-ref="url{{ $sub->id }}">{{ $this->deviceUrl($sub) }}</code>
+                                        <button type="button"
+                                            @click="navigator.clipboard.writeText($refs['url{{ $sub->id }}'].textContent.trim()); copied = true; setTimeout(() => copied = false, 1500)"
+                                            class="shrink-0 px-2 py-1 text-[11px] font-medium rounded border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors">
+                                            <span x-show="!copied">URL kopieren</span><span x-show="copied" x-cloak>Kopiert ✓</span>
+                                        </button>
                                     </div>
                                 </div>
                                 <button type="button" wire:click="revokeCardDavSubscription({{ $sub->id }})"
@@ -346,10 +367,10 @@
                         <h3 class="text-sm font-semibold text-gray-900">Einrichtung</h3>
                     </div>
                     <div class="p-4 text-[13px] text-gray-600 space-y-1">
-                        <p><strong>iPhone/iPad:</strong> Einstellungen → Apps → Kontakte → Accounts → Account hinzufügen → Andere → CardDAV-Account.</p>
-                        <p><strong>Mac:</strong> Kontakte → Einstellungen → Accounts → „+" → CardDAV.</p>
-                        <p><strong>Android:</strong> App „DAVx5" installieren, Account mit obiger URL anlegen.</p>
-                        <p class="text-[11px] text-gray-400 pt-1">Server = die Adresse oben, Benutzername beliebig, Passwort = dein Secret.</p>
+                        <p><strong>iPhone/iPad:</strong> Einstellungen → Apps → Kontakte → Accounts → Account hinzufügen → Andere → CardDAV-Account. Bei „Server" die <strong>vollständige Abo-URL</strong> (inkl. <code>/dav/…/</code>) eintragen.</p>
+                        <p><strong>Mac:</strong> Kontakte → Einstellungen → Accounts → „+" → CardDAV. Account-Typ „<strong>Manuell</strong>" wählen und die vollständige Abo-URL eintragen.</p>
+                        <p><strong>Android:</strong> App „DAVx5" installieren, Account mit der vollständigen Abo-URL anlegen.</p>
+                        <p class="text-[11px] text-gray-400 pt-1">Server = die <strong>vollständige URL des Abos</strong> (siehe „Aktive Abos"), Benutzername beliebig, Passwort = dein Secret. Die Basis-Adresse ohne Handle funktioniert nicht.</p>
                     </div>
                 </section>
             </div>

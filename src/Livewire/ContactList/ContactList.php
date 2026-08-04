@@ -32,6 +32,8 @@ class ContactList extends Component
     // CardDAV: Name für neues Abo + einmalig angezeigtes Secret nach dem Erstellen
     public string $cardDavName = '';
     public ?string $newCardDavSecret = null;
+    // Vollständige Geräte-URL des zuletzt erstellten Abos (inkl. Handle).
+    public ?string $newCardDavUrl = null;
 
     // Prev/Next navigation
     public ?int $prevListId = null;
@@ -209,10 +211,24 @@ class ContactList extends Component
             ->get();
     }
 
+    /**
+     * Basis-URL des DAV-Servers (ohne Handle). Die geräte-taugliche URL entsteht
+     * erst durch Anhängen des abo-eigenen Handles, siehe {@see deviceUrl()}.
+     */
     #[Computed]
     public function cardDavUrl(): string
     {
         return rtrim(url('/'.trim((string) config('dav.path', 'crm/dav'), '/')), '/');
+    }
+
+    /**
+     * Vollständige, geräte-taugliche CardDAV-URL eines Abos: /dav/{handle}/.
+     * Der Handle ist ein öffentlicher Identifier je Abo (kein Secret) und MUSS
+     * im Pfad stehen — ohne ihn matcht die DAV-Route nicht (404).
+     */
+    public function deviceUrl(DavSubscription $subscription): string
+    {
+        return $this->cardDavUrl().'/'.$subscription->handle.'/';
     }
 
     public function createCardDavSubscription(): void
@@ -228,6 +244,7 @@ class ContactList extends Component
 
         // Secret nur genau jetzt anzeigen – danach nicht mehr abrufbar.
         $this->newCardDavSecret = $subscription->secret;
+        $this->newCardDavUrl = $this->deviceUrl($subscription);
         $this->cardDavName = '';
         unset($this->cardDavSubscriptions);
 
@@ -247,6 +264,7 @@ class ContactList extends Component
         if ($subscription) {
             $subscription->revoke();
             $this->newCardDavSecret = null;
+            $this->newCardDavUrl = null;
             unset($this->cardDavSubscriptions);
         }
     }
@@ -254,6 +272,7 @@ class ContactList extends Component
     public function dismissNewCardDavSecret(): void
     {
         $this->newCardDavSecret = null;
+        $this->newCardDavUrl = null;
     }
 
     public function render()
