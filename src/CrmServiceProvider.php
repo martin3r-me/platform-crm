@@ -94,6 +94,14 @@ class CrmServiceProvider extends ServiceProvider
             // customer-Modul/Contract nicht vorhanden
         }
 
+        // Personen-Verzeichnis dem people-Modul bereitstellen (guarded — people optional).
+        try {
+            resolve(\Platform\People\Services\ContactDirectoryRegistry::class)
+                ->register(new \Platform\Crm\People\CrmContactDirectory());
+        } catch (\Throwable $e) {
+            // people-Modul/Contract nicht vorhanden
+        }
+
         // Schritt 1: Config laden
         $this->mergeConfigFrom(__DIR__.'/../config/crm.php', 'crm');
         

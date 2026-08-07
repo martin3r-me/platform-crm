@@ -36,6 +36,8 @@ class CrmEntityLinkProvider implements EntityLinkProvider, HasMetricDefinitions
     {
         if ($morphAlias === 'crm_company') {
             $query->with(['postalAddresses', 'phoneNumbers', 'emailAddresses', 'contactStatus', 'industry']);
+        } elseif ($morphAlias === 'crm_contact') {
+            $query->with(['postalAddresses', 'phoneNumbers', 'emailAddresses', 'contactStatus']);
         }
     }
 
@@ -45,7 +47,15 @@ class CrmEntityLinkProvider implements EntityLinkProvider, HasMetricDefinitions
      */
     public function extractMetadata(string $morphAlias, mixed $model): array
     {
-        if ($morphAlias !== 'crm_company' || $model === null) {
+        if ($model === null) {
+            return [];
+        }
+
+        if ($morphAlias === 'crm_contact') {
+            return $this->extractContactMetadata($model);
+        }
+
+        if ($morphAlias !== 'crm_company') {
             return [];
         }
 
@@ -60,6 +70,28 @@ class CrmEntityLinkProvider implements EntityLinkProvider, HasMetricDefinitions
             'industry'   => $model->industry?->name,
             'website'    => $model->website,
             'vat_number' => $model->vat_number,
+            'address'    => $addr
+                ? trim(trim(($addr->street . ' ' . $addr->house_number)) . ', ' . trim($addr->postal_code . ' ' . $addr->city), ', ')
+                : null,
+            'phone'      => $phone?->international ?? $phone?->national ?? $phone?->raw_input,
+            'email'      => $email?->email_address,
+        ], fn ($v) => $v !== null && $v !== '');
+    }
+
+    /**
+     * Personen-Stammdaten eines crm_contact — damit people den Menschen am Personen-Knoten
+     * anreichern kann, OHNE das CRM-Model direkt zu kennen.
+     */
+    protected function extractContactMetadata(mixed $model): array
+    {
+        $addr  = $model->postalAddresses->firstWhere('is_primary', true) ?? $model->postalAddresses->first();
+        $phone = $model->phoneNumbers->firstWhere('is_primary', true) ?? $model->phoneNumbers->first();
+        $email = $model->emailAddresses->firstWhere('is_primary', true) ?? $model->emailAddresses->first();
+
+        return array_filter([
+            'name'       => trim(($model->first_name ?? '') . ' ' . ($model->last_name ?? '')),
+            'status'     => $model->contactStatus?->name,
+            'birth_date' => $model->birth_date?->toDateString(),
             'address'    => $addr
                 ? trim(trim(($addr->street . ' ' . $addr->house_number)) . ', ' . trim($addr->postal_code . ' ' . $addr->city), ', ')
                 : null,
