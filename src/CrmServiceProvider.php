@@ -162,9 +162,6 @@ class CrmServiceProvider extends ServiceProvider
 
         // Newsletter → Engagement Listener registrieren
         $this->registerNewsletterEngagementListener();
-
-        // ModalComms Livewire Komponente registrieren
-        \Livewire\Livewire::component('crm.modal-comms', \Platform\Crm\Livewire\ModalComms::class);
     }
 
     /**
