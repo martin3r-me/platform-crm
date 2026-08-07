@@ -34,12 +34,38 @@ class CrmEntityLinkProvider implements EntityLinkProvider, HasMetricDefinitions
 
     public function applyEagerLoading(Builder $query, string $morphAlias, string $fqcn): void
     {
-        // Keine speziellen Eager-Loadings nötig.
+        if ($morphAlias === 'crm_company') {
+            $query->with(['postalAddresses', 'phoneNumbers', 'emailAddresses', 'contactStatus', 'industry']);
+        }
     }
 
+    /**
+     * Generische Anzeige-Metadaten für den Graphen — damit andere Module (z. B. customer)
+     * die CRM-Stammdaten zeigen können, OHNE das CRM-Model direkt zu kennen.
+     */
     public function extractMetadata(string $morphAlias, mixed $model): array
     {
-        return [];
+        if ($morphAlias !== 'crm_company' || $model === null) {
+            return [];
+        }
+
+        $addr  = $model->postalAddresses->firstWhere('is_primary', true) ?? $model->postalAddresses->first();
+        $phone = $model->phoneNumbers->firstWhere('is_primary', true) ?? $model->phoneNumbers->first();
+        $email = $model->emailAddresses->firstWhere('is_primary', true) ?? $model->emailAddresses->first();
+
+        return array_filter([
+            'name'       => $model->name,
+            'legal_name' => $model->legal_name,
+            'status'     => $model->contactStatus?->name,
+            'industry'   => $model->industry?->name,
+            'website'    => $model->website,
+            'vat_number' => $model->vat_number,
+            'address'    => $addr
+                ? trim(trim(($addr->street . ' ' . $addr->house_number)) . ', ' . trim($addr->postal_code . ' ' . $addr->city), ', ')
+                : null,
+            'phone'      => $phone?->international ?? $phone?->national ?? $phone?->raw_input,
+            'email'      => $email?->email_address,
+        ], fn ($v) => $v !== null && $v !== '');
     }
 
     public function metadataDisplayRules(): array
