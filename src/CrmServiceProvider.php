@@ -86,6 +86,14 @@ class CrmServiceProvider extends ServiceProvider
             // Organization-Modul nicht geladen
         }
 
+        // Firmen-Verzeichnis dem customer-Modul bereitstellen (guarded — customer optional).
+        try {
+            resolve(\Platform\Customer\Services\CompanyDirectoryRegistry::class)
+                ->register(new \Platform\Crm\Customer\CrmCompanyDirectory());
+        } catch (\Throwable $e) {
+            // customer-Modul/Contract nicht vorhanden
+        }
+
         // Schritt 1: Config laden
         $this->mergeConfigFrom(__DIR__.'/../config/crm.php', 'crm');
         
