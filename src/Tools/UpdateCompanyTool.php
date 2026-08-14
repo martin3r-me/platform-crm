@@ -87,6 +87,10 @@ class UpdateCompanyTool implements ToolContract
                     'type' => 'string',
                     'description' => 'Optional: Neue Umsatzsteuer-ID.'
                 ],
+                'register_court' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Registergericht (z.B. "Amtsgericht Neuss").'
+                ],
                 'owned_by_user_id' => [
                     'type' => 'integer',
                     'description' => 'Optional: Neue Owner-User-ID.'
@@ -131,7 +135,7 @@ class UpdateCompanyTool implements ToolContract
 
             $fields = ['name', 'legal_name', 'trading_name', 'website', 'description', 'notes',
                       'industry_id', 'legal_form_id', 'contact_status_id', 'country_id',
-                      'registration_number', 'tax_number', 'vat_number', 'is_active'];
+                      'registration_number', 'register_court', 'tax_number', 'vat_number', 'is_active'];
 
             foreach ($fields as $field) {
                 if (isset($arguments[$field])) {

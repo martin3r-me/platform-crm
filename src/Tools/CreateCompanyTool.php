@@ -81,6 +81,10 @@ class CreateCompanyTool implements ToolContract, ToolMetadataContract
                     'type' => 'string',
                     'description' => 'Optional: Handelsregisternummer.'
                 ],
+                'register_court' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Registergericht (z.B. "Amtsgericht Neuss").'
+                ],
                 'tax_number' => [
                     'type' => 'string',
                     'description' => 'Optional: Steuernummer.'
@@ -173,6 +177,7 @@ class CreateCompanyTool implements ToolContract, ToolMetadataContract
                 'contact_status_id' => $contactStatusId,
                 'country_id' => $countryId,
                 'registration_number' => $arguments['registration_number'] ?? null,
+                'register_court' => $arguments['register_court'] ?? null,
                 'tax_number' => $arguments['tax_number'] ?? null,
                 'vat_number' => $arguments['vat_number'] ?? null,
                 'is_active' => $arguments['is_active'] ?? true,

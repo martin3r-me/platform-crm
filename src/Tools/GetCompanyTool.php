@@ -142,6 +142,7 @@ class GetCompanyTool implements ToolContract, ToolMetadataContract
                 'legal_name' => $company->legal_name,
                 'trading_name' => $company->trading_name,
                 'registration_number' => $company->registration_number,
+                'register_court' => $company->register_court,
                 'tax_number' => $company->tax_number,
                 'vat_number' => $company->vat_number,
                 'website' => $company->website,
