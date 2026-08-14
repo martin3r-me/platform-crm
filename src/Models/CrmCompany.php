@@ -23,6 +23,7 @@ class CrmCompany extends Model implements CompanyInterface
         'legal_name',
         'trading_name',
         'registration_number',
+        'register_court',
         'tax_number',
         'vat_number',
         'website',

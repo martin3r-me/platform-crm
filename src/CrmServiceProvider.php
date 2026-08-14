@@ -86,6 +86,15 @@ class CrmServiceProvider extends ServiceProvider
             // Organization-Modul nicht geladen
         }
 
+        // FLYNK-Kontext-Lieferant registrieren (loose Kopplung mit FlynkConnector).
+        // Liefert Impressum + Kontaktdaten des Kunden-Knotens an den Connector.
+        try {
+            resolve(\Platform\FlynkConnector\Services\FlynkContextRegistry::class)
+                ->register(new \Platform\Crm\Flynk\CrmFlynkContextProvider());
+        } catch (\Throwable $e) {
+            // FlynkConnector-Modul nicht geladen
+        }
+
         // Firmen-Verzeichnis dem customer-Modul bereitstellen (guarded — customer optional).
         try {
             resolve(\Platform\Customer\Services\CompanyDirectoryRegistry::class)
