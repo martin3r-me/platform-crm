@@ -385,18 +385,49 @@ trait WithCommsChannelSettings
             })
             ->whereNotNull('phone_number')
             ->where('phone_number', '!=', '')
-            ->with('integrationConnection.ownerUser')
+            ->with(['integrationConnection.ownerUser', 'phoneNumbers'])
             ->get();
 
-        $this->availableWhatsAppAccounts = $accounts->map(fn (IntegrationsWhatsAppAccount $a) => [
-            'id' => (int) $a->id,
-            'phone_number' => (string) $a->phone_number,
-            'title' => $a->title ? (string) $a->title : null,
-            'label' => $a->title
-                ? "{$a->title} ({$a->phone_number})"
-                : (string) $a->phone_number,
-            'owner' => $a->integrationConnection?->ownerUser?->name ?? '—',
-        ])->all();
+        // Eine Option je Rufnummer. Hat eine WABA mehrere Nummern, erscheinen alle
+        // einzeln; hat sie (noch) keine Kind-Nummern, bleibt es bei genau einer
+        // Option = primäre Nummer → exakt das heutige Verhalten (rückwärtskompatibel).
+        $options = [];
+
+        foreach ($accounts as $a) {
+            $owner = $a->integrationConnection?->ownerUser?->name ?? '—';
+            $numbers = $a->phoneNumbers;
+
+            if ($numbers->isEmpty()) {
+                // Fallback: id rein numerisch (Account-Id) → primäre Nummer.
+                $options[] = [
+                    'id' => (string) $a->id,
+                    'phone_number' => (string) $a->phone_number,
+                    'title' => $a->title ? (string) $a->title : null,
+                    'label' => $a->title
+                        ? "{$a->title} ({$a->phone_number})"
+                        : (string) $a->phone_number,
+                    'owner' => $owner,
+                ];
+                continue;
+            }
+
+            foreach ($numbers as $num) {
+                $display = $num->display_name ?: $a->title;
+                $options[] = [
+                    // Zusammengesetzte Auswahl "accountId:phone_number_id" → in
+                    // createWhatsAppChannel wieder auf Account + Nummer aufgelöst.
+                    'id' => "{$a->id}:{$num->phone_number_id}",
+                    'phone_number' => (string) $num->phone_number,
+                    'title' => $display ? (string) $display : null,
+                    'label' => $display
+                        ? "{$display} ({$num->phone_number})"
+                        : (string) $num->phone_number,
+                    'owner' => $owner,
+                ];
+            }
+        }
+
+        $this->availableWhatsAppAccounts = $options;
     }
 
     public function createChannel(): void
@@ -499,12 +530,16 @@ trait WithCommsChannelSettings
     private function createWhatsAppChannel(Team $rootTeam, $user, string $visibility): void
     {
         $this->validate([
-            'newChannel.whatsapp_account_id' => ['required', 'integer'],
+            'newChannel.whatsapp_account_id' => ['required', 'string'],
             'newChannel.name' => ['nullable', 'string', 'max:255'],
             'newChannel.visibility' => ['required', 'in:private,team'],
         ]);
 
-        $accountId = (int) $this->newChannel['whatsapp_account_id'];
+        // Auswahl ist entweder "accountId" (primäre Nummer, heutiges Verhalten)
+        // oder "accountId:phone_number_id" (eine konkrete Nummer der WABA).
+        $selection = (string) $this->newChannel['whatsapp_account_id'];
+        [$accountIdRaw, $selectedPhoneNumberId] = array_pad(explode(':', $selection, 2), 2, null);
+        $accountId = (int) $accountIdRaw;
 
         $account = IntegrationsWhatsAppAccount::query()
             ->whereKey($accountId)
@@ -521,8 +556,23 @@ trait WithCommsChannelSettings
             return;
         }
 
-        if (!$account->phone_number) {
-            $this->channelsMessage = '⛔️ Der gewählte WhatsApp Account hat keine Telefonnummer.';
+        // Gewählte Nummer auflösen; Default = primäre Nummer des Accounts.
+        $senderIdentifier = $account->phone_number;
+        $phoneNumberId = $account->phone_number_id;
+
+        if ($selectedPhoneNumberId !== null && $selectedPhoneNumberId !== '') {
+            $phoneNumber = $account->phoneNumbers()
+                ->where('phone_number_id', $selectedPhoneNumberId)
+                ->first();
+
+            if ($phoneNumber) {
+                $senderIdentifier = $phoneNumber->phone_number;
+                $phoneNumberId = $phoneNumber->phone_number_id;
+            }
+        }
+
+        if (!$senderIdentifier) {
+            $this->channelsMessage = '⛔️ Die gewählte WhatsApp Nummer hat keine Telefonnummer.';
             return;
         }
 
@@ -545,13 +595,13 @@ trait WithCommsChannelSettings
                 'comms_provider_connection_id' => $connection->id,
                 'type' => 'whatsapp',
                 'provider' => 'whatsapp_meta',
-                'name' => trim((string) ($this->newChannel['name'] ?? '')) ?: ($account->title ?: $account->phone_number),
-                'sender_identifier' => $account->phone_number,
+                'name' => trim((string) ($this->newChannel['name'] ?? '')) ?: ($account->title ?: $senderIdentifier),
+                'sender_identifier' => $senderIdentifier,
                 'visibility' => $visibility,
                 'is_active' => true,
                 'meta' => [
                     'integrations_whatsapp_account_id' => $account->id,
-                    'phone_number_id' => $account->phone_number_id,
+                    'phone_number_id' => $phoneNumberId,
                     'access_token' => $account->access_token,
                 ],
             ]);
