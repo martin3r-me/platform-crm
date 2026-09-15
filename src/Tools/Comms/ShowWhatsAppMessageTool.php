@@ -154,7 +154,7 @@ class ShowWhatsAppMessageTool implements ToolContract, ToolMetadataContract
     {
         return [
             'category' => 'query',
-            'tags' => ['comms', 'whatsapp', 'messages', 'detail'],
+            'tags' => ['comms', 'whatsapp', 'messages', 'detail', 'channel:whatsapp', 'action:get'],
             'read_only' => true,
             'requires_auth' => true,
             'requires_team' => true,

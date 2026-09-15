@@ -259,7 +259,7 @@ class WhatsAppOverviewTool implements ToolContract, ToolMetadataContract
     {
         return [
             'category' => 'utility',
-            'tags' => ['comms', 'whatsapp', 'overview', 'dashboard'],
+            'tags' => ['comms', 'whatsapp', 'overview', 'dashboard', 'channel:whatsapp', 'action:get', 'action:unread'],
             'read_only' => true,
             'requires_auth' => true,
             'requires_team' => true,

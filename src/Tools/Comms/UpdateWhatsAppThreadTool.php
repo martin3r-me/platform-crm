@@ -163,7 +163,7 @@ class UpdateWhatsAppThreadTool implements ToolContract, ToolMetadataContract
         return [
             'read_only' => false,
             'category' => 'action',
-            'tags' => ['comms', 'whatsapp', 'threads', 'update'],
+            'tags' => ['comms', 'whatsapp', 'threads', 'update', 'channel:whatsapp', 'action:update'],
             'risk_level' => 'write',
             'requires_auth' => true,
             'requires_team' => true,
