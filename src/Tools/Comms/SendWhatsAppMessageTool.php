@@ -215,7 +215,7 @@ class SendWhatsAppMessageTool implements ToolContract, ToolMetadataContract
         return [
             'read_only' => false,
             'category' => 'action',
-            'tags' => ['comms', 'whatsapp', 'send', 'outbound'],
+            'tags' => ['comms', 'whatsapp', 'send', 'outbound', 'channel:whatsapp', 'action:send'],
             'risk_level' => 'write',
             'requires_auth' => true,
             'requires_team' => true,

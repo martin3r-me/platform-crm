@@ -187,7 +187,7 @@ class ListWhatsAppMessagesTool implements ToolContract, ToolMetadataContract
     {
         return [
             'category' => 'query',
-            'tags' => ['comms', 'whatsapp', 'messages'],
+            'tags' => ['comms', 'whatsapp', 'messages', 'channel:whatsapp', 'action:list'],
             'read_only' => true,
             'requires_auth' => true,
             'requires_team' => true,

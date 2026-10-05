@@ -138,7 +138,7 @@ class CreateWhatsAppConversationThreadTool implements ToolContract, ToolMetadata
         return [
             'read_only' => false,
             'category' => 'action',
-            'tags' => ['comms', 'whatsapp', 'threads', 'conversation', 'create'],
+            'tags' => ['comms', 'whatsapp', 'threads', 'conversation', 'create', 'channel:whatsapp', 'action:create'],
             'risk_level' => 'write',
             'requires_auth' => true,
             'requires_team' => true,

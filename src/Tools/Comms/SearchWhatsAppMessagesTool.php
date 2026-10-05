@@ -186,7 +186,7 @@ class SearchWhatsAppMessagesTool implements ToolContract, ToolMetadataContract
     {
         return [
             'category' => 'query',
-            'tags' => ['comms', 'whatsapp', 'messages', 'search', 'fulltext'],
+            'tags' => ['comms', 'whatsapp', 'messages', 'search', 'fulltext', 'channel:whatsapp', 'action:search'],
             'read_only' => true,
             'requires_auth' => true,
             'requires_team' => true,

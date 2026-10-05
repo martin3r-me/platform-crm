@@ -152,7 +152,7 @@ class ListWhatsAppConversationThreadsTool implements ToolContract, ToolMetadataC
     {
         return [
             'category' => 'query',
-            'tags' => ['comms', 'whatsapp', 'threads', 'conversation'],
+            'tags' => ['comms', 'whatsapp', 'threads', 'conversation', 'channel:whatsapp', 'action:list'],
             'read_only' => true,
             'requires_auth' => true,
             'requires_team' => true,

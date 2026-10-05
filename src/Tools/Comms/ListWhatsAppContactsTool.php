@@ -156,7 +156,7 @@ class ListWhatsAppContactsTool implements ToolContract, ToolMetadataContract
     {
         return [
             'category' => 'query',
-            'tags' => ['comms', 'whatsapp', 'contacts'],
+            'tags' => ['comms', 'whatsapp', 'contacts', 'channel:whatsapp', 'action:list'],
             'read_only' => true,
             'requires_auth' => true,
             'requires_team' => true,

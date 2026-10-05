@@ -186,7 +186,7 @@ class ShowWhatsAppConversationThreadTool implements ToolContract, ToolMetadataCo
     {
         return [
             'category' => 'query',
-            'tags' => ['comms', 'whatsapp', 'threads', 'conversation', 'detail'],
+            'tags' => ['comms', 'whatsapp', 'threads', 'conversation', 'detail', 'channel:whatsapp', 'action:get'],
             'read_only' => true,
             'requires_auth' => true,
             'requires_team' => true,
