@@ -341,10 +341,15 @@ class WhatsAppMetaService
             return;
         }
 
-        $updates = [
-            'status' => $status,
-            'status_updated_at' => $timestamp ? \Carbon\Carbon::createFromTimestamp($timestamp) : now(),
-        ];
+        $statusUpdatedAt = $timestamp ? \Carbon\Carbon::createFromTimestamp($timestamp) : now();
+        $updates = [];
+
+        // Meta liefert Status-Webhooks nicht garantiert in Reihenfolge: failed ist Endzustand
+        // (nur delivered/read gelten als Zustellbeweis), sonst nur vorwärts (sent < delivered < read).
+        if ($this->shouldApplyStatus($message->status, $status)) {
+            $updates['status'] = $status;
+            $updates['status_updated_at'] = $statusUpdatedAt;
+        }
 
         // Store error details for failed messages and log with context
         if ($status === 'failed') {
@@ -382,16 +387,34 @@ class WhatsAppMetaService
         }
 
         if ($status === 'sent' && !$message->sent_at) {
-            $updates['sent_at'] = $updates['status_updated_at'];
+            $updates['sent_at'] = $statusUpdatedAt;
         }
         if ($status === 'delivered' && !$message->delivered_at) {
-            $updates['delivered_at'] = $updates['status_updated_at'];
+            $updates['delivered_at'] = $statusUpdatedAt;
         }
         if ($status === 'read' && !$message->read_at) {
-            $updates['read_at'] = $updates['status_updated_at'];
+            $updates['read_at'] = $statusUpdatedAt;
         }
 
         $message->update($updates);
+    }
+
+    /**
+     * Prüft, ob ein eingehender Webhook-Status den aktuellen Status überschreiben darf.
+     */
+    protected function shouldApplyStatus(?string $current, string $incoming): bool
+    {
+        $rank = ['sent' => 1, 'delivered' => 2, 'read' => 3];
+
+        if ($current === 'failed') {
+            return in_array($incoming, ['delivered', 'read'], true);
+        }
+
+        if (isset($rank[$current], $rank[$incoming])) {
+            return $rank[$incoming] >= $rank[$current];
+        }
+
+        return true;
     }
 
     /**
