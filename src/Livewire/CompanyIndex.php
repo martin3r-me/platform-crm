@@ -9,11 +9,13 @@ use Platform\Crm\Models\CrmContactStatus;
 use Platform\Crm\Models\CrmCountry;
 use Platform\Crm\Models\CrmIndustry;
 use Platform\Crm\Models\CrmLegalForm;
+use Platform\Crm\Models\CrmCompanyType;
 
 class CompanyIndex extends Component
 {
     public string $search = '';
     public $statusFilter = null;
+    public $companyTypeFilter = null;
     public $industryFilter = null;
     public $legalFormFilter = null;
     public $countryFilter = null;
@@ -40,6 +42,7 @@ class CompanyIndex extends Component
     public $industry_id = '';
     public $legal_form_id = '';
     public $contact_status_id = '';
+    public $company_type_id = '';
     public $country_id = '';
 
     // Quick-create: optional primary email + phone
@@ -54,6 +57,7 @@ class CompanyIndex extends Component
     }
 
     public function updatedStatusFilter(): void { $this->page = 1; }
+    public function updatedCompanyTypeFilter(): void { $this->page = 1; }
     public function updatedIndustryFilter(): void { $this->page = 1; }
     public function updatedLegalFormFilter(): void { $this->page = 1; }
     public function updatedCountryFilter(): void { $this->page = 1; }
@@ -62,7 +66,7 @@ class CompanyIndex extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['statusFilter', 'industryFilter', 'legalFormFilter', 'countryFilter', 'createdFrom', 'createdTo', 'search']);
+        $this->reset(['statusFilter', 'companyTypeFilter', 'industryFilter', 'legalFormFilter', 'countryFilter', 'createdFrom', 'createdTo', 'search']);
         $this->page = 1;
     }
 
@@ -70,6 +74,7 @@ class CompanyIndex extends Component
     public function hasActiveFilters(): bool
     {
         return !empty($this->statusFilter)
+            || !empty($this->companyTypeFilter)
             || !empty($this->industryFilter)
             || !empty($this->legalFormFilter)
             || !empty($this->countryFilter)
@@ -88,7 +93,7 @@ class CompanyIndex extends Component
     {
         $search = trim($this->search);
 
-        return CrmCompany::with(['industry', 'legalForm', 'contactStatus', 'emailAddresses', 'phoneNumbers', 'postalAddresses', 'contactRelations.contact'])
+        return CrmCompany::with(['industry', 'legalForm', 'contactStatus', 'companyType', 'emailAddresses', 'phoneNumbers', 'postalAddresses', 'contactRelations.contact'])
             ->where('team_id', $this->getTeamId())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(fn ($sub) => $sub
@@ -103,6 +108,7 @@ class CompanyIndex extends Component
                 );
             })
             ->when(! empty($this->statusFilter), fn ($q) => $q->where('contact_status_id', $this->statusFilter))
+            ->when(! empty($this->companyTypeFilter), fn ($q) => $q->where('company_type_id', $this->companyTypeFilter))
             ->when(! empty($this->industryFilter), fn ($q) => $q->where('industry_id', $this->industryFilter))
             ->when(! empty($this->legalFormFilter), fn ($q) => $q->where('legal_form_id', $this->legalFormFilter))
             ->when(! empty($this->countryFilter), fn ($q) => $q->where('country_id', $this->countryFilter))
@@ -177,6 +183,7 @@ class CompanyIndex extends Component
             'industry_id' => 'nullable|exists:crm_industries,id',
             'legal_form_id' => 'nullable|exists:crm_legal_forms,id',
             'contact_status_id' => 'required|exists:crm_contact_statuses,id',
+            'company_type_id' => 'nullable|exists:crm_company_types,id',
             'country_id' => 'nullable|exists:crm_countries,id',
             'primary_email' => 'nullable|email|max:255',
             'primary_phone' => 'nullable|string|max:255',
@@ -195,6 +202,7 @@ class CompanyIndex extends Component
             'industry_id' => $this->industry_id ?: null,
             'legal_form_id' => $this->legal_form_id ?: null,
             'contact_status_id' => $this->contact_status_id,
+            'company_type_id' => $this->company_type_id ?: null,
             'country_id' => $this->country_id ?: null,
             'team_id' => $this->getTeamId(),
             'created_by_user_id' => auth()->id(),
@@ -254,6 +262,7 @@ class CompanyIndex extends Component
 
         return view('crm::livewire.company-index', [
             'contactStatuses' => CrmContactStatus::active()->get(),
+            'companyTypes' => CrmCompanyType::active()->get(),
             'industries' => CrmIndustry::active()->get(),
             'legalForms' => CrmLegalForm::active()->get(),
             'countries' => CrmCountry::active()->get(),
@@ -283,7 +292,7 @@ class CompanyIndex extends Component
         $this->reset([
             'name', 'legal_name', 'trading_name', 'registration_number',
             'tax_number', 'vat_number', 'website', 'description', 'notes',
-            'industry_id', 'legal_form_id', 'contact_status_id', 'country_id',
+            'industry_id', 'legal_form_id', 'contact_status_id', 'company_type_id', 'country_id',
             'primary_email', 'primary_phone',
         ]);
     }

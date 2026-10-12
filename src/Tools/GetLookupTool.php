@@ -17,6 +17,7 @@ use Platform\Crm\Models\CrmEmailType;
 use Platform\Crm\Models\CrmGender;
 use Platform\Crm\Models\CrmIndustry;
 use Platform\Crm\Models\CrmLegalForm;
+use Platform\Crm\Models\CrmCompanyType;
 use Platform\Crm\Models\CrmLanguage;
 use Platform\Crm\Models\CrmPhoneType;
 use Platform\Crm\Models\CrmSalutation;
@@ -60,6 +61,7 @@ class GetLookupTool implements ToolContract, ToolMetadataContract
                             'contact_statuses',
                             'industries',
                             'legal_forms',
+                            'company_types',
                             'countries',
                             'states',
                             'address_types',
@@ -165,6 +167,7 @@ class GetLookupTool implements ToolContract, ToolMetadataContract
             'contact_statuses' => [CrmContactStatus::class, ['name', 'code']],
             'industries' => [CrmIndustry::class, ['name', 'code']],
             'legal_forms' => [CrmLegalForm::class, ['name', 'code']],
+            'company_types' => [CrmCompanyType::class, ['name', 'code']],
             'countries' => [CrmCountry::class, ['name', 'code']],
             'states' => [CrmState::class, ['name', 'code']],
             'address_types' => [CrmAddressType::class, ['name', 'code']],

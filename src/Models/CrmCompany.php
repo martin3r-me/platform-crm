@@ -32,6 +32,7 @@ class CrmCompany extends Model implements CompanyInterface
         'industry_id',
         'legal_form_id',
         'contact_status_id',
+        'company_type_id',
         'country_id',
         'created_by_user_id',
         'owned_by_user_id',
@@ -101,7 +102,12 @@ class CrmCompany extends Model implements CompanyInterface
     {
         return $this->belongsTo(CrmContactStatus::class, 'contact_status_id');
     }
-    
+
+    public function companyType(): BelongsTo
+    {
+        return $this->belongsTo(CrmCompanyType::class, 'company_type_id');
+    }
+
     public function country(): BelongsTo
     {
         return $this->belongsTo(CrmCountry::class, 'country_id');

@@ -34,6 +34,7 @@ class CrmLookupSeeder extends Seeder
             CrmAddressTypeSeeder::class,
             CrmLegalFormSeeder::class,
             CrmIndustrySeeder::class,
+            CrmCompanyTypeSeeder::class,
             CrmCountrySeeder::class,
             CrmStateSeeder::class,
             CrmContactRelationTypeSeeder::class,

@@ -56,6 +56,7 @@ class BulkCreateCompaniesTool implements ToolContract, ToolMetadataContract
                             'industry_id' => ['type' => 'integer', 'description' => 'Optional: Branchen-ID.'],
                             'legal_form_id' => ['type' => 'integer', 'description' => 'Optional: Rechtsform-ID.'],
                             'contact_status_id' => ['type' => 'integer', 'description' => 'Optional: Kontaktstatus-ID.'],
+                            'company_type_id' => ['type' => 'integer', 'description' => 'Optional: Company-Typ-ID (Partner / Großhändler / Endkunde).'],
                             'country_id' => ['type' => 'integer', 'description' => 'Optional: Länder-ID.'],
                             'registration_number' => ['type' => 'string', 'description' => 'Optional: Handelsregisternummer.'],
                             'tax_number' => ['type' => 'string', 'description' => 'Optional: Steuernummer.'],
@@ -133,6 +134,8 @@ class BulkCreateCompaniesTool implements ToolContract, ToolMetadataContract
                         if ($legalFormId === 0 || $legalFormId === '0') { $legalFormId = null; }
                         $contactStatusId = $item['contact_status_id'] ?? null;
                         if ($contactStatusId === 0 || $contactStatusId === '0') { $contactStatusId = null; }
+                        $companyTypeId = $item['company_type_id'] ?? null;
+                        if ($companyTypeId === 0 || $companyTypeId === '0') { $companyTypeId = null; }
                         $countryId = $item['country_id'] ?? null;
                         if ($countryId === 0 || $countryId === '0') { $countryId = null; }
 
@@ -149,6 +152,7 @@ class BulkCreateCompaniesTool implements ToolContract, ToolMetadataContract
                             'industry_id' => $industryId,
                             'legal_form_id' => $legalFormId,
                             'contact_status_id' => $contactStatusId,
+                            'company_type_id' => $companyTypeId,
                             'country_id' => $countryId,
                             'registration_number' => $item['registration_number'] ?? null,
                             'tax_number' => $item['tax_number'] ?? null,

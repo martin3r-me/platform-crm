@@ -53,6 +53,7 @@ class BulkUpdateCompaniesTool implements ToolContract, ToolMetadataContract
                             'industry_id' => ['type' => 'integer', 'description' => 'Optional: Neue Branchen-ID.'],
                             'legal_form_id' => ['type' => 'integer', 'description' => 'Optional: Neue Rechtsform-ID.'],
                             'contact_status_id' => ['type' => 'integer', 'description' => 'Optional: Neue Kontaktstatus-ID.'],
+                            'company_type_id' => ['type' => 'integer', 'description' => 'Optional: Neue Company-Typ-ID (Partner / Großhändler / Endkunde).'],
                             'country_id' => ['type' => 'integer', 'description' => 'Optional: Neue Länder-ID.'],
                             'registration_number' => ['type' => 'string', 'description' => 'Optional: Neue Handelsregisternummer.'],
                             'tax_number' => ['type' => 'string', 'description' => 'Optional: Neue Steuernummer.'],
@@ -110,13 +111,13 @@ class BulkUpdateCompaniesTool implements ToolContract, ToolMetadataContract
 
                         $updateData = [];
                         $fields = ['name', 'legal_name', 'trading_name', 'website', 'description', 'notes',
-                                  'industry_id', 'legal_form_id', 'contact_status_id', 'country_id',
+                                  'industry_id', 'legal_form_id', 'contact_status_id', 'company_type_id', 'country_id',
                                   'registration_number', 'tax_number', 'vat_number', 'is_active'];
 
                         foreach ($fields as $field) {
                             if (isset($item[$field])) {
                                 $v = $item[$field];
-                                if (in_array($field, ['industry_id', 'legal_form_id', 'contact_status_id', 'country_id'], true)) {
+                                if (in_array($field, ['industry_id', 'legal_form_id', 'contact_status_id', 'company_type_id', 'country_id'], true)) {
                                     if ($v === 0 || $v === '0') { $v = null; }
                                 }
                                 $updateData[$field] = $v;

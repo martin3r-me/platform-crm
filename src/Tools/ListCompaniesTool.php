@@ -85,11 +85,13 @@ class ListCompaniesTool implements ToolContract, ToolMetadataContract
             // Query aufbauen - nur Companies dieses Teams (CRM-UI arbeitet root-scoped)
             $query = CrmCompany::query()
                 ->where('team_id', $teamIdArg)
-                ->with(['industry', 'legalForm', 'contactStatus', 'country', 'createdByUser', 'ownedByUser']);
+                ->with(['industry', 'legalForm', 'contactStatus', 'companyType', 'country', 'createdByUser', 'ownedByUser']);
 
             // Standard-Operationen anwenden
             $this->applyStandardFilters($query, $arguments, [
-                'name', 'legal_name', 'trading_name', 'website', 'description', 'is_active', 'created_at', 'updated_at'
+                'name', 'legal_name', 'trading_name', 'website', 'description', 'is_active',
+                'industry_id', 'legal_form_id', 'contact_status_id', 'company_type_id', 'country_id',
+                'created_at', 'updated_at'
             ]);
 
             // Legacy: name_search
@@ -125,6 +127,7 @@ class ListCompaniesTool implements ToolContract, ToolMetadataContract
                     'industry' => $company->industry?->name,
                     'legal_form' => $company->legalForm?->name,
                     'contact_status' => $company->contactStatus?->name,
+                    'company_type' => $company->companyType?->name,
                     'country' => $company->country?->name,
                     'is_active' => $company->is_active,
                     'created_by' => $company->createdByUser?->name,

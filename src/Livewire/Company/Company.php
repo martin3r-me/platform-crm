@@ -30,6 +30,7 @@ class Company extends Component
     
     // Properties für die rechte Spalte
     public $contactStatuses;
+    public $companyTypes = [];
     public $emailTypes = [];
     public $phoneTypes = [];
     public $addressTypes = [];
@@ -151,6 +152,7 @@ class Company extends Component
         'company.notes' => 'nullable|string',
         'company.legal_form_id' => 'nullable|integer|exists:crm_legal_forms,id',
         'company.contact_status_id' => 'required|integer|exists:crm_contact_statuses,id',
+        'company.company_type_id' => 'nullable|integer|exists:crm_company_types,id',
     ];
 
     public function mount(CrmCompany $company = null, $mode = 'show')
@@ -162,6 +164,7 @@ class Company extends Component
         
         // Daten für die rechte Spalte laden
         $this->contactStatuses = \Platform\Crm\Models\CrmContactStatus::active()->get();
+        $this->companyTypes = \Platform\Crm\Models\CrmCompanyType::active()->get();
         $this->emailTypes = CrmEmailType::active()->get();
         $this->phoneTypes = CrmPhoneType::active()->get();
         $this->addressTypes = CrmAddressType::active()->get();
@@ -224,6 +227,7 @@ class Company extends Component
             'company.description',
             'company.notes',
             'company.legal_form_id',
+            'company.company_type_id',
         ];
 
         foreach ($nullableFields as $field) {

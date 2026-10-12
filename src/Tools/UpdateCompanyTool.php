@@ -71,6 +71,10 @@ class UpdateCompanyTool implements ToolContract
                     'type' => 'integer',
                     'description' => 'Optional: Neuer Kontaktstatus-ID.'
                 ],
+                'company_type_id' => [
+                    'type' => 'integer',
+                    'description' => 'Optional: Neuer Company-Typ-ID (Partner / Großhändler / Endkunde). Nutze "crm.lookups.GET".'
+                ],
                 'country_id' => [
                     'type' => 'integer',
                     'description' => 'Optional: Neue Länder-ID.'
@@ -134,14 +138,14 @@ class UpdateCompanyTool implements ToolContract
             $updateData = [];
 
             $fields = ['name', 'legal_name', 'trading_name', 'website', 'description', 'notes',
-                      'industry_id', 'legal_form_id', 'contact_status_id', 'country_id',
+                      'industry_id', 'legal_form_id', 'contact_status_id', 'company_type_id', 'country_id',
                       'registration_number', 'register_court', 'tax_number', 'vat_number', 'is_active'];
 
             foreach ($fields as $field) {
                 if (isset($arguments[$field])) {
                     $v = $arguments[$field];
                     // FK-IDs: 0/"0" ist KEIN gültiger FK-Wert → als null behandeln (verhindert FK-Constraint Errors)
-                    if (in_array($field, ['industry_id', 'legal_form_id', 'contact_status_id', 'country_id'], true)) {
+                    if (in_array($field, ['industry_id', 'legal_form_id', 'contact_status_id', 'company_type_id', 'country_id'], true)) {
                         if ($v === 0 || $v === '0') { $v = null; }
                     }
                     $updateData[$field] = $v;
@@ -164,7 +168,7 @@ class UpdateCompanyTool implements ToolContract
 
             // Aktualisierte Company laden
             $company->refresh();
-            $company->load(['industry', 'legalForm', 'contactStatus', 'country', 'createdByUser', 'ownedByUser']);
+            $company->load(['industry', 'legalForm', 'contactStatus', 'companyType', 'country', 'createdByUser', 'ownedByUser']);
 
             return ToolResult::success([
                 'id' => $company->id,
@@ -177,6 +181,7 @@ class UpdateCompanyTool implements ToolContract
                 'industry' => $company->industry?->name,
                 'legal_form' => $company->legalForm?->name,
                 'contact_status' => $company->contactStatus?->name,
+                'company_type' => $company->companyType?->name,
                 'country' => $company->country?->name,
                 'is_active' => $company->is_active,
                 'owned_by' => $company->ownedByUser?->name,

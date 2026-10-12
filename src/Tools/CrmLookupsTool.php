@@ -73,6 +73,11 @@ class CrmLookupsTool implements ToolContract, ToolMetadataContract
                     'tool' => 'crm.lookup.GET',
                 ],
                 [
+                    'key' => 'company_types',
+                    'description' => 'Company-Typen / fachliche Rolle (Partner, Großhändler, Endkunde)',
+                    'tool' => 'crm.lookup.GET',
+                ],
+                [
                     'key' => 'countries',
                     'description' => 'Länder (ISO2 code)',
                     'tool' => 'crm.lookup.GET',

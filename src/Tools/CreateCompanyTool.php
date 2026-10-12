@@ -73,6 +73,10 @@ class CreateCompanyTool implements ToolContract, ToolMetadataContract
                     'type' => 'integer',
                     'description' => 'Optional: ID des Kontaktstatus. Frage nach, wenn der Nutzer einen Status angibt.'
                 ],
+                'company_type_id' => [
+                    'type' => 'integer',
+                    'description' => 'Optional: ID des Company-Typs (Partner / Großhändler / Endkunde). Nutze "crm.lookups.GET" um verfügbare Typen zu sehen.'
+                ],
                 'country_id' => [
                     'type' => 'integer',
                     'description' => 'Optional: ID des Landes. Frage nach, wenn der Nutzer ein Land angibt.'
@@ -158,6 +162,8 @@ class CreateCompanyTool implements ToolContract, ToolMetadataContract
             if ($legalFormId === 0 || $legalFormId === '0') { $legalFormId = null; }
             $contactStatusId = $arguments['contact_status_id'] ?? null;
             if ($contactStatusId === 0 || $contactStatusId === '0') { $contactStatusId = null; }
+            $companyTypeId = $arguments['company_type_id'] ?? null;
+            if ($companyTypeId === 0 || $companyTypeId === '0') { $companyTypeId = null; }
             $countryId = $arguments['country_id'] ?? null;
             if ($countryId === 0 || $countryId === '0') { $countryId = null; }
 
@@ -175,6 +181,7 @@ class CreateCompanyTool implements ToolContract, ToolMetadataContract
                 'industry_id' => $industryId,
                 'legal_form_id' => $legalFormId,
                 'contact_status_id' => $contactStatusId,
+                'company_type_id' => $companyTypeId,
                 'country_id' => $countryId,
                 'registration_number' => $arguments['registration_number'] ?? null,
                 'register_court' => $arguments['register_court'] ?? null,
@@ -184,7 +191,7 @@ class CreateCompanyTool implements ToolContract, ToolMetadataContract
             ]);
 
             // Beziehungen laden
-            $company->load(['industry', 'legalForm', 'contactStatus', 'country', 'createdByUser', 'ownedByUser']);
+            $company->load(['industry', 'legalForm', 'contactStatus', 'companyType', 'country', 'createdByUser', 'ownedByUser']);
 
             return ToolResult::success([
                 'id' => $company->id,
@@ -197,6 +204,7 @@ class CreateCompanyTool implements ToolContract, ToolMetadataContract
                 'industry' => $company->industry?->name,
                 'legal_form' => $company->legalForm?->name,
                 'contact_status' => $company->contactStatus?->name,
+                'company_type' => $company->companyType?->name,
                 'country' => $company->country?->name,
                 'is_active' => $company->is_active,
                 'created_by' => $company->createdByUser?->name,
