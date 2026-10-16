@@ -51,6 +51,47 @@ class WhatsAppMetaService
     }
 
     /**
+     * Send an interactive message (button|list|cta_url) via WhatsApp.
+     * $interactive is the Meta "interactive" object, passed through 1:1.
+     */
+    public function sendInteractive(
+        CommsChannel $channel,
+        string $to,
+        array $interactive,
+        string $displayBody,
+        ?User $sender = null,
+        bool $isAutoReply = false,
+    ): CommsWhatsAppMessage {
+        $this->validateChannel($channel);
+        $creds = $this->getCredentials($channel);
+        $phone = $this->normalizePhoneNumber($to);
+
+        $url = "https://graph.facebook.com/{$this->apiVersion}/{$creds['phone_number_id']}/messages";
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$creds['access_token']}",
+            'Content-Type' => 'application/json',
+        ])->post($url, [
+            'messaging_product' => 'whatsapp',
+            'to' => $phone,
+            'type' => 'interactive',
+            'interactive' => $interactive,
+        ]);
+
+        return $this->handleSendResponse(
+            $response,
+            $channel,
+            $phone,
+            $displayBody,
+            'interactive',
+            $sender,
+            null,
+            null,
+            $isAutoReply
+        );
+    }
+
+    /**
      * Send a template message via WhatsApp.
      */
     public function sendTemplate(
