@@ -120,7 +120,7 @@ class CrmServiceProvider extends ServiceProvider
         if (
             config()->has('crm.routing') &&
             config()->has('crm.navigation') &&
-            Schema::hasTable('modules')
+            PlatformCore::modulesTableExists()
         ) {
             PlatformCore::registerModule([
                 'key'        => 'crm',
