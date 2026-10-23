@@ -3,6 +3,8 @@
 namespace Platform\Crm\Livewire\Newsletter;
 
 use Livewire\Component;
+use Illuminate\Database\Eloquent\Model;
+use Platform\Core\Livewire\Concerns\HasPageContext;
 use Livewire\Attributes\Computed;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
@@ -14,7 +16,7 @@ use Platform\Crm\Services\Comms\NewsletterService;
 
 class Newsletter extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, HasPageContext;
 
     public CommsNewsletter $newsletter;
 
@@ -60,6 +62,19 @@ class Newsletter extends Component
                 $this->nextNewsletterId = $pos < count($ids) - 1 ? $ids[$pos + 1] : null;
             }
         }
+    }
+
+    protected function pageContext(): ?Model
+    {
+        return $this->newsletter;
+    }
+
+    protected function pageContextOptions(): array
+    {
+        return [
+            'url' => route('crm.newsletters.show', $this->newsletter),
+            'source' => 'crm.newsletters.view',
+        ];
     }
 
     public function save(): void

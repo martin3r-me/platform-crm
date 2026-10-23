@@ -3,6 +3,8 @@
 namespace Platform\Crm\Livewire\Engagement;
 
 use Livewire\Component;
+use Illuminate\Database\Eloquent\Model;
+use Platform\Core\Livewire\Concerns\HasPageContext;
 use Livewire\Attributes\Computed;
 use Platform\Crm\Models\CrmEngagement;
 use Platform\Crm\Models\CrmContact;
@@ -10,6 +12,8 @@ use Platform\Crm\Models\CrmCompany;
 
 class Engagement extends Component
 {
+    use HasPageContext;
+
     public CrmEngagement $engagement;
 
     // Editable fields
@@ -56,6 +60,19 @@ class Engagement extends Component
                 $this->nextEngagementId = $pos < count($ids) - 1 ? $ids[$pos + 1] : null;
             }
         }
+    }
+
+    protected function pageContext(): ?Model
+    {
+        return $this->engagement;
+    }
+
+    protected function pageContextOptions(): array
+    {
+        return [
+            'url' => route('crm.engagements.show', $this->engagement),
+            'source' => 'crm.engagements.view',
+        ];
     }
 
     public function rules(): array

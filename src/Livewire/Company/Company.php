@@ -3,6 +3,8 @@
 namespace Platform\Crm\Livewire\Company;
 
 use Livewire\Component;
+use Illuminate\Database\Eloquent\Model;
+use Platform\Core\Livewire\Concerns\HasPageContext;
 use Livewire\Attributes\Computed;
 use Platform\Crm\Models\CrmCompany;
 use Platform\Crm\Models\CrmEmailType;
@@ -24,6 +26,8 @@ use libphonenumber\PhoneNumberFormat;
 
 class Company extends Component
 {
+    use HasPageContext;
+
     public CrmCompany $company;
     public string $activeTab = 'stammdaten';
     public $mode = 'show'; // 'show' oder 'edit'
@@ -200,18 +204,17 @@ class Company extends Component
         }
     }
 
-    public function rendered()
+    protected function pageContext(): ?Model
     {
-        $this->dispatch('comms', [
-            'model' => get_class($this->company),
-            'modelId' => $this->company->id,
-            'subject' => $this->company->name,
-            'description' => '',
-            'url' => route('crm.companies.show', $this->company),
-            'source' => 'crm.companies.view'
-        ]);
+        return $this->company;
+    }
 
-        $this->dispatch('terminal:app:activity');
+    protected function pageContextOptions(): array
+    {
+        return [
+            'url' => route('crm.companies.show', $this->company),
+            'source' => 'crm.companies.view',
+        ];
     }
 
     protected function prepareForValidation($attributes)

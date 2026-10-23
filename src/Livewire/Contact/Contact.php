@@ -3,6 +3,8 @@
 namespace Platform\Crm\Livewire\Contact;
 
 use Livewire\Component;
+use Illuminate\Database\Eloquent\Model;
+use Platform\Core\Livewire\Concerns\HasPageContext;
 use Livewire\Attributes\Computed;
 use Carbon\Carbon;
 use Platform\Crm\Models\CrmContact;
@@ -34,6 +36,8 @@ use libphonenumber\PhoneNumberFormat;
 
 class Contact extends Component
 {
+    use HasPageContext;
+
     public CrmContact $contact;
     public string $activeTab = 'stammdaten';
 
@@ -245,18 +249,18 @@ class Contact extends Component
         $this->contact->birth_date = $this->birthDate;
     }
 
-    public function rendered()
+    protected function pageContext(): ?Model
     {
-        $this->dispatch('comms', [
-            'model' => get_class($this->contact),
-            'modelId' => $this->contact->id,
-            'subject' => $this->contact->display_name,
-            'description' => '',
-            'url' => route('crm.contacts.show', $this->contact),
-            'source' => 'crm.contacts.view'
-        ]);
+        return $this->contact;
+    }
 
-        $this->dispatch('terminal:app:activity');
+    protected function pageContextOptions(): array
+    {
+        return [
+            'subject' => $this->contact->display_name,
+            'url' => route('crm.contacts.show', $this->contact),
+            'source' => 'crm.contacts.view',
+        ];
     }
 
     public function rules(): array
