@@ -35,12 +35,9 @@ class Engagement extends Component
     public ?int $prevEngagementId = null;
     public ?int $nextEngagementId = null;
 
-    // Activity
-    public string $newNote = '';
-
     public function mount(CrmEngagement $engagement)
     {
-        $this->engagement = $engagement->load(['companyLinks.company', 'contactLinks.contact', 'ownedByUser', 'createdByUser', 'activities.user']);
+        $this->engagement = $engagement->load(['companyLinks.company', 'contactLinks.contact', 'ownedByUser', 'createdByUser']);
 
         $this->title = $this->engagement->title ?? '';
         $this->body = $this->engagement->body;
@@ -215,24 +212,6 @@ class Engagement extends Component
             ->whereNotIn('id', $linkedIds)
             ->orderBy('name')
             ->get();
-    }
-
-    public function addNote(): void
-    {
-        $this->validate(['newNote' => 'required|string|max:1000']);
-        $this->engagement->logActivity($this->newNote);
-        $this->newNote = '';
-        $this->engagement->load('activities.user');
-    }
-
-    public function deleteNote(int $activityId): void
-    {
-        $this->engagement->activities()
-            ->where('id', $activityId)
-            ->where('activity_type', 'manual')
-            ->where('user_id', auth()->id())
-            ->delete();
-        $this->engagement->load('activities.user');
     }
 
     public function render()

@@ -43,7 +43,6 @@ class Company extends Component
     public $relationTypes = [];
     public $contacts = [];
     public $legalForms = [];
-    public string $newNote = '';
 
     // Follow-up Form
     public $followUpForm = [
@@ -162,7 +161,7 @@ class Company extends Component
     public function mount(CrmCompany $company = null, $mode = 'show')
     {
         if ($company) {
-            $this->company = $company->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.contact', 'activities.user', 'followUps']);
+            $this->company = $company->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.contact', 'followUps']);
         }
         $this->mode = $mode;
         
@@ -801,24 +800,6 @@ class Company extends Component
     {
         $this->company->followUps()->where('id', $id)->delete();
         $this->company->load('followUps');
-    }
-
-    public function addNote(): void
-    {
-        $this->validate(['newNote' => 'required|string|max:1000']);
-        $this->company->logActivity($this->newNote);
-        $this->newNote = '';
-        $this->company->load('activities.user');
-    }
-
-    public function deleteNote(int $activityId): void
-    {
-        $this->company->activities()
-            ->where('id', $activityId)
-            ->where('activity_type', 'manual')
-            ->where('user_id', auth()->id())
-            ->delete();
-        $this->company->load('activities.user');
     }
 
     // Engagement Methods

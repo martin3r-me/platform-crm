@@ -59,7 +59,6 @@
             </div>
         </x-ui-page-sidebar>
     </x-slot>
-    <x-slot name="activity"></x-slot>
 
     <x-ui-page-container>
 

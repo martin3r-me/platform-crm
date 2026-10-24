@@ -57,60 +57,6 @@
         </x-ui-page-sidebar>
     </x-slot>
 
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="true" storeKey="activityOpen" side="right">
-            <div class="h-full flex flex-col">
-                <div class="flex-1 overflow-y-auto p-4 space-y-3">
-                    @forelse($this->recentActivities as $activity)
-                        <div class="flex gap-3">
-                            <div class="flex-shrink-0 mt-0.5">
-                                @if($activity->activity_type === 'manual')
-                                    <div class="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center">
-                                        @svg('heroicon-s-pencil', 'w-3 h-3 text-[#ff7a59]')
-                                    </div>
-                                @elseif($activity->name === 'created')
-                                    <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                                        @svg('heroicon-s-plus', 'w-3 h-3 text-green-600')
-                                    </div>
-                                @else
-                                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
-                                        @svg('heroicon-s-cog-6-tooth', 'w-3 h-3 text-gray-400')
-                                    </div>
-                                @endif
-                            </div>
-                            <div class="flex-grow min-w-0">
-                                @if($activity->activityable)
-                                    <p class="text-xs font-medium text-gray-900 truncate">
-                                        @if($activity->activityable instanceof \Platform\Crm\Models\CrmContact)
-                                            {{ $activity->activityable->first_name }} {{ $activity->activityable->last_name }}
-                                        @elseif($activity->activityable instanceof \Platform\Crm\Models\CrmCompany)
-                                            {{ $activity->activityable->display_name }}
-                                        @endif
-                                    </p>
-                                @endif
-                                @if($activity->activity_type === 'manual')
-                                    <p class="text-sm">{{ $activity->message }}</p>
-                                @elseif($activity->name === 'created')
-                                    <p class="text-sm text-gray-400">Erstellt</p>
-                                @elseif($activity->name === 'updated' && is_array($activity->properties))
-                                    <p class="text-sm text-gray-400">
-                                        {{ collect($activity->properties)->keys()->map(fn($k) => str_replace('_', ' ', ucfirst($k)))->implode(', ') }} geändert
-                                    </p>
-                                @else
-                                    <p class="text-sm text-gray-400">{{ $activity->name }}</p>
-                                @endif
-                                <span class="text-xs text-gray-400">
-                                    {{ $activity->user?->name ?? 'System' }} · {{ $activity->created_at->diffForHumans() }}
-                                </span>
-                            </div>
-                        </div>
-                    @empty
-                        <p class="text-sm text-gray-400">Keine Aktivitäten vorhanden.</p>
-                    @endforelse
-                </div>
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
 
     <x-ui-page-container>
 
@@ -349,6 +295,61 @@
                 </div>
             </section>
         </div>
+
+        {{-- Letzte Aktivitäten (Kontakte & Unternehmen) --}}
+        <section class="bg-white rounded-lg border border-gray-200 mt-6">
+            <div class="p-4">
+                <h3 class="text-sm font-semibold text-gray-900 mb-3">Letzte Aktivitäten</h3>
+                <div class="space-y-3">
+                    @forelse($this->recentActivities as $activity)
+                        <div class="flex gap-3">
+                            <div class="flex-shrink-0 mt-0.5">
+                                @if($activity->activity_type === 'manual')
+                                    <div class="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center">
+                                        @svg('heroicon-s-pencil', 'w-3 h-3 text-[#ff7a59]')
+                                    </div>
+                                @elseif($activity->name === 'created')
+                                    <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                                        @svg('heroicon-s-plus', 'w-3 h-3 text-green-600')
+                                    </div>
+                                @else
+                                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
+                                        @svg('heroicon-s-cog-6-tooth', 'w-3 h-3 text-gray-400')
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="flex-grow min-w-0">
+                                @if($activity->activityable)
+                                    <p class="text-xs font-medium text-gray-900 truncate">
+                                        @if($activity->activityable instanceof \Platform\Crm\Models\CrmContact)
+                                            {{ $activity->activityable->first_name }} {{ $activity->activityable->last_name }}
+                                        @elseif($activity->activityable instanceof \Platform\Crm\Models\CrmCompany)
+                                            {{ $activity->activityable->display_name }}
+                                        @endif
+                                    </p>
+                                @endif
+                                @if($activity->activity_type === 'manual')
+                                    <p class="text-sm">{{ $activity->message }}</p>
+                                @elseif($activity->name === 'created')
+                                    <p class="text-sm text-gray-400">Erstellt</p>
+                                @elseif($activity->name === 'updated' && is_array($activity->properties))
+                                    <p class="text-sm text-gray-400">
+                                        {{ collect($activity->properties)->keys()->map(fn($k) => str_replace('_', ' ', ucfirst($k)))->implode(', ') }} geändert
+                                    </p>
+                                @else
+                                    <p class="text-sm text-gray-400">{{ $activity->name }}</p>
+                                @endif
+                                <span class="text-xs text-gray-400">
+                                    {{ $activity->user?->name ?? 'System' }} · {{ $activity->created_at->diffForHumans() }}
+                                </span>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-sm text-gray-400">Keine Aktivitäten vorhanden.</p>
+                    @endforelse
+                </div>
+            </div>
+        </section>
 
     </x-ui-page-container>
 </x-ui-page>

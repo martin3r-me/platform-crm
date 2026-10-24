@@ -118,8 +118,6 @@ class Contact extends Component
         'is_primary' => false,
         'notes' => '',
     ];
-    
-    public string $newNote = '';
 
     // Follow-up Form
     public $followUpForm = [
@@ -158,7 +156,7 @@ class Contact extends Component
 
     public function mount(CrmContact $contact)
     {
-        $this->contact = $contact->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.company', 'activities.user', 'followUps']);
+        $this->contact = $contact->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.company', 'followUps']);
 
         // birth_date in String-Property für Date-Input normalisieren
         $this->birthDate = $this->contact->birth_date?->toDateString();
@@ -910,24 +908,6 @@ class Contact extends Component
     {
         $this->contact->followUps()->where('id', $id)->delete();
         $this->contact->load('followUps');
-    }
-
-    public function addNote(): void
-    {
-        $this->validate(['newNote' => 'required|string|max:1000']);
-        $this->contact->logActivity($this->newNote);
-        $this->newNote = '';
-        $this->contact->load('activities.user');
-    }
-
-    public function deleteNote(int $activityId): void
-    {
-        $this->contact->activities()
-            ->where('id', $activityId)
-            ->where('activity_type', 'manual')
-            ->where('user_id', auth()->id())
-            ->delete();
-        $this->contact->load('activities.user');
     }
 
     // Engagement Methods
