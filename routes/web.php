@@ -17,6 +17,7 @@ use Platform\Crm\Livewire\NewsletterTemplateIndex;
 use Platform\Crm\Livewire\NewsletterTemplate\NewsletterTemplate as NewsletterTemplateShow;
 use Platform\Crm\Livewire\ContactListIndex;
 use Platform\Crm\Livewire\ContactList\ContactList as ContactListShow;
+use Platform\Crm\Livewire\Settings\CompanyType\Index as CompanyTypeIndex;
 
 Route::get('/', Dashboard::class)->name('crm.index');
 Route::get('/dashboard', Dashboard::class)->name('crm.dashboard');
@@ -52,3 +53,6 @@ Route::get('/newsletter-templates/{newsletterTemplate}', NewsletterTemplateShow:
 
 Route::get('/lists', ContactListIndex::class)->name('crm.lists.index');
 Route::get('/lists/{contactList}', ContactListShow::class)->name('crm.lists.show');
+
+// Einstellungen / Stammdaten (Lookups)
+Route::get('/settings/company-types', CompanyTypeIndex::class)->name('crm.settings.company-types.index');

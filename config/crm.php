@@ -18,6 +18,19 @@ return [
         'icon'  => 'heroicon-o-user-group',
         'order' => 30,
     ],
+
+    'sidebar' => [
+        [
+            'group' => 'Einstellungen',
+            'items' => [
+                [
+                    'label' => 'Unternehmens-Typen',
+                    'route' => 'crm.settings.company-types.index',
+                    'icon'  => 'heroicon-o-building-office-2',
+                ],
+            ],
+        ],
+    ],
     'billables' => [
         [
             'model' => \Platform\Crm\Models\CrmContact::class,
