@@ -92,6 +92,24 @@
         </a>
     </div>
 
+    {{-- Abschnitt: Einstellungen / Stammdaten --}}
+    <div>
+        <h4 x-show="!collapsed" class="px-4 py-3 text-xs tracking-wide font-semibold text-gray-400 uppercase">Einstellungen</h4>
+
+        <a href="{{ route('crm.settings.company-types.index') }}"
+           class="relative flex items-center px-3 py-2 my-1 rounded-md font-medium transition"
+           :class="[
+               window.location.pathname.includes('/settings/company-types')
+                   ? 'bg-[#ff7a59] text-white shadow'
+                   : 'text-gray-900 hover:bg-orange-50 hover:text-[#ff7a59]',
+               collapsed ? 'justify-center' : 'gap-3'
+           ]"
+           wire:navigate>
+            <x-heroicon-o-building-office-2 class="w-6 h-6 flex-shrink-0"/>
+            <span x-show="!collapsed" class="truncate">Unternehmens-Typen</span>
+        </a>
+    </div>
+
     {{-- Abschnitt: Schnellzugriff --}}
     <div x-show="!collapsed">
         <h4 class="px-4 py-3 text-xs tracking-wide font-semibold text-gray-400 uppercase">Schnellzugriff</h4>
