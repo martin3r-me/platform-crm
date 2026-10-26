@@ -307,6 +307,11 @@ class CrmServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Crm\Tools\CrmLookupsTool());
             $registry->register(new \Platform\Crm\Tools\GetLookupTool());
 
+            // Lookup-Verwaltung: Company-Typen datengetrieben pflegen (statt Seeder/Enum)
+            $registry->register(new \Platform\Crm\Tools\CreateCompanyTypeTool());
+            $registry->register(new \Platform\Crm\Tools\UpdateCompanyTypeTool());
+            $registry->register(new \Platform\Crm\Tools\DeleteCompanyTypeTool());
+
             // Communication Tools (crm.comms.*)
             $registry->register(new \Platform\Crm\Tools\Comms\CommsOverviewTool());
             $registry->register(new \Platform\Crm\Tools\Comms\ListChannelsTool());
