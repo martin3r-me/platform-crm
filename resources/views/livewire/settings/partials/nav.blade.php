@@ -3,6 +3,7 @@
     $gruppen = [
         'Stammdaten' => [
             ['key' => 'company-types', 'label' => 'Unternehmens-Typen', 'icon' => 'heroicon-o-building-office-2', 'route' => 'crm.settings.company-types.index'],
+            ['key' => 'segments', 'label' => 'Segmente', 'icon' => 'heroicon-o-squares-2x2', 'route' => 'crm.settings.segments.index'],
         ],
     ];
 

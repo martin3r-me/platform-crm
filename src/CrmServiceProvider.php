@@ -312,6 +312,11 @@ class CrmServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Crm\Tools\UpdateCompanyTypeTool());
             $registry->register(new \Platform\Crm\Tools\DeleteCompanyTypeTool());
 
+            // Lookup-Verwaltung: Segmente (Segmentierung / Verticals) datengetrieben pflegen
+            $registry->register(new \Platform\Crm\Tools\CreateSegmentTool());
+            $registry->register(new \Platform\Crm\Tools\UpdateSegmentTool());
+            $registry->register(new \Platform\Crm\Tools\DeleteSegmentTool());
+
             // Communication Tools (crm.comms.*)
             $registry->register(new \Platform\Crm\Tools\Comms\CommsOverviewTool());
             $registry->register(new \Platform\Crm\Tools\Comms\ListChannelsTool());
