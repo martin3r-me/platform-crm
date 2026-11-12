@@ -4,6 +4,7 @@
         'Stammdaten' => [
             ['key' => 'company-types', 'label' => 'Unternehmens-Typen', 'icon' => 'heroicon-o-building-office-2', 'route' => 'crm.settings.company-types.index'],
             ['key' => 'segments', 'label' => 'Segmente', 'icon' => 'heroicon-o-squares-2x2', 'route' => 'crm.settings.segments.index'],
+            ['key' => 'contact-sources', 'label' => 'Kontakt-Quellen', 'icon' => 'heroicon-o-arrow-down-tray', 'route' => 'crm.settings.contact-sources.index'],
         ],
     ];
 

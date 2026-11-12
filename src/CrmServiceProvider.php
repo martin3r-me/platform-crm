@@ -317,6 +317,11 @@ class CrmServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Crm\Tools\UpdateSegmentTool());
             $registry->register(new \Platform\Crm\Tools\DeleteSegmentTool());
 
+            // Lookup-Verwaltung: Kontakt-Quellen datengetrieben pflegen
+            $registry->register(new \Platform\Crm\Tools\CreateContactSourceTool());
+            $registry->register(new \Platform\Crm\Tools\UpdateContactSourceTool());
+            $registry->register(new \Platform\Crm\Tools\DeleteContactSourceTool());
+
             // Communication Tools (crm.comms.*)
             $registry->register(new \Platform\Crm\Tools\Comms\CommsOverviewTool());
             $registry->register(new \Platform\Crm\Tools\Comms\ListChannelsTool());

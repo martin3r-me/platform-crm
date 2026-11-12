@@ -83,6 +83,11 @@ class CrmLookupsTool implements ToolContract, ToolMetadataContract
                     'tool' => 'crm.lookup.GET',
                 ],
                 [
+                    'key' => 'contact_sources',
+                    'description' => 'Kontakt-Quellen / Herkunft (mandantenspezifisch, pflegbar via crm.contact_sources.*)',
+                    'tool' => 'crm.lookup.GET',
+                ],
+                [
                     'key' => 'countries',
                     'description' => 'Länder (ISO2 code)',
                     'tool' => 'crm.lookup.GET',
