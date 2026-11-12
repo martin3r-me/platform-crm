@@ -19,18 +19,9 @@ return [
         'order' => 30,
     ],
 
-    'sidebar' => [
-        [
-            'group' => 'Einstellungen',
-            'items' => [
-                [
-                    'label' => 'Unternehmens-Typen',
-                    'route' => 'crm.settings.company-types.index',
-                    'icon'  => 'heroicon-o-building-office-2',
-                ],
-            ],
-        ],
-    ],
+    // Hinweis: Die linke Modul-Navigation rendert über resources/views/livewire/
+    // sidebar.blade.php, NICHT über eine 'sidebar'-Config. Daher hier bewusst
+    // kein 'sidebar'-Key – Navigationseinträge gehören in die sidebar.blade.php.
     'billables' => [
         [
             'model' => \Platform\Crm\Models\CrmContact::class,
