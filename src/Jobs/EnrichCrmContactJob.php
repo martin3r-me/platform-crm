@@ -96,6 +96,7 @@ class EnrichCrmContactJob implements ShouldQueue
             $messages = $this->buildMessages($contact, $threadData);
 
             $result = $runner->run($messages, $model, $toolContext, [
+                'provider' => 'anthropic',
                 'max_iterations' => 10,
                 'max_output_tokens' => 1000,
                 'include_web_search' => false,
