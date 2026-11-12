@@ -88,6 +88,24 @@
                     @error('company.company_type_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
 
+                {{-- Segmente (Mehrfachauswahl) --}}
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-500 mb-1">Segmente</label>
+                    @if(count($allSegments) === 0)
+                        <p class="text-[12px] text-gray-400">Noch keine Segmente angelegt – unter Einstellungen → Segmente pflegbar.</p>
+                    @else
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($allSegments as $seg)
+                                <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[12px] cursor-pointer transition-colors {{ in_array((string) $seg->id, $selectedSegmentIds) ? 'border-[#ff7a59] bg-orange-50 text-[#ff7a59]' : 'border-gray-300 bg-white text-gray-700 hover:border-[#ff7a59]' }}">
+                                    <input type="checkbox" value="{{ $seg->id }}" wire:model.live="selectedSegmentIds" class="sr-only">
+                                    <span>{{ $seg->name }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    @endif
+                    @error('selectedSegmentIds') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
+
                 {{-- Follow-ups --}}
                 <div>
                     <h4 class="text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">Wiedervorlagen</h4>

@@ -30,6 +30,7 @@ class CrmContact extends Model implements ContactInterface
         'academic_title_id',
         'gender_id',
         'language_id',
+        'contact_source_id',
         'contact_status_id',
         'created_by_user_id',
         'owned_by_user_id',
@@ -79,7 +80,12 @@ class CrmContact extends Model implements ContactInterface
     {
         return $this->belongsTo(CrmLanguage::class, 'language_id');
     }
-    
+
+    public function contactSource(): BelongsTo
+    {
+        return $this->belongsTo(CrmContactSource::class, 'contact_source_id');
+    }
+
     public function contactStatus(): BelongsTo
     {
         return $this->belongsTo(CrmContactStatus::class, 'contact_status_id');

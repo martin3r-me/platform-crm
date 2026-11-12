@@ -35,6 +35,8 @@ class Company extends Component
     // Properties für die rechte Spalte
     public $contactStatuses;
     public $companyTypes = [];
+    public $allSegments = [];
+    public $selectedSegmentIds = [];
     public $emailTypes = [];
     public $phoneTypes = [];
     public $addressTypes = [];
@@ -156,18 +158,22 @@ class Company extends Component
         'company.legal_form_id' => 'nullable|integer|exists:crm_legal_forms,id',
         'company.contact_status_id' => 'required|integer|exists:crm_contact_statuses,id',
         'company.company_type_id' => 'nullable|integer|exists:crm_company_types,id',
+        'selectedSegmentIds' => 'array',
+        'selectedSegmentIds.*' => 'integer|exists:crm_segments,id',
     ];
 
     public function mount(CrmCompany $company = null, $mode = 'show')
     {
         if ($company) {
-            $this->company = $company->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.contact', 'followUps']);
+            $this->company = $company->load(['phoneNumbers', 'emailAddresses', 'postalAddresses', 'contactRelations.contact', 'followUps', 'segments']);
+            $this->selectedSegmentIds = $this->company->segments->pluck('id')->map(fn ($id) => (string) $id)->toArray();
         }
         $this->mode = $mode;
-        
+
         // Daten für die rechte Spalte laden
         $this->contactStatuses = \Platform\Crm\Models\CrmContactStatus::active()->get();
         $this->companyTypes = \Platform\Crm\Models\CrmCompanyType::active()->get();
+        $this->allSegments = \Platform\Crm\Models\CrmSegment::active()->orderBy('name')->get();
         $this->emailTypes = CrmEmailType::active()->get();
         $this->phoneTypes = CrmPhoneType::active()->get();
         $this->addressTypes = CrmAddressType::active()->get();
@@ -253,6 +259,12 @@ class Company extends Component
         $this->validate();
 
         $this->company->save();
+
+        // Segment-Mehrfachzuordnung synchronisieren
+        if ($this->company->exists) {
+            $this->company->segments()->sync($this->selectedSegmentIds);
+            $this->company->load('segments');
+        }
 
         session()->flash('message', 'Unternehmen erfolgreich aktualisiert.');
     }

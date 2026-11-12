@@ -12,6 +12,7 @@ use Platform\Crm\Models\CrmSalutation;
 use Platform\Crm\Models\CrmAcademicTitle;
 use Platform\Crm\Models\CrmGender;
 use Platform\Crm\Models\CrmLanguage;
+use Platform\Crm\Models\CrmContactSource;
 use Platform\Crm\Models\CrmContactStatus;
 use Platform\Crm\Models\CrmPhoneNumber;
 use Platform\Crm\Models\CrmEmailAddress;
@@ -51,6 +52,7 @@ class Contact extends Component
     public $academicTitles = [];
     public $genders = [];
     public $languages = [];
+    public $contactSources = [];
     public $contactStatuses = [];
     public $emailTypes = [];
     public $addressTypes = [];
@@ -166,6 +168,7 @@ class Contact extends Component
         $this->academicTitles = CrmAcademicTitle::active()->get();
         $this->genders = CrmGender::active()->get();
         $this->languages = CrmLanguage::active()->get();
+        $this->contactSources = CrmContactSource::active()->orderBy('name')->get();
         $this->contactStatuses = CrmContactStatus::active()->get();
         $this->emailTypes = CrmEmailType::active()->get();
         $this->addressTypes = CrmAddressType::active()->get();
@@ -274,6 +277,7 @@ class Contact extends Component
             'contact.academic_title_id' => 'nullable|integer|exists:crm_academic_titles,id',
             'contact.gender_id' => 'nullable|integer|exists:crm_genders,id',
             'contact.language_id' => 'nullable|integer|exists:crm_languages,id',
+            'contact.contact_source_id' => 'nullable|integer|exists:crm_contact_sources,id',
             'contact.contact_status_id' => 'required|integer|exists:crm_contact_statuses,id',
         ];
     }

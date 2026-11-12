@@ -108,6 +108,12 @@ class CrmCompany extends Model implements CompanyInterface
         return $this->belongsTo(CrmCompanyType::class, 'company_type_id');
     }
 
+    public function segments(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(CrmSegment::class, 'crm_company_segment', 'company_id', 'segment_id')
+            ->withTimestamps();
+    }
+
     public function country(): BelongsTo
     {
         return $this->belongsTo(CrmCountry::class, 'country_id');
